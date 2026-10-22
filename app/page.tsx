@@ -9,6 +9,7 @@ export default function Home() {
   const [masterName, setMasterName] = useState<string>('');
   const [showNameModal, setShowNameModal] = useState<boolean>(false);
   const [inputName, setInputName] = useState<string>('');
+  const [bgImage, setBgImage] = useState<string>('/home-bg.jpg'); // 初期背景
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 初回訪問の判定 ＆ ローカルストレージから主様のお名前を読み込む
@@ -17,7 +18,6 @@ export default function Home() {
     if (savedName) {
       setMasterName(savedName);
     } else {
-      // 初めて訪れた場合、お名前入力モーダルを表示する
       setShowNameModal(true);
     }
   }, []);
@@ -41,7 +41,7 @@ export default function Home() {
     }
   };
 
-  // 期間と時間の自動判定
+  // 時間帯判定（背景画像の切り替え ＆ 暖炉の自動再生判定）
   useEffect(() => {
     const checkEnvironment = () => {
       const now = new Date();
@@ -49,7 +49,16 @@ export default function Home() {
       const date = now.getDate();
       const hours = now.getHours();
 
-      // 1. 期間判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
+      // 🌅 🌄 背景画像の時間判定
+      // 6:00 〜 16:59 ➔ 朝の部屋 (home-bg-morning.jpg)
+      // 17:00 〜 5:59 ➔ 夜の部屋 (home-bg-night.jpg)
+      if (hours >= 6 && hours < 17) {
+        setBgImage('/home-bg-morning.jpg');
+      } else {
+        setBgImage('/home-bg-night.jpg');
+      }
+
+      // 1. 暖炉の季節判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
       let isSeason = false;
       if (month > 8 || month < 2) {
         isSeason = true;
@@ -59,7 +68,7 @@ export default function Home() {
         isSeason = true;
       }
 
-      // 2. 時間判定：17:00 〜 07:00
+      // 2. 暖炉の時間判定：17:00 〜 07:00
       const isTime = hours >= 17 || hours < 7;
 
       const shouldPlay = isSeason && isTime;
@@ -123,12 +132,12 @@ export default function Home() {
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
       <div
-        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
-        style={{ backgroundImage: "url('/home-bg.jpg')" }}
+        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-all duration-1000"
+        style={{ backgroundImage: `url('${bgImage}')` }}
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌹 初回訪問時のお名前入力モーダル（ウェルカム画面） */}
+        {/* 🌹 初回訪問時のお名前入力モーダル */}
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -147,7 +156,7 @@ export default function Home() {
               <form onSubmit={handleSaveInitialName} className="flex flex-col items-center gap-4">
                 <input
                   type="text"
-                  placeholder="お名前（例：万柚子）"
+                  placeholder="お名前を入力してください"
                   value={inputName}
                   onChange={(e) => setInputName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg bg-[#2B0C12] border border-[#BB8632]/60 text-[#F3ECD8] placeholder-[#F3ECD8]/40 text-center text-sm focus:outline-none focus:border-[#BB8632]"
@@ -230,7 +239,6 @@ export default function Home() {
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
           >
-            
             <Link href="/timer" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
