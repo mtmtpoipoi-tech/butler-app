@@ -33,21 +33,19 @@ export default function Home() {
         className="min-h-screen flex flex-col items-center justify-between p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: "url('/home-bg.jpg')" }}
       >
-        {/* ゴシック調の深みを生かすための半透明オーバーレイ */}
         <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
 
         {/* ヘルパー・上部装飾 */}
         <div className="relative z-10 w-full max-w-lg text-center pt-8">
           <p className="text-xs sm:text-sm tracking-[0.3em] text-[#BB8632] mb-2">THE BUTLER'S MANOR</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
-            執事の邸宅
+            主の邸宅
           </h1>
         </div>
 
         {/* 中央：執事からのウェルカムメッセージ ＆ メニュー */}
         <div className="relative z-10 w-full max-w-md flex flex-col gap-6 my-auto">
           
-          {/* ウェルカムメッセージ枠 */}
           <div 
             className="rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
@@ -56,14 +54,14 @@ export default function Home() {
               執事よりのご挨拶
             </p>
             <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8]">
-              「おかえりなさいませ、主様。本日はどの空間へ赴かれますか？ 私がいつでもお供いたします。」
+              「おかえりなさいませ、主様。お待ちしておりました。」
             </p>
           </div>
 
-          {/* 各機能への扉（メニューボタン群） */}
+          {/* メニューボタン群 */}
           <div className="flex flex-col gap-3">
             
-            {/* 1. 執事タイマーへのリンク */}
+            {/* 1. 集中タイマー */}
             <Link href="/timer" className="w-full">
               <button 
                 className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
@@ -78,21 +76,22 @@ export default function Home() {
               </button>
             </Link>
 
-            {/* 2. 今後追加する機能のプレースホルダー（例：記録・統計など） */}
-            <button 
-              onClick={() => alert('「主様、こちらの空間は現在準備中でございます。今後の拡張をどうぞお楽しみに。」')}
-              className="gothic-btn w-full py-3.5 px-6 rounded-xl text-base font-medium tracking-wider flex items-center justify-between border opacity-80 hover:opacity-100"
-              style={{
-                background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)',
-                color: '#F3ECD8',
-                borderColor: 'rgba(187, 134, 50, 0.4)'
-              }}
-            >
-              <span>📜 本日の記録・執事の日記（準備中）</span>
-              <span className="text-xs opacity-60">近日公開</span>
-            </button>
+            {/* 2. アラーム機能 */}
+            <Link href="/alarm" className="w-full">
+              <button 
+                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
+                style={{
+                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
+                  color: '#F3ECD8',
+                  borderColor: '#BB8632'
+                }}
+              >
+                <span>🔔 執事のアラーム</span>
+                <span className="text-sm opacity-80">入室する →</span>
+              </button>
+            </Link>
 
-            {/* 3. ティーサロン（今後追加用） */}
+            {/* 3. ティーサロン（準備中） */}
             <button 
               onClick={() => alert('「主様、ティーサロンの設えはまもなく完了いたします。」')}
               className="gothic-btn w-full py-3.5 px-6 rounded-xl text-base font-medium tracking-wider flex items-center justify-between border opacity-80 hover:opacity-100"
@@ -109,7 +108,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* フッター */}
         <div className="relative z-10 pb-4 text-center">
           <p className="text-xs tracking-widest text-[#BB8632]/70">
             © 2026 Butler Productivity Manor
