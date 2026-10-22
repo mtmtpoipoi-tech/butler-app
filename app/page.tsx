@@ -89,8 +89,8 @@ export default function Home() {
         }
       `}</style>
 
-      {/* 焚き火の音声（ループ再生） */}
-      <audio ref={audioRef} src="/fireplace.mp3" loop />
+      {/* 焚き火の音声（MP4に変更） */}
+      <audio ref={audioRef} src="/fireplace.mp4" loop />
 
       <div
         className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
