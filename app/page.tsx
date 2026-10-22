@@ -86,7 +86,7 @@ export default function Home() {
               </button>
             </Link>
 
-            {/* 3. 執事の日記 */}
+            {/* 3. 日記帳 */}
             <Link href="/journal" className="w-full">
               <button 
                 className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
@@ -101,7 +101,22 @@ export default function Home() {
               </button>
             </Link>
 
-            {/* 4. ティーサロン（準備中） */}
+            {/* 4. スケジュール帳 ＆ カレンダー連携 */}
+            <Link href="/calendar" className="w-full">
+              <button 
+                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
+                style={{
+                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
+                  color: '#F3ECD8',
+                  borderColor: '#BB8632'
+                }}
+              >
+                <span>📅 執事のスケジュール帳</span>
+                <span className="text-sm opacity-80">開く →</span>
+              </button>
+            </Link>
+
+            {/* 5. ティーサロン（準備中） */}
             <button 
               onClick={() => alert('「主様、ティーサロンの設えはまもなく完了いたします。」')}
               className="gothic-btn w-full py-3.5 px-6 rounded-xl text-base font-medium tracking-wider flex items-center justify-between border opacity-80 hover:opacity-100"
