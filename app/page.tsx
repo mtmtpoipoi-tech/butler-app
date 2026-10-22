@@ -89,7 +89,7 @@ export default function Home() {
         }
       `}</style>
 
-      {/* 焚き火の音声（MP4に変更） */}
+      {/* 焚き火の音声（MP4） */}
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
       <div
@@ -98,21 +98,35 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 上部：タイトル ＆ 暖炉の状態表示 */}
+        {/* 上部：タイトル ＆ 暖炉のスライドスイッチ */}
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
           <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-3">
             主の邸宅
           </h1>
 
-          {/* 焚き火の雰囲気を伝える優雅なインジケーター ＆ 手動スイッチ */}
-          <button
-            onClick={toggleFireSound}
-            className="text-xs px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-[#F3ECD8] hover:bg-[#6B212B] transition flex items-center gap-1.5 shadow-md"
-          >
-            <span>{isPlayingFire ? '🔥 暖炉の火が燃えております（音：ON）' : '🕯️ 暖炉を静かに見つめる（音：OFF）'}</span>
-            {isAutoTime && <span className="text-[10px] text-[#BB8632] font-bold">（夜長モード適用中）</span>}
-          </button>
+          {/* 暖炉の音のON/OFFスライドスイッチ */}
+          <div className="px-4 py-1.5 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-3">
+            <span className="text-xs text-[#F3ECD8]">
+              {isPlayingFire ? '🔥 暖炉の火が燃えております' : '🕯️ 暖炉を静かに見つめる'}
+            </span>
+            <button
+              type="button"
+              onClick={toggleFireSound}
+              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'
+              }`}
+              role="switch"
+              aria-checked={isPlayingFire}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[#F3ECD8] shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  isPlayingFire ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            {isAutoTime && <span className="text-[10px] text-[#BB8632] font-bold">（夜長モード）</span>}
+          </div>
         </div>
 
         {/* 中央：執事からのウェルカムメッセージ */}
@@ -149,12 +163,13 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </Link>
 
+            {/* アラーム（新しいベルの画像を使用） */}
             <Link href="/alarm" className="flex flex-col items-center group">
               <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl"
-                style={{ backgroundColor: '#4A171F', borderColor: '#BB8632', color: '#F3ECD8' }}
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
+                style={{ borderColor: '#BB8632' }}
               >
-                🔔
+                <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
