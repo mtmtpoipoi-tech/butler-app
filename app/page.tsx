@@ -13,130 +13,116 @@ export default function Home() {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         }
 
-        .gothic-btn {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+        .gothic-dock-item {
           transition: all 0.3s ease-in-out;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
         }
         
-        .gothic-btn:hover {
-          filter: brightness(1.2);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(187, 134, 50, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.4);
-        }
-
-        .gothic-btn:active {
-          transform: translateY(1px);
+        .gothic-dock-item:hover {
+          transform: translateY(-4px);
+          filter: brightness(1.15);
+          box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
         }
       `}</style>
 
       <div
-        className="min-h-screen flex flex-col items-center justify-between p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
+        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: "url('/home-bg.jpg')" }}
       >
-        <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+        {/* 背景の美しさを引き立てる控えめなオーバーレイ */}
+        <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        <div className="relative z-10 w-full max-w-lg text-center pt-8">
-          <p className="text-xs sm:text-sm tracking-[0.3em] text-[#BB8632] mb-2">THE BUTLER'S MANOR</p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+        {/* 上部：タイトル・装飾 */}
+        <div className="relative z-10 w-full max-w-lg text-center pt-6">
+          <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
             主の邸宅
           </h1>
         </div>
 
-        <div className="relative z-10 w-full max-w-md flex flex-col gap-6 my-auto">
+        {/* 中央：執事からのウェルカムメッセージのみ（すっきりとした配置） */}
+        <div className="relative z-10 w-full max-w-sm my-auto">
           <div 
-            className="rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center border"
+            className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
           >
-            <p className="text-xs font-semibold mb-2 tracking-widest text-[#BB8632]">
+            <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
               執事よりのご挨拶
             </p>
-            <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8]">
-              「おかえりなさいませ、主様。お待ちしておりました。」
+            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
+              「おかえりなさいませ、主様。本日はどの空間へ赴かれますか？」
             </p>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-3">
-            {/* 1. 集中タイマー */}
-            <Link href="/timer" className="w-full">
-              <button 
-                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
-                style={{
-                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
-                  color: '#F3ECD8',
-                  borderColor: '#BB8632'
-                }}
+        {/* 下部：アイコンが並ぶアンティーク・ドック（メニューバー） */}
+        <div className="relative z-10 w-full max-w-md pb-4">
+          <div 
+            className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
+            style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
+          >
+            
+            {/* 1. タイマー（砂時計画像アイコン） */}
+            <Link href="/timer" className="flex flex-col items-center group">
+              <div 
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
+                style={{ borderColor: '#BB8632' }}
               >
-                <span>⏳ 執事の集中タイマー</span>
-                <span className="text-sm opacity-80">入室する →</span>
-              </button>
+                <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </Link>
 
-            {/* 2. アラーム機能 */}
-            <Link href="/alarm" className="w-full">
-              <button 
-                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
-                style={{
-                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
-                  color: '#F3ECD8',
-                  borderColor: '#BB8632'
-                }}
+            {/* 2. アラーム（ゴシック調ベルアイコン） */}
+            <Link href="/alarm" className="flex flex-col items-center group">
+              <div 
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl"
+                style={{ backgroundColor: '#4A171F', borderColor: '#BB8632', color: '#F3ECD8' }}
               >
-                <span>🔔 執事のアラーム</span>
-                <span className="text-sm opacity-80">入室する →</span>
-              </button>
+                🔔
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
 
-            {/* 3. 日記帳 */}
-            <Link href="/journal" className="w-full">
-              <button 
-                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
-                style={{
-                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
-                  color: '#F3ECD8',
-                  borderColor: '#BB8632'
-                }}
+            {/* 3. 日記帳（革の本画像アイコン） */}
+            <Link href="/journal" className="flex flex-col items-center group">
+              <div 
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
+                style={{ borderColor: '#BB8632' }}
               >
-                <span>📜 執事の日記帳</span>
-                <span className="text-sm opacity-80">開く →</span>
-              </button>
+                <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </Link>
 
-            {/* 4. スケジュール帳 ＆ カレンダー連携 */}
-            <Link href="/calendar" className="w-full">
-              <button 
-                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
-                style={{
-                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
-                  color: '#F3ECD8',
-                  borderColor: '#BB8632'
-                }}
+            {/* 4. スケジュール帳（カレンダーアイコン） */}
+            <Link href="/calendar" className="flex flex-col items-center group">
+              <div 
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl"
+                style={{ backgroundColor: '#4A171F', borderColor: '#BB8632', color: '#F3ECD8' }}
               >
-                <span>📅 執事のスケジュール帳</span>
-                <span className="text-sm opacity-80">開く →</span>
-              </button>
+                📅
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </Link>
 
             {/* 5. ティーサロン（準備中） */}
             <button 
               onClick={() => alert('「主様、ティーサロンの設えはまもなく完了いたします。」')}
-              className="gothic-btn w-full py-3.5 px-6 rounded-xl text-base font-medium tracking-wider flex items-center justify-between border opacity-80 hover:opacity-100"
-              style={{
-                background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)',
-                color: '#F3ECD8',
-                borderColor: 'rgba(187, 134, 50, 0.4)'
-              }}
+              className="flex flex-col items-center group cursor-pointer"
             >
-              <span>☕ ティーサロン・息抜き（準備中）</span>
-              <span className="text-xs opacity-60">近日公開</span>
+              <div 
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl opacity-80"
+                style={{ backgroundColor: '#310F14', borderColor: 'rgba(187, 134, 50, 0.5)', color: '#F3ECD8' }}
+              >
+                ☕
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8]/70 group-hover:text-[#BB8632] transition">サロン</span>
             </button>
+
           </div>
         </div>
 
-        <div className="relative z-10 pb-4 text-center">
-          <p className="text-xs tracking-widest text-[#BB8632]/70">
-            © 2026 Butler Productivity Manor
-          </p>
-        </div>
       </div>
     </>
   );
