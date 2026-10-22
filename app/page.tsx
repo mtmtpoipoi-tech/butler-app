@@ -1,9 +1,73 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
+  const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
+  const [isAutoTime, setIsAutoTime] = useState<boolean>(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 期間と時間の自動判定
+  useEffect(() => {
+    const checkEnvironment = () => {
+      const now = new Date();
+      const month = now.getMonth(); // 0:1月 〜 11:12月 (8:9月, 2:3月)
+      const date = now.getDate();
+      const hours = now.getHours();
+
+      // 1. 期間判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
+      let isSeason = false;
+      if (month > 8 || month < 2) {
+        isSeason = true; // 10月〜2月は常に該当
+      } else if (month === 8 && date >= 23) {
+        isSeason = true; // 9月23日以降
+      } else if (month === 2 && date <= 21) {
+        isSeason = true; // 3月21日まで
+      }
+
+      // 2. 時間判定：17:00 〜 07:00
+      const isTime = hours >= 17 || hours < 7;
+
+      const shouldPlay = isSeason && isTime;
+      setIsAutoTime(shouldPlay);
+
+      // 条件を満たしており、まだ再生していなければ自動再生を試みる
+      if (shouldPlay && audioRef.current && !isPlayingFire) {
+        audioRef.current.play().then(() => {
+          setIsPlayingFire(true);
+        }).catch(() => {
+          // ブラウザの自動再生ブロック時はユーザー操作を待つ
+          setIsPlayingFire(false);
+        });
+      } else if (!shouldPlay && isPlayingFire) {
+        // 条件時間外になったら自動で止める
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+        setIsPlayingFire(false);
+      }
+    };
+
+    checkEnvironment();
+    const timer = setInterval(checkEnvironment, 30000); // 30秒ごとにチェック
+    return () => clearInterval(timer);
+  }, [isPlayingFire]);
+
+  // 手動で焚き火の音をON/OFFするスイッチ
+  const toggleFireSound = () => {
+    if (audioRef.current) {
+      if (isPlayingFire) {
+        audioRef.current.pause();
+        setIsPlayingFire(false);
+      } else {
+        audioRef.current.play().then(() => {
+          setIsPlayingFire(true);
+        }).catch(() => {});
+      }
+    }
+  };
+
   return (
     <>
       <style jsx global>{`
@@ -25,22 +89,33 @@ export default function Home() {
         }
       `}</style>
 
+      {/* 焚き火の音声（ループ再生） */}
+      <audio ref={audioRef} src="/fireplace.mp3" loop />
+
       <div
         className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: "url('/home-bg.jpg')" }}
       >
-        {/* 背景の美しさを引き立てる控えめなオーバーレイ */}
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 上部：タイトル・装飾 */}
-        <div className="relative z-10 w-full max-w-lg text-center pt-6">
+        {/* 上部：タイトル ＆ 暖炉の状態表示 */}
+        <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
           <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
             主の邸宅
           </h1>
+
+          {/* 焚き火の雰囲気を伝える優雅なインジケーター ＆ 手動スイッチ */}
+          <button
+            onClick={toggleFireSound}
+            className="text-xs px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-[#F3ECD8] hover:bg-[#6B212B] transition flex items-center gap-1.5 shadow-md"
+          >
+            <span>{isPlayingFire ? '🔥 暖炉の火が燃えております（音：ON）' : '🕯️ 暖炉を静かに見つめる（音：OFF）'}</span>
+            {isAutoTime && <span className="text-[10px] text-[#BB8632] font-bold">（夜長モード適用中）</span>}
+          </button>
         </div>
 
-        {/* 中央：執事からのウェルカムメッセージのみ（すっきりとした配置） */}
+        {/* 中央：執事からのウェルカムメッセージ */}
         <div className="relative z-10 w-full max-w-sm my-auto">
           <div 
             className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
@@ -50,19 +125,20 @@ export default function Home() {
               執事よりのご挨拶
             </p>
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
-              「おかえりなさいませ、主様。本日はどの空間へ赴かれますか？」
+              {isAutoTime 
+                ? '「お部屋の暖炉に心地よい火を灯しております。どうぞ温まりながらお過ごしくださいませ。」' 
+                : '「おかえりなさいませ、主様。本日はどの空間へ赴かれますか？」'}
             </p>
           </div>
         </div>
 
-        {/* 下部：アイコンが並ぶアンティーク・ドック（メニューバー） */}
+        {/* 下部：アイコンが並ぶアンティーク・ドック */}
         <div className="relative z-10 w-full max-w-md pb-4">
           <div 
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
           >
             
-            {/* 1. タイマー（砂時計画像アイコン） */}
             <Link href="/timer" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
@@ -73,7 +149,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </Link>
 
-            {/* 2. アラーム（ゴシック調ベルアイコン） */}
             <Link href="/alarm" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl"
@@ -84,7 +159,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
 
-            {/* 3. 日記帳（革の本画像アイコン） */}
             <Link href="/journal" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
@@ -95,7 +169,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </Link>
 
-            {/* 4. スケジュール帳（カレンダーアイコン） */}
             <Link href="/calendar" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl"
@@ -106,7 +179,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </Link>
 
-            {/* 5. ティーサロン（準備中） */}
             <button 
               onClick={() => alert('「主様、ティーサロンの設えはまもなく完了いたします。」')}
               className="flex flex-col items-center group cursor-pointer"
