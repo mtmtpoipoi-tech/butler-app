@@ -6,20 +6,34 @@ import Link from 'next/link';
 export default function Home() {
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
   const [isAutoTime, setIsAutoTime] = useState<boolean>(false);
-  const [masterName, setMasterName] = useState<string>('主');
+  const [masterName, setMasterName] = useState<string>('');
+  const [showNameModal, setShowNameModal] = useState<boolean>(false);
+  const [inputName, setInputName] = useState<string>('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // ローカルストレージから主様のお名前を読み込む（ハイドレーションエラー対策）
+  // 初回訪問の判定 ＆ ローカルストレージから主様のお名前を読み込む
   useEffect(() => {
     const savedName = localStorage.getItem('butler_master_name');
     if (savedName) {
       setMasterName(savedName);
+    } else {
+      // 初めて訪れた場合、お名前入力モーダルを表示する
+      setShowNameModal(true);
     }
   }, []);
 
-  // お名前を変更する関数
+  // 初回お名前登録時の処理
+  const handleSaveInitialName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nameToSave = inputName.trim() || '主';
+    setMasterName(nameToSave);
+    localStorage.setItem('butler_master_name', nameToSave);
+    setShowNameModal(false);
+  };
+
+  // 後からお名前を変更する処理
   const handleChangeName = () => {
-    const newName = window.prompt('執事がお呼びするお名前（主様のお名前）を入力してくださいませ：', masterName);
+    const newName = window.prompt('執事がお呼びするお名前（主様のお名前）を入力してくださいませ：', masterName || '主');
     if (newName && newName.trim() !== '') {
       const trimmed = newName.trim();
       setMasterName(trimmed);
@@ -89,7 +103,7 @@ export default function Home() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
         
-        body, button, p, span, h1, h2, div {
+        body, button, p, span, h1, h2, div, input {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         }
 
@@ -114,21 +128,59 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
+        {/* 🌹 初回訪問時のお名前入力モーダル（ウェルカム画面） */}
+        {showNameModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl border text-center relative"
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
+            >
+              <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-2">WELCOME TO MANOR</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F3ECD8] mb-4">
+                ようこそ、主のお屋敷へ
+              </h2>
+              <p className="text-xs sm:text-sm text-[#F3ECD8]/90 leading-relaxed italic mb-6">
+                「はじめまして。私はこの邸宅でお仕えする執事でございます。<br />
+                執事としてお仕えするにあたり、お名前をお伺いしてもよろしいでしょうか？」
+              </p>
+
+              <form onSubmit={handleSaveInitialName} className="flex flex-col items-center gap-4">
+                <input
+                  type="text"
+                  placeholder="お名前（例：万柚子）"
+                  value={inputName}
+                  onChange={(e) => setInputName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg bg-[#2B0C12] border border-[#BB8632]/60 text-[#F3ECD8] placeholder-[#F3ECD8]/40 text-center text-sm focus:outline-none focus:border-[#BB8632]"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg"
+                >
+                  邸宅に入る
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* 上部：タイトル ＆ お名前変更ボタン ＆ 暖炉スイッチ */}
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-xs tracking-[0.3em] text-[#BB8632]">THE BUTLER'S MANOR</p>
-            <button
-              onClick={handleChangeName}
-              className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#310F14] text-[#BB8632] hover:bg-[#561B24] transition"
-              title="お名前を変更する"
-            >
-              ✏️ 変更: {masterName}様
-            </button>
+            {masterName && (
+              <button
+                onClick={handleChangeName}
+                className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#310F14] text-[#BB8632] hover:bg-[#561B24] transition"
+                title="お名前を変更する"
+              >
+                ✏️ 変更: {masterName}様
+              </button>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-3">
-            {masterName}様の邸宅
+            {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
           {/* 暖炉の音のON/OFFスライドスイッチ */}
@@ -166,8 +218,8 @@ export default function Home() {
             </p>
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
               {isAutoTime 
-                ? `「お部屋の暖炉に心地よい火を灯しております、${masterName}様。どうぞ温まりながらお過ごしくださいませ。」` 
-                : `「おかえりなさいませ、${masterName}様。本日はどの空間へ赴かれますか？」`}
+                ? `「お部屋の暖炉に心地よい火を灯しております、${masterName || '主'}様。どうぞ温まりながらお過ごしくださいませ。」` 
+                : `「おかえりなさいませ、${masterName || '主'}様。本日はどの空間へ赴かれますか？」`}
             </p>
           </div>
         </div>
@@ -220,7 +272,7 @@ export default function Home() {
             </Link>
 
             <button 
-              onClick={() => alert(`「${masterName}様、ティーサロンの設えはまもなく完了いたします。」`)}
+              onClick={() => alert(`「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
               className="flex flex-col items-center group cursor-pointer"
             >
               <div 
