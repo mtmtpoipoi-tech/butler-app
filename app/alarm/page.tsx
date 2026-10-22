@@ -17,7 +17,6 @@ export default function AlarmPage() {
     { id: '1', type: 'wake', time: '07:00', label: '起床', isRinging: false },
   ]);
 
-  // 新規追加用フォームの状態
   const [formType, setFormType] = useState<'wake' | 'schedule'>('wake');
   const [formTime, setFormTime] = useState<string>('08:00');
   const [formLabel, setFormLabel] = useState<string>('');
@@ -28,7 +27,6 @@ export default function AlarmPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 現在時刻の更新とアラーム監視
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -40,7 +38,6 @@ export default function AlarmPage() {
 
       setCurrentTime(fullStr);
 
-      // アラーム判定
       setAlarms((prevAlarms) => {
         let triggered = false;
         const updated = prevAlarms.map((alarm) => {
@@ -67,7 +64,6 @@ export default function AlarmPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // アラーム追加処理
   const handleAddAlarm = (e: React.FormEvent) => {
     e.preventDefault();
     const newAlarm: AlarmItem = {
@@ -83,7 +79,6 @@ export default function AlarmPage() {
     setButlerMessage(`「かしこまりました。[${formTime}] に${formType === 'wake' ? '起床用' : '予定用'}のアラームを追加いたしました。」`);
   };
 
-  // アラーム削除処理（確認ダイアログ付き）
   const handleDeleteAlarm = (id: string) => {
     if (window.confirm('アラームを削除しますか？')) {
       setAlarms(alarms.filter((alarm) => alarm.id !== id));
@@ -91,13 +86,11 @@ export default function AlarmPage() {
     }
   };
 
-  // 鳴動中のアラームを止める
   const handleStopRinging = (id: string) => {
     setAlarms(
       alarms.map((alarm) => (alarm.id === id ? { ...alarm, isRinging: false } : alarm))
     );
     
-    // 他に鳴っているアラームがなければ音を止める
     const stillRinging = alarms.some((a) => a.id !== id && a.isRinging);
     if (!stillRinging && audioRef.current) {
       audioRef.current.pause();
@@ -140,14 +133,12 @@ export default function AlarmPage() {
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           
-          {/* ホームに戻るボタン */}
           <div className="w-full mb-3 flex justify-start">
             <Link href="/" className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50">
               ← エントランス（ホーム）へ戻る
             </Link>
           </div>
 
-          {/* 現在時刻表示 */}
           <div 
             className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}
@@ -158,7 +149,6 @@ export default function AlarmPage() {
             </p>
           </div>
 
-          {/* 執事からのメッセージ枠 */}
           <div 
             className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}
@@ -171,7 +161,6 @@ export default function AlarmPage() {
             </p>
           </div>
 
-          {/* アラーム管理メインカード */}
           <div 
             className="w-full rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md border-2"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
@@ -183,7 +172,6 @@ export default function AlarmPage() {
               起床用・予定用のアラームを追加・管理できます
             </p>
 
-            {/* 新規アラーム追加フォーム */}
             <form onSubmit={handleAddAlarm} className="mb-6 p-4 rounded-2xl border" style={{ backgroundColor: 'rgba(59, 18, 24, 0.6)', borderColor: 'rgba(187, 134, 50, 0.4)' }}>
               <p className="text-xs font-semibold mb-3 tracking-wider text-[#BB8632]">新しいアラームを追加</p>
               
@@ -197,7 +185,7 @@ export default function AlarmPage() {
                       : 'bg-[#3B1218] text-[#F3ECD8]/70 border-transparent'
                   }`}
                 >
-                  🌅 起床用
+                  起床用
                 </button>
                 <button
                   type="button"
@@ -208,7 +196,7 @@ export default function AlarmPage() {
                       : 'bg-[#3B1218] text-[#F3ECD8]/70 border-transparent'
                   }`}
                 >
-                  📅 予定用
+                  予定用
                 </button>
               </div>
 
@@ -234,7 +222,7 @@ export default function AlarmPage() {
               {formType === 'schedule' && (
                 <input
                   type="text"
-                  placeholder="予定の内容（例: 模試の開始、薬の時間など）"
+                  placeholder="予定の内容（例: 模試の開始、学習計画など）"
                   value={formLabel}
                   onChange={(e) => setFormLabel(e.target.value)}
                   className="w-full text-sm px-3 py-2 rounded-xl outline-none"
@@ -243,7 +231,6 @@ export default function AlarmPage() {
               )}
             </form>
 
-            {/* 設定済みアラーム一覧 */}
             <div>
               <p className="text-xs mb-3 tracking-wider text-[#BB8632]">設定されたアラーム一覧 ({alarms.length})</p>
               
@@ -264,7 +251,7 @@ export default function AlarmPage() {
                         </span>
                         <div>
                           <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-[#8A5A2D]/40 text-[#BB8632] border border-[#BB8632]/30 mr-2">
-                            {alarm.type === 'wake' ? '🌅 起床' : '📅 予定'}
+                            {alarm.type === 'wake' ? '起床' : '予定'}
                           </span>
                           <span className="text-sm font-medium text-[#F3ECD8]">
                             {alarm.label}

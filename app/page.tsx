@@ -35,7 +35,6 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
 
-        {/* ヘルパー・上部装飾 */}
         <div className="relative z-10 w-full max-w-lg text-center pt-8">
           <p className="text-xs sm:text-sm tracking-[0.3em] text-[#BB8632] mb-2">THE BUTLER'S MANOR</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
@@ -43,9 +42,7 @@ export default function Home() {
           </h1>
         </div>
 
-        {/* 中央：執事からのウェルカムメッセージ ＆ メニュー */}
         <div className="relative z-10 w-full max-w-md flex flex-col gap-6 my-auto">
-          
           <div 
             className="rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
@@ -58,9 +55,7 @@ export default function Home() {
             </p>
           </div>
 
-          {/* メニューボタン群 */}
           <div className="flex flex-col gap-3">
-            
             {/* 1. 集中タイマー */}
             <Link href="/timer" className="w-full">
               <button 
@@ -91,7 +86,22 @@ export default function Home() {
               </button>
             </Link>
 
-            {/* 3. ティーサロン（準備中） */}
+            {/* 3. 執事の日記 */}
+            <Link href="/journal" className="w-full">
+              <button 
+                className="gothic-btn w-full py-4 px-6 rounded-xl text-lg font-bold tracking-wider flex items-center justify-between border"
+                style={{
+                  background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)',
+                  color: '#F3ECD8',
+                  borderColor: '#BB8632'
+                }}
+              >
+                <span>📜 執事の日記帳</span>
+                <span className="text-sm opacity-80">開く →</span>
+              </button>
+            </Link>
+
+            {/* 4. ティーサロン（準備中） */}
             <button 
               onClick={() => alert('「主様、ティーサロンの設えはまもなく完了いたします。」')}
               className="gothic-btn w-full py-3.5 px-6 rounded-xl text-base font-medium tracking-wider flex items-center justify-between border opacity-80 hover:opacity-100"
@@ -104,7 +114,6 @@ export default function Home() {
               <span>☕ ティーサロン・息抜き（準備中）</span>
               <span className="text-xs opacity-60">近日公開</span>
             </button>
-
           </div>
         </div>
 
@@ -113,7 +122,6 @@ export default function Home() {
             © 2026 Butler Productivity Manor
           </p>
         </div>
-
       </div>
     </>
   );
