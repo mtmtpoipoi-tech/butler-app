@@ -13,30 +13,10 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>('');
 
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    {
-      id: '1',
-      title: '共通テスト模試',
-      date: new Date().toISOString().split('T')[0],
-      time: '09:00',
-      memo: '会場：〇〇ホール / 万全の体調で臨む',
-      source: 'local',
-    },
-    {
-      id: '2',
-      title: '英単語 復習',
-      date: new Date().toISOString().split('T')[0],
-      time: '20:00',
-      memo: 'セッション目標：100単語',
-      source: 'local',
-    },
-  ]);
-
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [icalUrl, setIcalUrl] = useState<string>('');
   const [showSettings, setShowSettings] = useState<boolean>(false);
 
@@ -48,6 +28,42 @@ export default function CalendarPage() {
   const [butlerMessage, setButlerMessage] = useState(
     '「主様、カレンダーの日付をタップしていただきますと、その日の詳細なご予定をご確認いただけます。」'
   );
+
+  // 初回ロード時に現在日付を設定（Hydrationエラー防止）
+  useEffect(() => {
+    const now = new Date();
+    setCurrentDate(now);
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    setSelectedDateStr(todayStr);
+
+    // 初期サンプル予定
+    setEvents([
+      {
+        id: '1',
+        title: '共通テスト模試',
+        date: todayStr,
+        time: '09:00',
+        memo: '会場：〇〇ホール / 万全の体調で臨む',
+        source: 'local',
+      },
+      {
+        id: '2',
+        title: '英単語 復習',
+        date: todayStr,
+        time: '20:00',
+        memo: 'セッション目標：100単語',
+        source: 'local',
+      },
+    ]);
+  }, []);
+
+  if (!currentDate || !selectedDateStr) {
+    return (
+      <div className="min-h-screen bg-[#561B24] flex items-center justify-center text-[#F3ECD8] font-serif">
+        <p className="text-sm tracking-widest animate-pulse">「スケジュール帳をお手元にご用意しております……」</p>
+      </div>
+    );
+  }
 
   // カレンダー描画用ロジック
   const year = currentDate.getFullYear();
@@ -157,7 +173,7 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          {/* 外部カレンダー連携（iCal / Google / iPhone）案内モーダル */}
+          {/* 外部カレンダー連携案内モーダル */}
           {showSettings && (
             <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl bg-[#3D131A] border border-[#BB8632]">
               <p className="text-xs font-bold text-[#BB8632] mb-2">🔗 Google / iPhone カレンダーの自動連携</p>
