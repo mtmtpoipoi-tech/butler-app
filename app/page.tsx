@@ -259,6 +259,7 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
 
+            {/* 日記帳（1枚目の画像） */}
             <Link href="/journal" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
@@ -269,12 +270,13 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </Link>
 
+            {/* 予定帳 / カレンダー（2枚目の画像） */}
             <Link href="/calendar" className="flex flex-col items-center group">
               <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl"
-                style={{ backgroundColor: '#4A171F', borderColor: '#BB8632', color: '#F3ECD8' }}
+                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
+                style={{ borderColor: '#BB8632' }}
               >
-                📅
+                <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </Link>
