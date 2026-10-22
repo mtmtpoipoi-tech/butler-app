@@ -3,18 +3,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
+interface AlarmItem {
+  id: string;
+  type: 'wake' | 'schedule';
+  time: string;
+  label: string;
+  isRinging: boolean;
+}
+
 export default function AlarmPage() {
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [alarmTime, setAlarmTime] = useState<string>('07:00');
-  const [isAlarmSet, setIsAlarmSet] = useState<boolean>(false);
-  const [isRinging, setIsRinging] = useState<boolean>(false);
+  const [alarms, setAlarms] = useState<AlarmItem[]>([
+    { id: '1', type: 'wake', time: '07:00', label: '起床', isRinging: false },
+  ]);
+
+  // 新規追加用フォームの状態
+  const [formType, setFormType] = useState<'wake' | 'schedule'>('wake');
+  const [formTime, setFormTime] = useState<string>('08:00');
+  const [formLabel, setFormLabel] = useState<string>('');
+
   const [butlerMessage, setButlerMessage] = useState<string>(
-    '「お目覚めやご予定の時刻をセットいたします。お気軽にお申し付けください。」'
+    '「複数のアラームやご予定を管理いたします。お好きな時間にご設定くださいませ。」'
   );
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 現在時刻の更新
+  // 現在時刻の更新とアラーム監視
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -27,34 +41,69 @@ export default function AlarmPage() {
       setCurrentTime(fullStr);
 
       // アラーム判定
-      if (isAlarmSet && !isRinging && timeStr === alarmTime) {
-        setIsRinging(true);
-        setButlerMessage('「主様、お時間でございます！ お目覚めのお時間ですよ。」');
-        if (audioRef.current) {
-          audioRef.current.play().catch(() => {});
+      setAlarms((prevAlarms) => {
+        let triggered = false;
+        const updated = prevAlarms.map((alarm) => {
+          if (!alarm.isRinging && alarm.time === timeStr) {
+            triggered = true;
+            return { ...alarm, isRinging: true };
+          }
+          return alarm;
+        });
+
+        if (triggered) {
+          setButlerMessage('「主様、お時間でございます！ご予定の時刻となりました。」');
+          if (audioRef.current) {
+            audioRef.current.play().catch(() => {});
+          }
         }
-      }
+
+        return updated;
+      });
     };
 
     updateClock();
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
-  }, [isAlarmSet, isRinging, alarmTime]);
+  }, []);
 
-  const handleSetAlarm = () => {
-    setIsAlarmSet(true);
-    setIsRinging(false);
-    setButlerMessage(`「かしこまりました。[${alarmTime}] にアラームをセットいたしました。」`);
+  // アラーム追加処理
+  const handleAddAlarm = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newAlarm: AlarmItem = {
+      id: Date.now().toString(),
+      type: formType,
+      time: formTime,
+      label: formType === 'wake' ? '起床' : (formLabel.trim() || 'ご予定'),
+      isRinging: false,
+    };
+
+    setAlarms([...alarms, newAlarm]);
+    setFormLabel('');
+    setButlerMessage(`「かしこまりました。[${formTime}] に${formType === 'wake' ? '起床用' : '予定用'}のアラームを追加いたしました。」`);
   };
 
-  const handleCancelAlarm = () => {
-    setIsAlarmSet(false);
-    setIsRinging(false);
-    setButlerMessage('「アラームを解除いたしました。」');
-    if (audioRef.current) {
+  // アラーム削除処理（確認ダイアログ付き）
+  const handleDeleteAlarm = (id: string) => {
+    if (window.confirm('アラームを削除しますか？')) {
+      setAlarms(alarms.filter((alarm) => alarm.id !== id));
+      setButlerMessage('「アラームを削除いたしました。」');
+    }
+  };
+
+  // 鳴動中のアラームを止める
+  const handleStopRinging = (id: string) => {
+    setAlarms(
+      alarms.map((alarm) => (alarm.id === id ? { ...alarm, isRinging: false } : alarm))
+    );
+    
+    // 他に鳴っているアラームがなければ音を止める
+    const stillRinging = alarms.some((a) => a.id !== id && a.isRinging);
+    if (!stillRinging && audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    setButlerMessage('「アラームを停止いたしました。」');
   };
 
   return (
@@ -62,7 +111,7 @@ export default function AlarmPage() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
         
-        body, button, input, p, span, h1, div {
+        body, button, input, select, p, span, h1, div {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         }
 
@@ -81,7 +130,6 @@ export default function AlarmPage() {
         }
       `}</style>
 
-      {/* アラーム音源（メインBGMを流用、必要に応じて変更可能） */}
       <audio ref={audioRef} src="/Departure_7651.mp3" loop />
 
       <div
@@ -123,74 +171,127 @@ export default function AlarmPage() {
             </p>
           </div>
 
-          {/* アラーム設定カード */}
+          {/* アラーム管理メインカード */}
           <div 
-            className={`w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md border-2 transition-all ${
-              isRinging ? 'border-red-500 animate-pulse bg-[#6B212B]/95' : ''
-            }`}
-            style={{ 
-              backgroundColor: isRinging ? undefined : 'rgba(86, 27, 36, 0.92)', 
-              borderColor: isRinging ? '#ff4d4d' : '#BB8632' 
-            }}
+            className="w-full rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md border-2"
+            style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
           >
-            <h1 className="text-2xl font-bold mb-1 tracking-wide" style={{ color: '#F3ECD8' }}>
-              {isRinging ? '【 アラーム鳴動中 】' : '執事のアラーム'}
+            <h1 className="text-2xl font-bold mb-1 tracking-wide text-center" style={{ color: '#F3ECD8' }}>
+              執事のアラーム
             </h1>
-            <p className="text-xs mb-6 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>
-              {isRinging ? '主様、お時間でございます！' : '時刻を指定してアラームをセット'}
+            <p className="text-xs mb-6 tracking-wider text-center" style={{ color: '#F3ECD8', opacity: 0.7 }}>
+              起床用・予定用のアラームを追加・管理できます
             </p>
 
-            {/* 時刻入力 */}
-            <div className="mb-6 flex justify-center items-center gap-3">
-              <input
-                type="time"
-                value={alarmTime}
-                onChange={(e) => setAlarmTime(e.target.value)}
-                disabled={isAlarmSet}
-                className="text-3xl font-mono px-4 py-2 rounded-xl text-center outline-none cursor-pointer"
-                style={{
-                  backgroundColor: '#3B1218',
-                  color: '#F3ECD8',
-                  border: '1px solid #BB8632',
-                }}
-              />
-            </div>
-
-            {/* ステータス表示 */}
-            <p className="text-sm mb-6 tracking-wider font-medium text-[#C49A45]">
-              {isRinging 
-                ? '🔔 アラームが鳴り響いております！' 
-                : isAlarmSet 
-                ? `⏰ [${alarmTime}] に設定中...` 
-                : '（未設定）'}
-            </p>
-
-            {/* 操作ボタン */}
-            <div className="flex justify-center gap-4">
-              {!isAlarmSet ? (
+            {/* 新規アラーム追加フォーム */}
+            <form onSubmit={handleAddAlarm} className="mb-6 p-4 rounded-2xl border" style={{ backgroundColor: 'rgba(59, 18, 24, 0.6)', borderColor: 'rgba(187, 134, 50, 0.4)' }}>
+              <p className="text-xs font-semibold mb-3 tracking-wider text-[#BB8632]">新しいアラームを追加</p>
+              
+              <div className="flex gap-2 mb-3">
                 <button
-                  onClick={handleSetAlarm}
-                  className="gothic-btn flex-1 py-3 rounded-xl text-base font-bold tracking-wider"
-                  style={{ 
-                    background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', 
-                    color: '#F3ECD8', 
-                    border: '1px solid #BB8632' 
-                  }}
+                  type="button"
+                  onClick={() => setFormType('wake')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                    formType === 'wake' 
+                      ? 'bg-[#8A5A2D] text-[#F3ECD8] border-[#BB8632]' 
+                      : 'bg-[#3B1218] text-[#F3ECD8]/70 border-transparent'
+                  }`}
                 >
-                  アラームをセット
+                  🌅 起床用
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setFormType('schedule')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                    formType === 'schedule' 
+                      ? 'bg-[#8A5A2D] text-[#F3ECD8] border-[#BB8632]' 
+                      : 'bg-[#3B1218] text-[#F3ECD8]/70 border-transparent'
+                  }`}
+                >
+                  📅 予定用
+                </button>
+              </div>
+
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="time"
+                  value={formTime}
+                  onChange={(e) => setFormTime(e.target.value)}
+                  required
+                  className="text-xl font-mono px-3 py-2 rounded-xl outline-none cursor-pointer flex-1"
+                  style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                />
+                
+                <button
+                  type="submit"
+                  className="gothic-btn px-5 py-2 rounded-xl text-sm font-bold tracking-wider"
+                  style={{ background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                >
+                  追加
+                </button>
+              </div>
+
+              {formType === 'schedule' && (
+                <input
+                  type="text"
+                  placeholder="予定の内容（例: 模試の開始、薬の時間など）"
+                  value={formLabel}
+                  onChange={(e) => setFormLabel(e.target.value)}
+                  className="w-full text-sm px-3 py-2 rounded-xl outline-none"
+                  style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                />
+              )}
+            </form>
+
+            {/* 設定済みアラーム一覧 */}
+            <div>
+              <p className="text-xs mb-3 tracking-wider text-[#BB8632]">設定されたアラーム一覧 ({alarms.length})</p>
+              
+              {alarms.length === 0 ? (
+                <p className="text-center text-xs py-4 text-[#F3ECD8]/60">アラームは設定されておりません。</p>
               ) : (
-                <button
-                  onClick={handleCancelAlarm}
-                  className="gothic-btn flex-1 py-3 rounded-xl text-base font-bold tracking-wider"
-                  style={{ 
-                    background: 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)', 
-                    color: '#F3ECD8', 
-                    border: '1px solid #ff4d4d' 
-                  }}
-                >
-                  {isRinging ? 'アラームを止める' : '解除する'}
-                </button>
+                <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
+                  {alarms.map((alarm) => (
+                    <div
+                      key={alarm.id}
+                      className={`p-3 rounded-2xl flex items-center justify-between border transition-all ${
+                        alarm.isRinging ? 'border-red-500 bg-red-950/80 animate-pulse' : 'border-[#BB8632]/50 bg-[#3B1218]/70'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl font-mono font-bold tracking-wider text-[#F3ECD8]">
+                          {alarm.time}
+                        </span>
+                        <div>
+                          <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-[#8A5A2D]/40 text-[#BB8632] border border-[#BB8632]/30 mr-2">
+                            {alarm.type === 'wake' ? '🌅 起床' : '📅 予定'}
+                          </span>
+                          <span className="text-sm font-medium text-[#F3ECD8]">
+                            {alarm.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {alarm.isRinging ? (
+                          <button
+                            onClick={() => handleStopRinging(alarm.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md animate-bounce"
+                          >
+                            止める
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleDeleteAlarm(alarm.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#561B24] hover:bg-red-900 text-[#F3ECD8]/80 hover:text-white border border-[#BB8632]/40 transition"
+                          >
+                            削除
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
