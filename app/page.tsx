@@ -6,24 +6,43 @@ import Link from 'next/link';
 export default function Home() {
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
   const [isAutoTime, setIsAutoTime] = useState<boolean>(false);
+  const [masterName, setMasterName] = useState<string>('主');
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // ローカルストレージから主様のお名前を読み込む（ハイドレーションエラー対策）
+  useEffect(() => {
+    const savedName = localStorage.getItem('butler_master_name');
+    if (savedName) {
+      setMasterName(savedName);
+    }
+  }, []);
+
+  // お名前を変更する関数
+  const handleChangeName = () => {
+    const newName = window.prompt('執事がお呼びするお名前（主様のお名前）を入力してくださいませ：', masterName);
+    if (newName && newName.trim() !== '') {
+      const trimmed = newName.trim();
+      setMasterName(trimmed);
+      localStorage.setItem('butler_master_name', trimmed);
+    }
+  };
 
   // 期間と時間の自動判定
   useEffect(() => {
     const checkEnvironment = () => {
       const now = new Date();
-      const month = now.getMonth(); // 0:1月 〜 11:12月 (8:9月, 2:3月)
+      const month = now.getMonth(); // 0:1月 〜 11:12月
       const date = now.getDate();
       const hours = now.getHours();
 
       // 1. 期間判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
       let isSeason = false;
       if (month > 8 || month < 2) {
-        isSeason = true; // 10月〜2月は常に該当
+        isSeason = true;
       } else if (month === 8 && date >= 23) {
-        isSeason = true; // 9月23日以降
+        isSeason = true;
       } else if (month === 2 && date <= 21) {
-        isSeason = true; // 3月21日まで
+        isSeason = true;
       }
 
       // 2. 時間判定：17:00 〜 07:00
@@ -32,16 +51,13 @@ export default function Home() {
       const shouldPlay = isSeason && isTime;
       setIsAutoTime(shouldPlay);
 
-      // 条件を満たしており、まだ再生していなければ自動再生を試みる
       if (shouldPlay && audioRef.current && !isPlayingFire) {
         audioRef.current.play().then(() => {
           setIsPlayingFire(true);
         }).catch(() => {
-          // ブラウザの自動再生ブロック時はユーザー操作を待つ
           setIsPlayingFire(false);
         });
       } else if (!shouldPlay && isPlayingFire) {
-        // 条件時間外になったら自動で止める
         if (audioRef.current) {
           audioRef.current.pause();
         }
@@ -50,7 +66,7 @@ export default function Home() {
     };
 
     checkEnvironment();
-    const timer = setInterval(checkEnvironment, 30000); // 30秒ごとにチェック
+    const timer = setInterval(checkEnvironment, 30000);
     return () => clearInterval(timer);
   }, [isPlayingFire]);
 
@@ -98,11 +114,21 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 上部：タイトル ＆ 暖炉のスライドスイッチ */}
+        {/* 上部：タイトル ＆ お名前変更ボタン ＆ 暖炉スイッチ */}
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
-          <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-xs tracking-[0.3em] text-[#BB8632]">THE BUTLER'S MANOR</p>
+            <button
+              onClick={handleChangeName}
+              className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#310F14] text-[#BB8632] hover:bg-[#561B24] transition"
+              title="お名前を変更する"
+            >
+              ✏️ 変更: {masterName}様
+            </button>
+          </div>
+
           <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-3">
-            主の邸宅
+            {masterName}様の邸宅
           </h1>
 
           {/* 暖炉の音のON/OFFスライドスイッチ */}
@@ -140,8 +166,8 @@ export default function Home() {
             </p>
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
               {isAutoTime 
-                ? '「お部屋の暖炉に心地よい火を灯しております。どうぞ温まりながらお過ごしくださいませ。」' 
-                : '「おかえりなさいませ、主様。本日はどの空間へ赴かれますか？」'}
+                ? `「お部屋の暖炉に心地よい火を灯しております、${masterName}様。どうぞ温まりながらお過ごしくださいませ。」` 
+                : `「おかえりなさいませ、${masterName}様。本日はどの空間へ赴かれますか？」`}
             </p>
           </div>
         </div>
@@ -163,7 +189,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </Link>
 
-            {/* アラーム（新しいベルの画像を使用） */}
             <Link href="/alarm" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
@@ -195,7 +220,7 @@ export default function Home() {
             </Link>
 
             <button 
-              onClick={() => alert('「主様、ティーサロンの設えはまもなく完了いたします。」')}
+              onClick={() => alert(`「${masterName}様、ティーサロンの設えはまもなく完了いたします。」`)}
               className="flex flex-col items-center group cursor-pointer"
             >
               <div 
