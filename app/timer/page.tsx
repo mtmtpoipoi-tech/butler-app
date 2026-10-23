@@ -66,7 +66,7 @@ export default function TimerPage() {
   const [timeLeft, setTimeLeft] = useState<number>(MODES.pomodoro25.workSeconds);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [message, setMessage] = useState<string>(MODES.pomodoro25.butlerMessage);
-  const [selectedActivity, setSelectedActivity] = useState<string>('勉強'); // 🌟 内容選択用
+  const [selectedActivity, setSelectedActivity] = useState<string>('勉強');
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
@@ -76,22 +76,33 @@ export default function TimerPage() {
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 画面マウント時に localStorage から安全にデータを復元
+  // 🌟 ローカル環境の日付文字列（YYYY-MM-DD）を正確に取得する関数
+  const getTodayLocalDateStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const date = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}`;
+  };
+
+  // 🌟 初回読み込み時に localStorage から集中時間を確実に復元
   useEffect(() => {
     setIsMounted(true);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const savedDate = localStorage.getItem('butler_work_date');
-    const savedSeconds = localStorage.getItem('butler_total_work_seconds');
+    const todayStr = getTodayLocalDateStr();
+    const savedDate = localStorage.getItem('butler_master_work_date');
+    const savedSeconds = localStorage.getItem('butler_master_total_seconds');
 
-    if (savedDate === todayStr && savedSeconds) {
+    if (savedDate === todayStr && savedSeconds !== null) {
       setTotalWorkSeconds(parseInt(savedSeconds, 10) || 0);
     } else {
+      // 日付が新しくなった場合のみ0にリセットして保存
       setTotalWorkSeconds(0);
-      localStorage.setItem('butler_work_date', todayStr);
-      localStorage.setItem('butler_total_work_seconds', '0');
+      localStorage.setItem('butler_master_work_date', todayStr);
+      localStorage.setItem('butler_master_total_seconds', '0');
     }
   }, []);
 
+  // 日時更新タイマー
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -112,6 +123,7 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // モード変更時の初期化
   useEffect(() => {
     setIsRunning(false);
     setIsBreak(false);
@@ -120,7 +132,7 @@ export default function TimerPage() {
     stopBgm();
   }, [currentMode]);
 
-  // 1秒ごとにカウントダウンおよび総集中時間の更新・保存
+  // 🌟 1秒ごとにカウントダウン ＆ 集中時間をリアルタイム保存
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -129,9 +141,9 @@ export default function TimerPage() {
         if (!isBreak) {
           setTotalWorkSeconds((prev) => {
             const nextVal = prev + 1;
-            const todayStr = new Date().toISOString().split('T')[0];
-            localStorage.setItem('butler_total_work_seconds', nextVal.toString());
-            localStorage.setItem('butler_work_date', todayStr);
+            const todayStr = getTodayLocalDateStr();
+            localStorage.setItem('butler_master_total_seconds', nextVal.toString());
+            localStorage.setItem('butler_master_work_date', todayStr);
             return nextVal;
           });
         }
@@ -311,7 +323,7 @@ export default function TimerPage() {
               {isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}
             </p>
 
-            {/* 🌟 内容選択バー（勉強、仕事、作業など） */}
+            {/* 内容選択バー（勉強、仕事、作業など） */}
             {!isBreak && (
               <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
                 <span className="text-xs text-[#BB8632] mr-1">内容:</span>
@@ -343,7 +355,7 @@ export default function TimerPage() {
               {formatTime(timeLeft)}
             </div>
 
-            {/* ボタン部分：作業/休憩および動作状況に応じた動的表示 */}
+            {/* ボタン部分 */}
             <div className="flex justify-center space-x-4 mb-8">
               <button
                 onClick={toggleTimer}
