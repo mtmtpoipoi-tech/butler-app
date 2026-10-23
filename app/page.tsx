@@ -10,6 +10,7 @@ export default function Home() {
   const [showNameModal, setShowNameModal] = useState<boolean>(false);
   const [inputName, setInputName] = useState<string>('');
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg'); // 初期背景
+  const [currentHour, setCurrentHour] = useState<number>(12); // 時間保持用
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 初回訪問の判定 ＆ ローカルストレージから主様のお名前を読み込む
@@ -41,13 +42,15 @@ export default function Home() {
     }
   };
 
-  // 時間帯判定（背景画像の切り替え ＆ 暖炉の自動再生判定）
+  // 時間帯判定（背景画像の切り替え ＆ 挨拶の切り替え ＆ 暖炉の自動再生判定）
   useEffect(() => {
     const checkEnvironment = () => {
       const now = new Date();
       const month = now.getMonth(); // 0:1月 〜 11:12月
       const date = now.getDate();
       const hours = now.getHours();
+
+      setCurrentHour(hours);
 
       // 🌅 背景画像の時間判定：6:00 〜 7:59 (8時未満) のみ朝の部屋、その他は元の背景
       if (hours >= 6 && hours < 8) {
@@ -90,6 +93,18 @@ export default function Home() {
     const timer = setInterval(checkEnvironment, 30000);
     return () => clearInterval(timer);
   }, [isPlayingFire]);
+
+  // 時間に応じた挨拶メッセージの取得
+  const getButlerGreeting = () => {
+    const name = masterName || '主';
+    if (isAutoTime) {
+      return `「お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
+    }
+    if (currentHour >= 6 && currentHour < 11) {
+      return `「おはようございます、${name}様。」`;
+    }
+    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
+  };
 
   // 手動で焚き火の音をON/OFFするスイッチ
   const toggleFireSound = () => {
@@ -224,9 +239,7 @@ export default function Home() {
               執事よりのご挨拶
             </p>
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
-              {isAutoTime 
-                ? `「お部屋の暖炉に心地よい火を灯しております、${masterName || '主'}様。どうぞ温まりながらお過ごしくださいませ。」` 
-                : `「おかえりなさいませ、${masterName || '主'}様。本日はどの空間へ赴かれますか？」`}
+              {getButlerGreeting()}
             </p>
           </div>
         </div>
