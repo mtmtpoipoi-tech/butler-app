@@ -253,7 +253,7 @@ export default function Home() {
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
                 style={{ borderColor: '#BB8632' }}
               >
-                <img src="/icon-[#2B0C12]" alt="アラーム" className="w-full h-full object-cover" />
+                <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
