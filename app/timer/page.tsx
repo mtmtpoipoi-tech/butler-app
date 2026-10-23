@@ -66,33 +66,26 @@ export default function TimerPage() {
   const [message, setMessage] = useState<string>(MODES.pomodoro25.butlerMessage);
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
-  const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
 
-  const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
-  const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // 初回ロード時にローカルストレージから総集中時間を復元（日付が変わっていたらリセット）
-  useEffect(() => {
+  // 🌟 初回起動時にローカルストレージから確実に総集中時間を復元（日付が変わっていればリセット）
+  const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
     const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
     const savedDate = localStorage.getItem('butler_work_date');
     const savedSeconds = localStorage.getItem('butler_total_work_seconds');
 
     if (savedDate === todayStr && savedSeconds) {
-      setTotalWorkSeconds(parseInt(savedSeconds, 10) || 0);
+      return parseInt(savedSeconds, 10) || 0;
     } else {
-      setTotalWorkSeconds(0);
       localStorage.setItem('butler_work_date', todayStr);
       localStorage.setItem('butler_total_work_seconds', '0');
+      return 0;
     }
-  }, []);
+  });
 
-  // 総集中時間が変わるたびにローカルストレージに保存
-  useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    localStorage.setItem('butler_total_work_seconds', totalWorkSeconds.toString());
-    localStorage.setItem('butler_work_date', todayStr);
-  }, [totalWorkSeconds]);
+  const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
+  const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -122,13 +115,20 @@ export default function TimerPage() {
     stopBgm();
   }, [currentMode]);
 
+  // 🌟 1秒ごとにカウントを増やし、その場で即座にローカルストレージへ保存する
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
         if (!isBreak) {
-          setTotalWorkSeconds((prev) => prev + 1);
+          setTotalWorkSeconds((prev) => {
+            const nextVal = prev + 1;
+            const todayStr = new Date().toISOString().split('T')[0];
+            localStorage.setItem('butler_total_work_seconds', nextVal.toString());
+            localStorage.setItem('butler_work_date', todayStr);
+            return nextVal;
+          });
         }
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
