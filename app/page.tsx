@@ -9,11 +9,16 @@ export default function Home() {
   const [masterName, setMasterName] = useState<string>('');
   const [showNameModal, setShowNameModal] = useState<boolean>(false);
   const [inputName, setInputName] = useState<string>('');
-  const [bgImage, setBgImage] = useState<string>('/home-bg.jpg'); // 初期背景
-  const [currentHour, setCurrentHour] = useState<number>(12); // 時間保持用
+  const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
+  const [currentHour, setCurrentHour] = useState<number>(12);
+  
+  // 🌟 ドア演出用のステート
+  const [showDoorOverlay, setShowDoorOverlay] = useState<boolean>(true);
+  const [isOpenDoor, setIsOpenDoor] = useState<boolean>(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 初回訪問の判定 ＆ ローカルストレージから主様のお名前を読み込む
+  // 初回訪問の判定 ＆ 演出スキップの判定
   useEffect(() => {
     const savedName = localStorage.getItem('butler_master_name');
     if (savedName) {
@@ -21,9 +26,30 @@ export default function Home() {
     } else {
       setShowNameModal(true);
     }
+
+    // 🌟 タイマーや日記から戻ってきた場合はドア演出をスキップする
+    const skipDoor = sessionStorage.getItem('skip_door');
+    if (skipDoor) {
+      setShowDoorOverlay(false);
+      sessionStorage.removeItem('skip_door');
+    } else {
+      // 初回オープンの場合：少し溜めてからドアを開くアニメーションを開始
+      const openTimer = setTimeout(() => {
+        setIsOpenDoor(true);
+      }, 600);
+
+      // アニメーション終了後にドア要素を完全に非表示にする
+      const removeTimer = setTimeout(() => {
+        setShowDoorOverlay(false);
+      }, 2200);
+
+      return () => {
+        clearTimeout(openTimer);
+        clearTimeout(removeTimer);
+      };
+    }
   }, []);
 
-  // 初回お名前登録時の処理
   const handleSaveInitialName = (e: React.FormEvent) => {
     e.preventDefault();
     const nameToSave = inputName.trim() || '主';
@@ -32,7 +58,6 @@ export default function Home() {
     setShowNameModal(false);
   };
 
-  // 後からお名前を変更する処理
   const handleChangeName = () => {
     const newName = window.prompt('執事がお呼びするお名前（主様のお名前）を入力してくださいませ：', masterName || '主');
     if (newName && newName.trim() !== '') {
@@ -42,26 +67,23 @@ export default function Home() {
     }
   };
 
-  // 時間帯判定（背景画像の切り替え ＆ 挨拶の切り替え ＆ 暖炉の自動再生判定）
   useEffect(() => {
     const checkEnvironment = () => {
       const now = new Date();
-      const month = now.getMonth(); // 0:1月 〜 11:12月
+      const month = now.getMonth();
       const date = now.getDate();
       const hours = now.getHours();
 
       setCurrentHour(hours);
 
-      // 🌅 背景画像の時間判定：朝・昼・夜で切り替え
       if (hours >= 6 && hours < 8) {
-        setBgImage('/home-bg-morning.jpg'); // 朝の部屋
+        setBgImage('/home-bg-morning.jpg');
       } else if (hours >= 17 || hours < 6) {
-        setBgImage('/home-bg-night.jpg');   // 🌟 夜の部屋（※夜用画像ファイル名）
+        setBgImage('/home-bg-night.jpg');
       } else {
-        setBgImage('/home-bg.jpg');         // 昼・夕方の部屋
+        setBgImage('/home-bg.jpg');
       }
 
-      // 1. 暖炉の季節判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
       let isSeason = false;
       if (month > 8 || month < 2) {
         isSeason = true;
@@ -71,9 +93,7 @@ export default function Home() {
         isSeason = true;
       }
 
-      // 2. 暖炉の時間判定：17:00 〜 07:00
       const isTime = hours >= 17 || hours < 7;
-
       const shouldPlay = isSeason && isTime;
       setIsAutoTime(shouldPlay);
 
@@ -96,7 +116,6 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingFire]);
 
-  // 時間に応じた挨拶メッセージの取得（🌟 夜のご挨拶を指定の文言に変更）
   const getButlerGreeting = () => {
     const name = masterName || '主';
     if (isAutoTime || currentHour >= 17 || currentHour < 6) {
@@ -108,7 +127,6 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 手動で焚き火の音をON/OFFするスイッチ
   const toggleFireSound = () => {
     if (audioRef.current) {
       if (isPlayingFire) {
@@ -143,7 +161,39 @@ export default function Home() {
         }
       `}</style>
 
-      {/* 焚き火の音声（MP4） */}
+      {/* 🌟 初回オープン時のドア開きオープニング演出 */}
+      {showDoorOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none">
+          {/* 左の扉 */}
+          <div 
+            className={`absolute inset-y-0 left-0 w-1/2 bg-[#1A070A] border-r-4 border-[#BB8632] flex items-center justify-end transition-transform duration-1000 ease-in-out ${
+              isOpenDoor ? '-translate-x-full' : 'translate-x-0'
+            }`}
+            style={{ backgroundImage: `url('${bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'left', filter: 'brightness(0.35)' }}
+          >
+            <div className="absolute right-4 w-4 h-16 rounded-full bg-[#BB8632] shadow-2xl border border-[#F3ECD8]/30" />
+          </div>
+
+          {/* 右の扉 */}
+          <div 
+            className={`absolute inset-y-0 right-0 w-1/2 bg-[#1A070A] border-l-4 border-[#BB8632] flex items-center justify-start transition-transform duration-1000 ease-in-out ${
+              isOpenDoor ? 'translate-x-full' : 'translate-x-0'
+            }`}
+            style={{ backgroundImage: `url('${bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'right', filter: 'brightness(0.35)' }}
+          >
+            <div className="absolute left-4 w-4 h-16 rounded-full bg-[#BB8632] shadow-2xl border border-[#F3ECD8]/30" />
+          </div>
+
+          {/* 中央のゴールドの紋章テキスト */}
+          <div className={`relative z-10 text-center transition-opacity duration-700 ${isOpenDoor ? 'opacity-0' : 'opacity-100'}`}>
+            <p className="text-xs tracking-[0.4em] text-[#BB8632] mb-2 font-serif">THE BUTLER'S MANOR</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#F3ECD8] tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+              邸宅の扉が開きます……
+            </h2>
+          </div>
+        </div>
+      )}
+
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
       <div
@@ -152,7 +202,6 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌹 初回訪問時のお名前入力モーダル */}
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -188,7 +237,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 上部：タイトル ＆ お名前変更ボタン ＆ 暖炉スイッチ */}
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-xs tracking-[0.3em] text-[#BB8632]">THE BUTLER'S MANOR</p>
@@ -207,7 +255,6 @@ export default function Home() {
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
-          {/* 暖炉の音のON/OFFスライドスイッチ */}
           <div className="px-4 py-1.5 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-3">
             <span className="text-xs text-[#F3ECD8]">
               暖炉の火
@@ -231,7 +278,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 中央：執事からのウェルカムメッセージ */}
         <div className="relative z-10 w-full max-w-sm my-auto">
           <div 
             className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
@@ -246,7 +292,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 下部：アイコンが並ぶアンティーク・ドック */}
         <div className="relative z-10 w-full max-w-md pb-4">
           <div 
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"

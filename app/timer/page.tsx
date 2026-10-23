@@ -262,12 +262,16 @@ export default function TimerPage() {
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           
-          {/* ホームに戻るボタン */}
-          <div className="w-full mb-3 flex justify-start">
-            <a href="/" className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50">
-              ← エントランス（ホーム）へ戻る
-            </a>
-          </div>
+         {/* ホームに戻るボタン */}
+<div className="w-full mb-3 flex justify-start">
+  <a 
+    href="/" 
+    onClick={() => sessionStorage.setItem('skip_door', 'true')}
+    className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50"
+  >
+    ← エントランス（ホーム）へ戻る
+  </a>
+</div>
 
           {/* 日付・曜日・現在時刻 */}
           <div 
