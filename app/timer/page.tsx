@@ -66,26 +66,28 @@ export default function TimerPage() {
   const [message, setMessage] = useState<string>(MODES.pomodoro25.butlerMessage);
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
-
-  // 🌟 初回起動時にローカルストレージから確実に総集中時間を復元（日付が変わっていればリセット）
-  const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(() => {
-    if (typeof window === 'undefined') return 0;
-    const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
-    const savedDate = localStorage.getItem('butler_work_date');
-    const savedSeconds = localStorage.getItem('butler_total_work_seconds');
-
-    if (savedDate === todayStr && savedSeconds) {
-      return parseInt(savedSeconds, 10) || 0;
-    } else {
-      localStorage.setItem('butler_work_date', todayStr);
-      localStorage.setItem('butler_total_work_seconds', '0');
-      return 0;
-    }
-  });
+  const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
+  const [isMounted, setIsMounted] = useState<boolean>(false); // 🌟 ハイドレーションエラー防止用フラグ
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 🌟 画面がブラウザで読み込まれた後に localStorage から安全にデータを復元する
+  useEffect(() => {
+    setIsMounted(true);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const savedDate = localStorage.getItem('butler_work_date');
+    const savedSeconds = localStorage.getItem('butler_total_work_seconds');
+
+    if (savedDate === todayStr && savedSeconds) {
+      setTotalWorkSeconds(parseInt(savedSeconds, 10) || 0);
+    } else {
+      setTotalWorkSeconds(0);
+      localStorage.setItem('butler_work_date', todayStr);
+      localStorage.setItem('butler_total_work_seconds', '0');
+    }
+  }, []);
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -115,7 +117,7 @@ export default function TimerPage() {
     stopBgm();
   }, [currentMode]);
 
-  // 🌟 1秒ごとにカウントを増やし、その場で即座にローカルストレージへ保存する
+  // 🌟 1秒ごとにカウントアップし、その場で即座に localStorage に保存
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -290,7 +292,7 @@ export default function TimerPage() {
               本日の総集中時間
             </span>
             <span className="text-base font-bold" style={{ color: '#BB8632' }}>
-              {formatTotalTime(totalWorkSeconds)}
+              {isMounted ? formatTotalTime(totalWorkSeconds) : '0分 0秒'}
             </span>
           </div>
 
