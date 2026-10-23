@@ -11,42 +11,16 @@ export default function Home() {
   const [inputName, setInputName] = useState<string>('');
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
-  
-  // 🌟 ドア演出用のステート
-  const [showDoorOverlay, setShowDoorOverlay] = useState<boolean>(true);
-  const [isOpenDoor, setIsOpenDoor] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 初回訪問の判定 ＆ 演出スキップの判定
+  // 初回訪問の判定 ＆ ローカルストレージから主様のお名前を読み込む
   useEffect(() => {
     const savedName = localStorage.getItem('butler_master_name');
     if (savedName) {
       setMasterName(savedName);
     } else {
       setShowNameModal(true);
-    }
-
-    // 🌟 タイマーや日記から戻ってきた場合はドア演出をスキップ
-    const skipDoor = sessionStorage.getItem('skip_door');
-    if (skipDoor) {
-      setShowDoorOverlay(false);
-      sessionStorage.removeItem('skip_door');
-    } else {
-      // 初回オープンの場合：少し溜めてからドアが開くアニメーションを開始
-      const openTimer = setTimeout(() => {
-        setIsOpenDoor(true);
-      }, 700);
-
-      // アニメーション終了後にドア要素を非表示にする
-      const removeTimer = setTimeout(() => {
-        setShowDoorOverlay(false);
-      }, 2300);
-
-      return () => {
-        clearTimeout(openTimer);
-        clearTimeout(removeTimer);
-      };
     }
   }, []);
 
@@ -160,49 +134,6 @@ export default function Home() {
           box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
         }
       `}</style>
-
-      {/* 🌟 扉画像の観音開きオープニング演出 */}
-      {showDoorOverlay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none">
-          {/* 左扉（画像の左半分を表示して左へスライド） */}
-          <div 
-            className={`absolute inset-y-0 left-0 w-1/2 transition-transform duration-1200 ease-in-out ${
-              isOpenDoor ? '-translate-x-full' : 'translate-x-0'
-            }`}
-            style={{
-              backgroundImage: "url('/door.jpg')",
-              backgroundSize: '200% 100%',
-              backgroundPosition: 'left center',
-              backgroundRepeat: 'no-repeat',
-              boxShadow: 'inset -5px 0 15px rgba(0,0,0,0.6)'
-            }}
-          />
-
-          {/* 右扉（画像の右半分を表示して右へスライド） */}
-          <div 
-            className={`absolute inset-y-0 right-0 w-1/2 transition-transform duration-1200 ease-in-out ${
-              isOpenDoor ? 'translate-x-full' : 'translate-x-0'
-            }`}
-            style={{
-              backgroundImage: "url('/door.jpg')",
-              backgroundSize: '200% 100%',
-              backgroundPosition: 'right center',
-              backgroundRepeat: 'no-repeat',
-              boxShadow: 'inset 5px 0 15px rgba(0,0,0,0.6)'
-            }}
-          />
-
-          {/* 中央の「おかえりなさいませ」テキスト */}
-          <div className={`relative z-10 text-center transition-all duration-700 ${isOpenDoor ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}>
-            <p className="text-xs tracking-[0.4em] text-[#BB8632] mb-2 font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-              THE BUTLER'S MANOR
-            </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#F3ECD8] tracking-widest drop-shadow-[0_4px_12px_rgba(0,0,0,0.95)]">
-              おかえりなさいませ
-            </h2>
-          </div>
-        </div>
-      )}
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
@@ -322,7 +253,7 @@ export default function Home() {
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
                 style={{ borderColor: '#BB8632' }}
               >
-                <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
+                <img src="/icon-[#2B0C12]" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
