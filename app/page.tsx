@@ -27,21 +27,21 @@ export default function Home() {
       setShowNameModal(true);
     }
 
-    // 🌟 タイマーや日記から戻ってきた場合はドア演出をスキップする
+    // 🌟 タイマーや日記から戻ってきた場合はドア演出をスキップ
     const skipDoor = sessionStorage.getItem('skip_door');
     if (skipDoor) {
       setShowDoorOverlay(false);
       sessionStorage.removeItem('skip_door');
     } else {
-      // 初回オープンの場合：少し溜めてからドアを開くアニメーションを開始
+      // 初回オープンの場合：少し溜めてからドアが開くアニメーションを開始
       const openTimer = setTimeout(() => {
         setIsOpenDoor(true);
-      }, 600);
+      }, 700);
 
-      // アニメーション終了後にドア要素を完全に非表示にする
+      // アニメーション終了後にドア要素を非表示にする
       const removeTimer = setTimeout(() => {
         setShowDoorOverlay(false);
-      }, 2200);
+      }, 2300);
 
       return () => {
         clearTimeout(openTimer);
@@ -161,34 +161,44 @@ export default function Home() {
         }
       `}</style>
 
-      {/* 🌟 初回オープン時のドア開きオープニング演出 */}
+      {/* 🌟 扉画像の観音開きオープニング演出 */}
       {showDoorOverlay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none">
-          {/* 左の扉 */}
+          {/* 左扉（画像の左半分を表示して左へスライド） */}
           <div 
-            className={`absolute inset-y-0 left-0 w-1/2 bg-[#1A070A] border-r-4 border-[#BB8632] flex items-center justify-end transition-transform duration-1000 ease-in-out ${
+            className={`absolute inset-y-0 left-0 w-1/2 transition-transform duration-1200 ease-in-out ${
               isOpenDoor ? '-translate-x-full' : 'translate-x-0'
             }`}
-            style={{ backgroundImage: `url('${bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'left', filter: 'brightness(0.35)' }}
-          >
-            <div className="absolute right-4 w-4 h-16 rounded-full bg-[#BB8632] shadow-2xl border border-[#F3ECD8]/30" />
-          </div>
+            style={{
+              backgroundImage: "url('/door.jpg')",
+              backgroundSize: '200% 100%',
+              backgroundPosition: 'left center',
+              backgroundRepeat: 'no-repeat',
+              boxShadow: 'inset -5px 0 15px rgba(0,0,0,0.6)'
+            }}
+          />
 
-          {/* 右の扉 */}
+          {/* 右扉（画像の右半分を表示して右へスライド） */}
           <div 
-            className={`absolute inset-y-0 right-0 w-1/2 bg-[#1A070A] border-l-4 border-[#BB8632] flex items-center justify-start transition-transform duration-1000 ease-in-out ${
+            className={`absolute inset-y-0 right-0 w-1/2 transition-transform duration-1200 ease-in-out ${
               isOpenDoor ? 'translate-x-full' : 'translate-x-0'
             }`}
-            style={{ backgroundImage: `url('${bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'right', filter: 'brightness(0.35)' }}
-          >
-            <div className="absolute left-4 w-4 h-16 rounded-full bg-[#BB8632] shadow-2xl border border-[#F3ECD8]/30" />
-          </div>
+            style={{
+              backgroundImage: "url('/door.jpg')",
+              backgroundSize: '200% 100%',
+              backgroundPosition: 'right center',
+              backgroundRepeat: 'no-repeat',
+              boxShadow: 'inset 5px 0 15px rgba(0,0,0,0.6)'
+            }}
+          />
 
-          {/* 中央のゴールドの紋章テキスト */}
-          <div className={`relative z-10 text-center transition-opacity duration-700 ${isOpenDoor ? 'opacity-0' : 'opacity-100'}`}>
-            <p className="text-xs tracking-[0.4em] text-[#BB8632] mb-2 font-serif">THE BUTLER'S MANOR</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#F3ECD8] tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-              邸宅の扉が開きます……
+          {/* 中央の「おかえりなさいませ」テキスト */}
+          <div className={`relative z-10 text-center transition-all duration-700 ${isOpenDoor ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}>
+            <p className="text-xs tracking-[0.4em] text-[#BB8632] mb-2 font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              THE BUTLER'S MANOR
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#F3ECD8] tracking-widest drop-shadow-[0_4px_12px_rgba(0,0,0,0.95)]">
+              おかえりなさいませ
             </h2>
           </div>
         </div>
