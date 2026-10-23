@@ -344,6 +344,7 @@ export default function TimerPage() {
               </div>
             </div>
 
+            {/* BGM選択と再生/停止ボタン (▶ / ❚❚) */}
             <div 
               className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4"
               style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}
@@ -367,16 +368,17 @@ export default function TimerPage() {
 
               <button
                 onClick={toggleBgmManually}
-                className="gothic-btn px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1 flex-shrink-0"
+                className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0"
                 style={{ 
                   background: isPlayingBgm 
                     ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' 
-                    : 'linear-gradient(180deg, #4A171F 0%, #351016 100%)', 
+                    : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', 
                   color: '#F3ECD8', 
                   border: '1px solid #BB8632' 
                 }}
+                title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
               >
-                <span>{isPlayingBgm ? '停止' : '再生'}</span>
+                <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
               </button>
             </div>
 
