@@ -51,7 +51,7 @@ interface BgmOption {
 }
 
 const BGM_LIST: BgmOption[] = [
-  { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp3' },
+  { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' }, // 🌟 拡張子を .mp4 に修正
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
   { id: 'focus', name: 'Deep Focus（深海集中）', file: '/bgm1.mp3' },
   { id: 'mansion', name: '静寂の洋館（ピアノ）', file: '/bgm2.mp3' },
@@ -76,7 +76,6 @@ export default function TimerPage() {
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 🌟 ローカル環境の日付文字列（YYYY-MM-DD）を正確に取得する関数
   const getTodayLocalDateStr = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -85,7 +84,6 @@ export default function TimerPage() {
     return `${year}-${month}-${date}`;
   };
 
-  // 🌟 初回読み込み時に localStorage から集中時間を確実に復元
   useEffect(() => {
     setIsMounted(true);
     const todayStr = getTodayLocalDateStr();
@@ -95,14 +93,12 @@ export default function TimerPage() {
     if (savedDate === todayStr && savedSeconds !== null) {
       setTotalWorkSeconds(parseInt(savedSeconds, 10) || 0);
     } else {
-      // 日付が新しくなった場合のみ0にリセットして保存
       setTotalWorkSeconds(0);
       localStorage.setItem('butler_master_work_date', todayStr);
       localStorage.setItem('butler_master_total_seconds', '0');
     }
   }, []);
 
-  // 日時更新タイマー
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -123,7 +119,6 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // モード変更時の初期化
   useEffect(() => {
     setIsRunning(false);
     setIsBreak(false);
@@ -132,7 +127,6 @@ export default function TimerPage() {
     stopBgm();
   }, [currentMode]);
 
-  // 🌟 1秒ごとにカウントダウン ＆ 集中時間をリアルタイム保存
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
