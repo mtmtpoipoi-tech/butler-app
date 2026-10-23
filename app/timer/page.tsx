@@ -51,12 +51,14 @@ interface BgmOption {
 }
 
 const BGM_LIST: BgmOption[] = [
-  { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp3' },
+  { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
   { id: 'focus', name: 'Deep Focus（深海集中）', file: '/bgm1.mp3' },
   { id: 'mansion', name: '静寂の洋館（ピアノ）', file: '/bgm2.mp3' },
   { id: 'rain', name: '静かな雨と書斎', file: '/bgm3.mp3' },
 ];
+
+const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
 
 export default function TimerPage() {
   const [currentMode, setCurrentMode] = useState<TimerMode>('pomodoro25');
@@ -64,6 +66,7 @@ export default function TimerPage() {
   const [timeLeft, setTimeLeft] = useState<number>(MODES.pomodoro25.workSeconds);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [message, setMessage] = useState<string>(MODES.pomodoro25.butlerMessage);
+  const [selectedActivity, setSelectedActivity] = useState<string>('勉強'); // 🌟 内容選択用
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
@@ -304,9 +307,34 @@ export default function TimerPage() {
             <h1 className="text-2xl font-bold mb-1 tracking-wide" style={{ color: '#F3ECD8' }}>
               {isBreak ? '休憩時間' : MODES[currentMode].name}
             </h1>
-            <p className="text-xs mb-6 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>
+            <p className="text-xs mb-4 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>
               {isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}
             </p>
+
+            {/* 🌟 内容選択バー（勉強、仕事、作業など） */}
+            {!isBreak && (
+              <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-[#BB8632] mr-1">内容:</span>
+                {ACTIVITY_LIST.map((activity) => {
+                  const isSelected = selectedActivity === activity;
+                  return (
+                    <button
+                      key={activity}
+                      onClick={() => setSelectedActivity(activity)}
+                      className="px-3 py-1 rounded-lg text-xs font-medium transition"
+                      style={{
+                        backgroundColor: isSelected ? '#BB8632' : '#3B1218',
+                        color: isSelected ? '#240A0E' : '#F3ECD8',
+                        border: '1px solid #BB8632',
+                        opacity: isSelected ? 1 : 0.8,
+                      }}
+                    >
+                      {activity}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div
               className="text-7xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
@@ -328,7 +356,7 @@ export default function TimerPage() {
                   border: '1px solid #BB8632' 
                 }}
               >
-                {isRunning ? '一時停止' : (isBreak ? '休憩開始' : '集中開始')}
+                {isRunning ? '一時停止' : (isBreak ? '休憩開始' : `${selectedActivity}開始`)}
               </button>
               <button
                 onClick={handleReset}
