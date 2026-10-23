@@ -8,19 +8,31 @@ interface JournalEntry {
   date: string;
   title: string;
   content: string;
+  totalWorkSeconds?: number; // 🌟 記録時の総集中時間（秒）
 }
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [todayWorkSeconds, setTodayWorkSeconds] = useState<number>(0);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
   const [butlerMessage, setButlerMessage] = useState(
-    '「主様の本日の学びや想いを、どうぞこの羊皮紙にお認めください。私が大切にお預かりいたします。」'
+    '「主様の本日の学びや想い、そして重ねられた努力の軌跡を、どうぞこの羊皮紙にお認めくださいませ。」'
   );
 
-  // ローカルストレージからの読み込み
+  // 🌟 ローカルストレージからの読み込み（更新で消えないマスターキーを使用）
   useEffect(() => {
-    const saved = localStorage.getItem('butler_journal_entries');
+    setIsMounted(true);
+
+    // タイマー側で計測している本ジの総集中時間を取得
+    const savedSeconds = localStorage.getItem('butler_master_total_seconds');
+    if (savedSeconds) {
+      setTodayWorkSeconds(parseInt(savedSeconds, 10) || 0);
+    }
+
+    // 日記データの読み込み
+    const saved = localStorage.getItem('butler_master_journal_entries');
     if (saved) {
       try {
         setEntries(JSON.parse(saved));
@@ -31,7 +43,7 @@ export default function JournalPage() {
   // ローカルストレージへの保存
   const saveToStorage = (newEntries: JournalEntry[]) => {
     setEntries(newEntries);
-    localStorage.setItem('butler_journal_entries', JSON.stringify(newEntries));
+    localStorage.setItem('butler_master_journal_entries', JSON.stringify(newEntries));
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -51,6 +63,7 @@ export default function JournalPage() {
       date: dateStr,
       title: title.trim() || '無題の日記',
       content: content.trim(),
+      totalWorkSeconds: todayWorkSeconds, // 🌟 投稿時点の総集中時間を保存
     };
 
     const updated = [newEntry, ...entries];
@@ -58,7 +71,7 @@ export default function JournalPage() {
 
     setTitle('');
     setContent('');
-    setButlerMessage('「素晴らしいお言葉でございますね。日記を本棚へとお納めいたしました。」');
+    setButlerMessage('「素晴らしいお言葉と、本日の努力の足跡をしっかりとお納めいたしました。」');
   };
 
   const handleDelete = (id: string) => {
@@ -67,6 +80,17 @@ export default function JournalPage() {
       saveToStorage(updated);
       setButlerMessage('「日記を一つ整理いたしました。」');
     }
+  };
+
+  const formatTotalTime = (totalSeconds: number) => {
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    if (hrs > 0) {
+      return `${hrs}時間 ${mins}分`;
+    }
+    return `${mins}分 ${secs}秒`;
   };
 
   return (
@@ -128,6 +152,19 @@ export default function JournalPage() {
             </p>
           </div>
 
+          {/* 本日の総集中時間インジケーター */}
+          <div 
+            className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md flex items-center justify-between"
+            style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632', color: '#F3ECD8' }}
+          >
+            <span className="text-xs font-semibold tracking-wider text-[#BB8632]">
+              本日の蓄積された集中時間
+            </span>
+            <span className="text-sm font-bold">
+              {isMounted ? formatTotalTime(todayWorkSeconds) : '0分'}
+            </span>
+          </div>
+
           {/* アンティークノート本体 */}
           <div className="w-full rounded-2xl p-6 sm:p-8 shadow-2xl border-4 relative overflow-hidden" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
             
@@ -159,7 +196,10 @@ export default function JournalPage() {
                 />
               </div>
 
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex justify-between items-center">
+                <span className="text-[11px] text-[#F3ECD8]/70 italic">
+                  ※現在の集中時間 ({isMounted ? formatTotalTime(todayWorkSeconds) : '0分'}) が一緒に記録されます
+                </span>
                 <button
                   type="submit"
                   className="gothic-btn px-6 py-2.5 rounded-xl text-sm font-bold tracking-wider text-[#F3ECD8]"
@@ -182,10 +222,18 @@ export default function JournalPage() {
                     <div key={item.id} className="rounded-xl p-4 border shadow-md relative" style={{ backgroundColor: '#F4EAD4', borderColor: '#B08D57', color: '#2B1A09' }}>
                       <div className="flex justify-between items-start mb-2 pb-1 border-b border-[#B08D57]/30">
                         <div>
-                          <span className="text-[10px] tracking-wider text-[#8A5A2D] font-semibold block">{item.date}</span>
-                          <h2 className="text-sm font-bold text-[#3A2B1D]">{item.title}</h2>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] tracking-wider text-[#8A5A2D] font-semibold">{item.date}</span>
+                            {item.totalWorkSeconds !== undefined && item.totalWorkSeconds > 0 && (
+                              <span className="text-[10px] bg-[#8A5A2D]/20 text-[#6B3E13] px-1.5 py-0.5 rounded font-bold">
+                                集中: {formatTotalTime(item.totalWorkSeconds)}
+                              </span>
+                            )}
+                          </div>
+                          <h2 className="text-sm font-bold text-[#3A2B1D] mt-0.5">{item.title}</h2>
                         </div>
                         <button
+                          type="button"
                           onClick={() => handleDelete(item.id)}
                           className="text-xs text-[#8A2D2D] hover:underline opacity-70 hover:opacity-100"
                         >
