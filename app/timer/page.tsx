@@ -72,6 +72,28 @@ export default function TimerPage() {
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 初回ロード時にローカルストレージから総集中時間を復元（日付が変わっていたらリセット）
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+    const savedDate = localStorage.getItem('butler_work_date');
+    const savedSeconds = localStorage.getItem('butler_total_work_seconds');
+
+    if (savedDate === todayStr && savedSeconds) {
+      setTotalWorkSeconds(parseInt(savedSeconds, 10) || 0);
+    } else {
+      setTotalWorkSeconds(0);
+      localStorage.setItem('butler_work_date', todayStr);
+      localStorage.setItem('butler_total_work_seconds', '0');
+    }
+  }, []);
+
+  // 総集中時間が変わるたびにローカルストレージに保存
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    localStorage.setItem('butler_total_work_seconds', totalWorkSeconds.toString());
+    localStorage.setItem('butler_work_date', todayStr);
+  }, [totalWorkSeconds]);
+
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
