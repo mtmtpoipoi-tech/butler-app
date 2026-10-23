@@ -49,13 +49,11 @@ export default function Home() {
       const date = now.getDate();
       const hours = now.getHours();
 
-      // 🌅 🌄 背景画像の時間判定
-      // 6:00 〜 16:59 ➔ 朝の部屋 (home-bg-morning.jpg)
-      // 17:00 〜 5:59 ➔ 夜の部屋 (home-bg-night.jpg)
-      if (hours >= 6 && hours < 17) {
+      // 🌅 背景画像の時間判定：6:00 〜 7:59 (8時未満) のみ朝の部屋、その他は元の背景
+      if (hours >= 6 && hours < 8) {
         setBgImage('/home-bg-morning.jpg');
       } else {
-        setBgImage('/home-bg-night.jpg');
+        setBgImage('/home-bg.jpg');
       }
 
       // 1. 暖炉の季節判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
@@ -195,7 +193,7 @@ export default function Home() {
           {/* 暖炉の音のON/OFFスライドスイッチ */}
           <div className="px-4 py-1.5 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-3">
             <span className="text-xs text-[#F3ECD8]">
-              {isPlayingFire ? '🔥 暖炉の火が燃えております' : '🕯️ 暖炉を静かに見つめる'}
+              暖炉の火
             </span>
             <button
               type="button"
@@ -259,7 +257,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </Link>
 
-            {/* 日記帳（1枚目の画像） */}
             <Link href="/journal" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
@@ -270,7 +267,6 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </Link>
 
-            {/* 予定帳 / カレンダー（2枚目の画像） */}
             <Link href="/calendar" className="flex flex-col items-center group">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
