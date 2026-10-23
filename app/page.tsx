@@ -52,11 +52,13 @@ export default function Home() {
 
       setCurrentHour(hours);
 
-      // 🌅 背景画像の時間判定：6:00 〜 7:59 (8時未満) のみ朝の部屋、その他は元の背景
+      // 🌅 背景画像の時間判定：朝・昼・夜で切り替え
       if (hours >= 6 && hours < 8) {
-        setBgImage('/home-bg-morning.jpg');
+        setBgImage('/home-bg-morning.jpg'); // 朝の部屋
+      } else if (hours >= 17 || hours < 6) {
+        setBgImage('/home-bg-night.jpg');   // 🌟 夜の部屋（※夜用画像ファイル名）
       } else {
-        setBgImage('/home-bg.jpg');
+        setBgImage('/home-bg.jpg');         // 昼・夕方の部屋
       }
 
       // 1. 暖炉の季節判定：秋分の日（約9月23日）〜 春分の日（約3月21日）
@@ -94,11 +96,11 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingFire]);
 
-  // 時間に応じた挨拶メッセージの取得
+  // 時間に応じた挨拶メッセージの取得（🌟 夜のご挨拶を指定の文言に変更）
   const getButlerGreeting = () => {
     const name = masterName || '主';
-    if (isAutoTime) {
-      return `「お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
+    if (isAutoTime || currentHour >= 17 || currentHour < 6) {
+      return `「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
     }
     if (currentHour >= 6 && currentHour < 11) {
       return `「おはようございます、${name}様。」`;
