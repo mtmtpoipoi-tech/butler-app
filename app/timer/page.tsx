@@ -67,13 +67,13 @@ export default function TimerPage() {
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
-  const [isMounted, setIsMounted] = useState<boolean>(false); // 🌟 ハイドレーションエラー防止用フラグ
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 🌟 画面がブラウザで読み込まれた後に localStorage から安全にデータを復元する
+  // 画面マウント時に localStorage から安全にデータを復元
   useEffect(() => {
     setIsMounted(true);
     const todayStr = new Date().toISOString().split('T')[0];
@@ -117,7 +117,7 @@ export default function TimerPage() {
     stopBgm();
   }, [currentMode]);
 
-  // 🌟 1秒ごとにカウントアップし、その場で即座に localStorage に保存
+  // 1秒ごとにカウントダウンおよび総集中時間の更新・保存
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -315,6 +315,7 @@ export default function TimerPage() {
               {formatTime(timeLeft)}
             </div>
 
+            {/* ボタン部分：作業/休憩および動作状況に応じた動的表示 */}
             <div className="flex justify-center space-x-4 mb-8">
               <button
                 onClick={toggleTimer}
@@ -327,7 +328,7 @@ export default function TimerPage() {
                   border: '1px solid #BB8632' 
                 }}
               >
-                {isRunning ? '一時停止' : '集中開始'}
+                {isRunning ? '一時停止' : (isBreak ? '休憩開始' : '集中開始')}
               </button>
               <button
                 onClick={handleReset}
