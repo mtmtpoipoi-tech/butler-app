@@ -70,13 +70,15 @@ export default function TimerPage() {
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
   
-  // 活動ごとの集計ステート ({ 勉強: 秒数, 作業: 秒数, ... })
+  // 活動ごとの集計ステート
   const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const bellAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const getTodayLocalDateStr = () => {
     const now = new Date();
@@ -125,7 +127,27 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🌟 フェードイン機能
+  // 🔔 ベルの音源を3回連続で鳴らす関数
+  const playBellThreeTimes = () => {
+    let count = 0;
+    const soundFile = '/bell.mp3'; // 🌟 ベル音源のファイルパス
+
+    const playNext = () => {
+      if (count < 3) {
+        count++;
+        const audio = new Audio(soundFile);
+        audio.volume = 1.0;
+        audio.onended = () => {
+          setTimeout(playNext, 300); // 鳴り終わった後0.3秒間隔を空けて次の鳴動へ
+        };
+        audio.play().catch(() => {});
+      }
+    };
+
+    playNext();
+  };
+
+  // BGMフェードイン
   const playBgmWithFadeIn = () => {
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -145,7 +167,7 @@ export default function TimerPage() {
     }
   };
 
-  // 🌟 フェードアウト機能
+  // BGMフェードアウト
   const stopBgmWithFadeOut = (onComplete?: () => void) => {
     if (audioRef.current && isPlayingBgm) {
       let vol = audioRef.current.volume;
@@ -177,7 +199,7 @@ export default function TimerPage() {
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
-    stopBgmWithFadeOut(); // 🌟 修正：正しいフェードアウト停止関数を呼び出し
+    stopBgmWithFadeOut();
   }, [currentMode]);
 
   useEffect(() => {
@@ -203,6 +225,10 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
+      
+      // 🌟 時間が終了した際にベルを3回鳴らす
+      playBellThreeTimes();
+
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
@@ -365,7 +391,7 @@ export default function TimerPage() {
               {isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}
             </p>
 
-            {/* 内容選択バー（勉強、仕事、作業など） */}
+            {/* 内容選択バー */}
             {!isBreak && (
               <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
                 <span className="text-xs text-[#BB8632] mr-1">内容:</span>
