@@ -84,6 +84,8 @@ interface WeatherData {
   locationName: string;
 }
 
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
 export default function Home() {
   const router = useRouter();
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
@@ -93,6 +95,10 @@ export default function Home() {
   const [inputName, setInputName] = useState<string>('');
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
+
+  // 🌟 現在の日付と24時間表示の時刻用ステート
+  const [dateString, setDateString] = useState<string>('');
+  const [timeString, setTimeString] = useState<string>('');
 
   // 🌟 ページ遷移時の暗転フェードアウト用ステート
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
@@ -125,17 +131,38 @@ export default function Home() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 🌟 リアルタイム時計の更新（毎秒）
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const date = now.getDate();
+      const day = WEEKDAYS[now.getDay()];
+
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+
+      setDateString(`${year}年${month}月${date}日（${day}）`);
+      setTimeString(`${hours}:${minutes}:${seconds}`);
+    };
+
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // 🌟 ページ遷移を黒く暗転させながら実行する関数
   const handleNavigate = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setIsTransitioning(true);
     setTimeout(() => {
       router.push(href);
-    }, 500); // 0.5秒の暗転
+    }, 500);
   };
 
   useEffect(() => {
-    // 🌟 他のページから戻ってきたときに遷移ステートを確実に解除する
     setIsTransitioning(false);
 
     const savedUser = localStorage.getItem('butler_master_account_id');
@@ -301,7 +328,6 @@ export default function Home() {
     }, 500);
   };
 
-  // 天気手帳をフワッと開く
   const handleOpenWeatherModal = () => {
     setShowWeatherModal(true);
     setTimeout(() => {
@@ -309,7 +335,6 @@ export default function Home() {
     }, 20);
   };
 
-  // 天気手帳をフワッと閉じる
   const handleCloseWeatherModal = () => {
     setIsWeatherVisible(false);
     setTimeout(() => {
@@ -410,10 +435,15 @@ export default function Home() {
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&family=Cinzel:wght@400;600;700&display=swap');
         
         body, button, p, span, h1, h2, div, input, select {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+        }
+
+        .gothic-clock-time {
+          font-family: 'Cinzel', 'Shippori Mincho', serif;
+          letter-spacing: 0.1em;
         }
 
         .gothic-dock-item {
@@ -441,21 +471,21 @@ export default function Home() {
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      {/* 🌟 画面全体の背景とコンテナ */}
+      {/* 画面全体の背景とコンテナ */}
       <div
         className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: `url('${bgImage}')` }}
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌟 画面全体の黒い暗転フェードオーバーレイ（白くならず確実に黒く沈み込みます） */}
+        {/* 画面全体の黒い暗転フェードオーバーレイ */}
         <div
           className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
             isTransitioning ? 'opacity-100' : 'opacity-0'
           }`}
         />
 
-        {/* 🌟 画面右上「⚙️ 設定」ボタン */}
+        {/* 画面右上「⚙️ 設定」ボタン */}
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -722,14 +752,28 @@ export default function Home() {
           </div>
         )}
 
-        <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
-          <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
+        {/* 🌟 ヘッダー＆時計エリア */}
+        <div className="relative z-10 w-full max-w-lg text-center pt-4 flex flex-col items-center">
+          <p className="text-[10px] tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-3">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
-          <div className="flex items-center gap-2">
+          {/* 🕰️ ゴシック調・日付＆24時間表示時計カード */}
+          <div 
+            className="w-full max-w-xs my-2 py-3 px-4 rounded-2xl border shadow-2xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5"
+            style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}
+          >
+            <p className="text-xs tracking-wider text-[#BB8632] font-bold">
+              {dateString || '----年--月--日（-）'}
+            </p>
+            <p className="gothic-clock-time text-3xl sm:text-4xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+              {timeString || '00:00:00'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 mt-1">
             <div className="px-4 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-3">
               <span className="text-xs text-[#F3ECD8]">暖炉の火</span>
               <button
