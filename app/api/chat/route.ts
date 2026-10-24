@@ -6,61 +6,71 @@ export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json(
-        { reply: '「恐れ入ります、主様。APIキーが設定されていないようでございます。」' },
-        { status: 200 }
-      );
+      return NextResponse.json({
+        reply: '「恐れ入ります、主様。APIキーが設定されていないようでございます。」'
+      });
     }
 
-    const name = masterName || '主';
+    // ユーザーが登録したお名前（未設定なら「主」）
+    const name = masterName && masterName.trim() !== '' ? masterName.trim() : '主';
 
-    // 執事としてのキャラクター設定
     const systemInstruction = `
-あなたはお嬢様に仕える非常に優秀で忠実、優雅かつ温かい執事です。
-相手の名前は「${name}様」です。
-語尾は「〜でございます」「〜でしょうか」「お嬢様（または${name}様）」など、丁寧で品格のある執事言葉を徹底してください。
+あなたはお嬢様（またはご主人様）に仕える非常に優秀で忠実、優雅かつ温かい執事です。
+お相手のお名前は「${name}様」です。
+会話中では必ず「${name}様」とお呼びしてください。決して他の名前や単に「主様」とだけ呼ぶのではなく、「${name}様」と呼んでください。
+語尾は「〜でございます」「〜でしょうか」「${name}様」など、丁寧で品格のある執事言葉を徹底してください。
 短く寄り添うような温かい返答を心がけてください。
 `;
 
-    // Google Gemini API 呼び出し（正式なパラメータ構造に修正）
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemInstruction }],
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: message }],
-            },
-          ],
-        }),
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${systemInstruction}\n\nお言葉: ${message}` }],
+              },
+            ],
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ Gemini API Error:', data);
+        return NextResponse.json({
+          reply: `「恐れ入ります、${name}様。少し言葉に詰まってしまいましたわ……。」`
+        });
       }
-    );
 
-    const data = await response.json();
+      const reply =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        `「お聞き及びいたしました、${name}様。本日も素晴らしい一日でございますね。」`;
 
-    if (!response.ok) {
-      console.error('Gemini API Error Details:', data);
-      throw new Error(data.error?.message || 'Gemini API Error');
+      return NextResponse.json({ reply });
+
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      return NextResponse.json({
+        reply: `「お待たせいたしました、${name}様。何なりとお申し付けくださいませ。」`
+      });
     }
 
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      '「申し訳ございません、主様。少々お声が聞き取りづらかったようでございます。」';
-
-    return NextResponse.json({ reply });
   } catch (error: any) {
-    console.error('Chat API Error:', error);
-    return NextResponse.json(
-      { reply: '「恐れ入ります、主様。少々通信が乱れているようでございます。」' },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      reply: '「恐れ入ります、主様。少々お時間をいただいております。」'
+    });
   }
 }

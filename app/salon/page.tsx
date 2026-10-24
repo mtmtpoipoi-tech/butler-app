@@ -21,14 +21,13 @@ export default function SalonPage() {
   useEffect(() => {
     setIsTransitioning(false);
     const savedName = localStorage.getItem('butler_master_name');
-    if (savedName) {
-      setMasterName(savedName);
-    }
+    const currentName = savedName && savedName.trim() !== '' ? savedName.trim() : '主';
+    setMasterName(currentName);
 
     setMessages([
       {
         sender: 'butler',
-        text: `「お話し相手をお探しでございますか、${savedName || '主'}様？何なりとお聞かせくださいませ。」`,
+        text: `「お話し相手をお探しでございますか、${currentName}様？何なりとお聞かせくださいませ。」`,
       },
     ]);
   }, []);
@@ -76,7 +75,7 @@ export default function SalonPage() {
         ...updatedMessages,
         {
           sender: 'butler',
-          text: '「大変申し訳ございません。お声が届きにくくなっているようでございます。」',
+          text: `「大変申し訳ございません、${masterName}様。お声が届きにくくなっているようでございます。」`,
         },
       ]);
     } finally {
