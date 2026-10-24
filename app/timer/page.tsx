@@ -51,7 +51,7 @@ interface BgmOption {
 }
 
 const BGM_LIST: BgmOption[] = [
-  { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' }, // 🌟 拡張子を .mp4 に修正
+  { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
   { id: 'focus', name: 'Deep Focus（深海集中）', file: '/bgm1.mp3' },
   { id: 'mansion', name: '静寂の洋館（ピアノ）', file: '/bgm2.mp3' },
@@ -69,7 +69,9 @@ export default function TimerPage() {
   const [selectedActivity, setSelectedActivity] = useState<string>('勉強');
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
-  const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
+  
+  // 活動ごとの集計ステート ({ 勉強: 秒数, 作業: 秒数, ... })
+  const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
@@ -87,15 +89,19 @@ export default function TimerPage() {
   useEffect(() => {
     setIsMounted(true);
     const todayStr = getTodayLocalDateStr();
-    const savedDate = localStorage.getItem('butler_master_work_date');
-    const savedSeconds = localStorage.getItem('butler_master_total_seconds');
+    const savedDate = localStorage.getItem('butler_master_activity_date');
+    const savedData = localStorage.getItem('butler_master_activity_seconds');
 
-    if (savedDate === todayStr && savedSeconds !== null) {
-      setTotalWorkSeconds(parseInt(savedSeconds, 10) || 0);
+    if (savedDate === todayStr && savedData) {
+      try {
+        setActivitySeconds(JSON.parse(savedData));
+      } catch (e) {
+        setActivitySeconds({});
+      }
     } else {
-      setTotalWorkSeconds(0);
-      localStorage.setItem('butler_master_work_date', todayStr);
-      localStorage.setItem('butler_master_total_seconds', '0');
+      setActivitySeconds({});
+      localStorage.setItem('butler_master_activity_date', todayStr);
+      localStorage.setItem('butler_master_activity_seconds', JSON.stringify({}));
     }
   }, []);
 
@@ -127,24 +133,77 @@ export default function TimerPage() {
     stopBgm();
   }, [currentMode]);
 
+  // 🌟 フェードイン機能
+  const playBgmWithFadeIn = () => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0;
+      audioRef.current.play().then(() => {
+        setIsPlayingBgm(true);
+        let vol = 0;
+        const fadeInInterval = setInterval(() => {
+          vol += 0.05;
+          if (vol >= 1) {
+            if (audioRef.current) audioRef.current.volume = 1;
+            clearInterval(fadeInInterval);
+          } else {
+            if (audioRef.current) audioRef.current.volume = vol;
+          }
+        }, 150); // 約3秒かけてふわりと上げる
+      }).catch(() => {});
+    }
+  };
+
+  // 🌟 フェードアウト機能
+  const stopBgmWithFadeOut = (onComplete?: () => void) => {
+    if (audioRef.current && isPlayingBgm) {
+      let vol = audioRef.current.volume;
+      const fadeOutInterval = setInterval(() => {
+        vol -= 0.05;
+        if (vol <= 0) {
+          if (audioRef.current) {
+            audioRef.current.volume = 0;
+            audioRef.current.pause();
+          }
+          setIsPlayingBgm(false);
+          clearInterval(fadeOutInterval);
+          if (onComplete) onComplete();
+        } else {
+          if (audioRef.current) audioRef.current.volume = vol;
+        }
+      }, 150); // 約3秒かけて優しく消す
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setIsPlayingBgm(false);
+      if (onComplete) onComplete();
+    }
+  };
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
+      // 残り3秒になったらBGMをフェードアウト開始
+      if (timeLeft === 3 && isPlayingBgm) {
+        stopBgmWithFadeOut();
+      }
+
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
         if (!isBreak) {
-          setTotalWorkSeconds((prev) => {
-            const nextVal = prev + 1;
+          setActivitySeconds((prev) => {
+            const currentVal = prev[selectedActivity] || 0;
+            const nextVal = currentVal + 1;
+            const nextObj = { ...prev, [selectedActivity]: nextVal };
             const todayStr = getTodayLocalDateStr();
-            localStorage.setItem('butler_master_total_seconds', nextVal.toString());
-            localStorage.setItem('butler_master_work_date', todayStr);
-            return nextVal;
+            localStorage.setItem('butler_master_activity_date', todayStr);
+            localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
+            return nextObj;
           });
         }
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      stopBgm();
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
@@ -158,7 +217,7 @@ export default function TimerPage() {
       }
     }
     return () => clearInterval(timer);
-  }, [isRunning, timeLeft, isBreak, currentMode]);
+  }, [isRunning, timeLeft, isBreak, currentMode, isPlayingBgm, selectedActivity]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -166,46 +225,21 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const formatTotalTime = (totalSeconds: number) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-
-    if (hrs > 0) {
-      return `${hrs}時間 ${mins}分 ${secs}秒`;
-    }
-    return `${mins}分 ${secs}秒`;
-  };
-
-  const playBgm = () => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {});
-      setIsPlayingBgm(true);
-    }
-  };
-
-  const stopBgm = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlayingBgm(false);
-    }
-  };
-
   const toggleTimer = () => {
     if (!isRunning) {
       setIsRunning(true);
-      playBgm();
+      playBgmWithFadeIn();
     } else {
       setIsRunning(false);
-      stopBgm();
+      stopBgmWithFadeOut();
     }
   };
 
   const toggleBgmManually = () => {
     if (isPlayingBgm) {
-      stopBgm();
+      stopBgmWithFadeOut();
     } else {
-      playBgm();
+      playBgmWithFadeIn();
     }
   };
 
@@ -214,7 +248,7 @@ export default function TimerPage() {
     if (audioRef.current) {
       audioRef.current.src = newFile;
       if (isPlayingBgm || isRunning) {
-        playBgm();
+        playBgmWithFadeIn();
       }
     }
   };
@@ -224,7 +258,19 @@ export default function TimerPage() {
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
-    stopBgm();
+    stopBgmWithFadeOut();
+  };
+
+  // 🌟 やった内容（0分超）だけを抽出して表示用の文字列を生成する関数
+  const renderActivitySummary = () => {
+    const entries = Object.entries(activitySeconds).filter(([_, secs]) => secs > 0);
+    if (entries.length === 0) {
+      return '0分';
+    }
+    return entries.map(([act, secs]) => {
+      const totalMins = Math.floor(secs / 60);
+      return `${act} ${totalMins}分`;
+    }).join(' ');
   };
 
   return (
@@ -262,16 +308,16 @@ export default function TimerPage() {
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           
-         {/* ホームに戻るボタン */}
-<div className="w-full mb-3 flex justify-start">
-  <a 
-    href="/" 
-    onClick={() => sessionStorage.setItem('skip_door', 'true')}
-    className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50"
-  >
-    ← エントランス（ホーム）へ戻る
-  </a>
-</div>
+          {/* ホームに戻るボタン */}
+          <div className="w-full mb-3 flex justify-start">
+            <a 
+              href="/" 
+              onClick={() => sessionStorage.setItem('skip_door', 'true')}
+              className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50"
+            >
+              ← エントランス（ホーム）へ戻る
+            </a>
+          </div>
 
           {/* 日付・曜日・現在時刻 */}
           <div 
@@ -296,16 +342,16 @@ export default function TimerPage() {
             </p>
           </div>
 
-          {/* 累計集中時間カウンター */}
+          {/* 本日の活動別・集中時間内訳 */}
           <div 
-            className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex items-center justify-between"
+            className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}
           >
-            <span className="text-sm font-semibold tracking-wider" style={{ color: '#F3ECD8', opacity: 0.9 }}>
-              本日の総集中時間
+            <span className="text-xs font-semibold tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>
+              本日の集中実績
             </span>
-            <span className="text-base font-bold" style={{ color: '#BB8632' }}>
-              {isMounted ? formatTotalTime(totalWorkSeconds) : '0分 0秒'}
+            <span className="text-sm font-bold tracking-wide" style={{ color: '#BB8632' }}>
+              {isMounted ? renderActivitySummary() : '0分'}
             </span>
           </div>
 
@@ -331,7 +377,7 @@ export default function TimerPage() {
                     <button
                       key={activity}
                       onClick={() => setSelectedActivity(activity)}
-                      className="px-3 py-1 rounded-lg text-xs font-medium transition"
+                      className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
                       style={{
                         backgroundColor: isSelected ? '#BB8632' : '#3B1218',
                         color: isSelected ? '#240A0E' : '#F3ECD8',
@@ -346,8 +392,9 @@ export default function TimerPage() {
               </div>
             )}
 
+            {/* 🌟 タイマー文字サイズを少し小さく変更 (text-7xl → text-5xl) */}
             <div
-              className="text-7xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
+              className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
               style={{ color: '#F3ECD8' }}
             >
               {formatTime(timeLeft)}
@@ -357,7 +404,7 @@ export default function TimerPage() {
             <div className="flex justify-center space-x-4 mb-8">
               <button
                 onClick={toggleTimer}
-                className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider"
+                className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
                 style={{ 
                   background: isRunning 
                     ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' 
@@ -370,7 +417,7 @@ export default function TimerPage() {
               </button>
               <button
                 onClick={handleReset}
-                className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider"
+                className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
                 style={{ 
                   background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', 
                   color: '#F3ECD8', 
@@ -390,7 +437,7 @@ export default function TimerPage() {
                     <button
                       key={modeKey}
                       onClick={() => setCurrentMode(modeKey)}
-                      className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition"
+                      className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
                       style={{ 
                         background: isSelected 
                           ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' 
@@ -407,7 +454,7 @@ export default function TimerPage() {
               </div>
             </div>
 
-            {/* BGM選択と再生/停止ボタン (▶ / ❚❚) */}
+            {/* BGM選択と再生/停止ボタン */}
             <div 
               className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4"
               style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}
@@ -431,7 +478,7 @@ export default function TimerPage() {
 
               <button
                 onClick={toggleBgmManually}
-                className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0"
+                className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
                 style={{ 
                   background: isPlayingBgm 
                     ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' 
