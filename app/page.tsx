@@ -27,7 +27,7 @@ const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number;
     群馬県: { 前橋市: { lat: 36.3895, lon: 139.0634 }, 高崎市: { lat: 36.3219, lon: 139.0033 } },
     埼玉県: { '南部（さいたま・川越）': { lat: 35.8617, lon: 139.6455 }, '北部（熊谷・深谷）': { lat: 36.1472, lon: 139.3886 }, '秩父地方': { lat: 35.9918, lon: 139.0777 } },
     千葉県: { '北西部（千葉・船橋）': { lat: 35.6074, lon: 140.1065 }, 北東部: { lat: 35.7347, lon: 140.8267 }, 南部: { lat: 34.9962, lon: 139.8696 } },
-    東京都: { 23区: { lat: 35.6895, lon: 139.6917 }, 多摩地域: { lat: 35.7056, lon: 139.4687 } },
+    東京都: { '23区': { lat: 35.6895, lon: 139.6917 }, 多摩地域: { lat: 35.7056, lon: 139.4687 } },
     神奈川県: { '横浜・川崎': { lat: 35.4437, lon: 139.638 }, 相模原: { lat: 35.5713, lon: 139.3731 }, 湘南: { lat: 35.3189, lon: 139.5502 } },
   },
   中部地方: {
@@ -93,17 +93,14 @@ export default function Home() {
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
 
-  // 挨拶の表示制御 ＆ フェードアウト
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  // 🔑 アカウント・ログイン機能用ステート
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [userId, setUserId] = useState<string>('');
   const [userPassword, setUserPassword] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  // 📍 全国階層型地域選択用ステート
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [selectedRegionGroup, setSelectedRegionGroup] = useState<string>('関東地方');
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('埼玉県');
@@ -117,7 +114,6 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // ログイン状態確認
     const savedUser = localStorage.getItem('butler_master_account_id');
     if (savedUser) {
       setIsLoggedIn(true);
@@ -131,7 +127,6 @@ export default function Home() {
       setShowNameModal(true);
     }
 
-    // 保存されている参照地域
     const savedLoc = localStorage.getItem('butler_fallback_location');
     let currentLat = 35.8617;
     let currentLon = 139.6455;
@@ -149,7 +144,6 @@ export default function Home() {
       } catch (e) {}
     }
 
-    // 訪問時間チェック（数時間空いたら挨拶表示）
     const lastVisit = localStorage.getItem('butler_master_last_visit');
     const now = Date.now();
     const hoursThreshold = 3;
@@ -218,7 +212,7 @@ export default function Home() {
 
         if (code >= 1 && code <= 3) {
           cond = '曇り';
-          comment = '少々雲が多いようでございます。お足元にお気をつけくださいませ。';
+          comment = '少々雲が多いようでございます。お出かけの際はお足元にお気をつけくださいませ。';
         } else if (code >= 51 || pop >= 40) {
           cond = '雨';
           comment = 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。';
@@ -247,7 +241,6 @@ export default function Home() {
     }
   };
 
-  // 📍 地域決定処理
   const handleSelectArea = (areaName: string, coords: { lat: number; lon: number }) => {
     const fullName = `${selectedPrefecture} ${areaName}`;
     setFallbackLocationName(fullName);
@@ -258,7 +251,6 @@ export default function Home() {
     fetchWeatherByLocation(coords.lat, coords.lon, fullName);
   };
 
-  // 🔑 アカウントログイン・同期処理
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId.trim() || !userPassword.trim()) return;
@@ -405,7 +397,6 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🔑 デバイス同期・ログインモーダル */}
         {showAuthModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -457,7 +448,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 📍 全国＞地方＞都道府県＞地域 階層型設定モーダル */}
         {showLocationModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -474,7 +464,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* 1. 地方選択 */}
               <div className="mb-3">
                 <label className="text-xs text-[#BB8632] font-bold block mb-1">① 地方を選択（全国）</label>
                 <select
@@ -493,7 +482,6 @@ export default function Home() {
                 </select>
               </div>
 
-              {/* 2. 都道府県選択 */}
               <div className="mb-4">
                 <label className="text-xs text-[#BB8632] font-bold block mb-1">② 都道府県を選択</label>
                 <select
@@ -508,7 +496,6 @@ export default function Home() {
                 </select>
               </div>
 
-              {/* 3. 詳細地域一覧からタップで決定 */}
               <div>
                 <label className="text-xs text-[#BB8632] font-bold block mb-1.5">③ 詳細地域を選択</label>
                 <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
@@ -545,7 +532,6 @@ export default function Home() {
               </button>
             )}
             
-            {/* 🔑 デバイス同期・ログイン状態表示 */}
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
@@ -597,9 +583,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 挨拶カード（滑らかなフェードアウト） ＆ 天気情報 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {/* 執事よりのご挨拶 */}
           {showGreeting && (
             <div 
               onClick={handleDismissGreeting}
@@ -618,7 +602,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* 自動気象情報カード */}
           <div 
             className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
