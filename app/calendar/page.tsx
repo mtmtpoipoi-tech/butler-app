@@ -13,9 +13,11 @@ interface EventItem {
 export default function CalendarPage() {
   const router = useRouter();
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
+  
+  // 🌟 エラー回避：初期値を固定値（2026年10月）でセットし、useEffect内で現在年月を取得する
   const [currentYearMonth, setCurrentYearMonth] = useState<{ year: number; month: number }>({
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
+    year: 2026,
+    month: 10,
   });
   
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -34,19 +36,26 @@ export default function CalendarPage() {
   };
 
   useEffect(() => {
+    // 🌟 画面マウント時に現在の年月・日付を設定（これでSSRエラーが解消されます）
+    const now = new Date();
+    setCurrentYearMonth({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+    });
+
     const today = getTodayLocalDateStr();
     setSelectedDate(today);
 
     const updateDateTime = () => {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const date = String(now.getDate()).padStart(2, '0');
+      const current = new Date();
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      const date = String(current.getDate()).padStart(2, '0');
       const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-      const day = dayNames[now.getDay()];
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const day = dayNames[current.getDay()];
+      const hours = String(current.getHours()).padStart(2, '0');
+      const minutes = String(current.getMinutes()).padStart(2, '0');
+      const seconds = String(current.getSeconds()).padStart(2, '0');
       setDateTimeStr(`${year}年${month}月${date}日 (${day}) ${hours}:${minutes}:${seconds}`);
     };
 
@@ -183,6 +192,7 @@ export default function CalendarPage() {
             <p className="text-sm leading-relaxed">{butlerMessage}</p>
           </div>
 
+          {/* 月間カレンダー表示 */}
           <div className="w-full rounded-2xl p-5 mb-4 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
             <div className="flex justify-between items-center mb-4">
               <button onClick={prevMonth} className="text-xs text-[#BB8632] font-bold hover:underline cursor-pointer">◀ 前月</button>
@@ -228,8 +238,9 @@ export default function CalendarPage() {
             </div>
           </div>
 
+          {/* 選択日付のご予定 ＆ 新規登録 */}
           <div className="w-full rounded-2xl p-5 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
-            <p className="text-xs font-bold text-[#BB8632] mb-3">📅 {selectedDate} のご予定</p>
+            <p className="text-xs font-bold text-[#BB8632] mb-3">📅 {selectedDate || '----' } のご予定</p>
 
             <form onSubmit={handleAddEvent} className="flex gap-2 mb-4">
               <input
@@ -261,6 +272,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
+          {/* 外部カレンダー連携設定 */}
           <div className="w-full rounded-2xl p-4 mt-4 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
             <p className="text-xs font-semibold mb-2 text-[#BB8632]">🔗 外部カレンダー連携 (iCal / Google Calendar URL)</p>
             <form onSubmit={handleSaveExternalUrl} className="flex gap-2">
