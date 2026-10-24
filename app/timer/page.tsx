@@ -125,14 +125,6 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    setIsRunning(false);
-    setIsBreak(false);
-    setTimeLeft(MODES[currentMode].workSeconds);
-    setMessage(MODES[currentMode].butlerMessage);
-    stopBgm();
-  }, [currentMode]);
-
   // 🌟 フェードイン機能
   const playBgmWithFadeIn = () => {
     if (audioRef.current) {
@@ -148,7 +140,7 @@ export default function TimerPage() {
           } else {
             if (audioRef.current) audioRef.current.volume = vol;
           }
-        }, 150); // 約3秒かけてふわりと上げる
+        }, 150);
       }).catch(() => {});
     }
   };
@@ -170,7 +162,7 @@ export default function TimerPage() {
         } else {
           if (audioRef.current) audioRef.current.volume = vol;
         }
-      }, 150); // 約3秒かけて優しく消す
+      }, 150);
     } else {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -181,9 +173,16 @@ export default function TimerPage() {
   };
 
   useEffect(() => {
+    setIsRunning(false);
+    setIsBreak(false);
+    setTimeLeft(MODES[currentMode].workSeconds);
+    setMessage(MODES[currentMode].butlerMessage);
+    stopBgmWithFadeOut(); // 🌟 修正：正しいフェードアウト停止関数を呼び出し
+  }, [currentMode]);
+
+  useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
-      // 残り3秒になったらBGMをフェードアウト開始
       if (timeLeft === 3 && isPlayingBgm) {
         stopBgmWithFadeOut();
       }
@@ -261,7 +260,6 @@ export default function TimerPage() {
     stopBgmWithFadeOut();
   };
 
-  // 🌟 やった内容（0分超）だけを抽出して表示用の文字列を生成する関数
   const renderActivitySummary = () => {
     const entries = Object.entries(activitySeconds).filter(([_, secs]) => secs > 0);
     if (entries.length === 0) {
@@ -392,7 +390,6 @@ export default function TimerPage() {
               </div>
             )}
 
-            {/* 🌟 タイマー文字サイズを少し小さく変更 (text-7xl → text-5xl) */}
             <div
               className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
               style={{ color: '#F3ECD8' }}
