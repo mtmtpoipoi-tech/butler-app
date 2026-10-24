@@ -126,7 +126,7 @@ export default function SalonPage() {
                   className={`flex flex-col ${msg.sender === 'master' ? 'items-end' : 'items-start'}`}
                 >
                   <span className="text-[10px] text-[#BB8632] mb-1 px-1">
-                    {msg.sender === 'master' ? `${masterName}様` : '執事ベリアン'}
+                    {msg.sender === 'master' ? `${masterName}様` : '執事'}
                   </span>
                   <div
                     className={`max-w-[85%] p-3 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-md ${
@@ -141,7 +141,7 @@ export default function SalonPage() {
               ))}
               {loading && (
                 <div className="flex flex-col items-start">
-                  <span className="text-[10px] text-[#BB8632] mb-1 px-1">執事ベリアン</span>
+                  <span className="text-[10px] text-[#BB8632] mb-1 px-1">執事</span>
                   <div className="bg-[#3B1218] text-[#BB8632] italic text-xs p-3 rounded-2xl rounded-bl-none border border-[#BB8632]/40">
                     言葉をお選びしております……
                   </div>
