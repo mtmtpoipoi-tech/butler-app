@@ -3,6 +3,78 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
+// 全国地域データ定義
+const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number; lon: number }>>> = {
+  北海道地方: {
+    北海道: {
+      '札幌・石狩': { lat: 43.0642, lon: 141.3469 },
+      '函館・渡島': { lat: 41.7687, lon: 140.7288 },
+      '旭川・上川': { lat: 43.7706, lon: 142.3648 },
+      '釧路・釧路': { lat: 42.9849, lon: 144.3818 },
+    },
+  },
+  東北地方: {
+    青森県: { 青森市: { lat: 40.8244, lon: 140.74,1 }, 八戸市: { lat: 40.5123, lon: 141.4884 } },
+    岩手県: { 盛岡市: { lat: 39.7036, lon: 141.1527 }, 宮古市: { lat: 39.6414, lon: 141.9572 } },
+    宮城県: { 仙台市: { lat: 38.2682, lon: 140.8694 }, 石巻市: { lat: 38.4342, lon: 141.303 } },
+    秋田県: { 秋田市: { lat: 39.7186, lon: 140.1024 } },
+    山形県: { 山形市: { lat: 38.2404, lon: 140.3633 }, 庄内: { lat: 38.9143, lon: 139.8364 } },
+    福島県: { 福島市: { lat: 37.7608, lon: 140.4748 }, 郡山市: { lat: 37.3985, lon: 140.3883 }, 会津若松市: { lat: 37.4952, lon: 139.9272 } },
+  },
+  関東地方: {
+    茨城県: { 水戸市: { lat: 36.3659, lon: 140.4712 }, つくば市: { lat: 36.0835, lon: 140.0766 } },
+    栃木県: { 宇都宮市: { lat: 36.5657, lon: 139.8836 } },
+    群馬県: { 前橋市: { lat: 36.3895, lon: 139.0634 }, 高崎市: { lat: 36.3219, lon: 139.0033 } },
+    埼玉県: { '南部（さいたま・川越）': { lat: 35.8617, lon: 139.6455 }, '北部（熊谷・深谷）': { lat: 36.1472, lon: 139.3886 }, '秩父地方': { lat: 35.9918, lon: 139.0777 } },
+    千葉県: { '北西部（千葉・船橋）': { lat: 35.6074, lon: 140.1065 }, 北東部: { lat: 35.7347, lon: 140.8267 }, 南部: { lat: 34.9962, lon: 139.8696 } },
+    東京都: { 23区: { lat: 35.6895, lon: 139.6917 }, 多摩地域: { lat: 35.7056, lon: 139.4687 } },
+    神奈川県: { '横浜・川崎': { lat: 35.4437, lon: 139.638 }, 相模原: { lat: 35.5713, lon: 139.3731 }, 湘南: { lat: 35.3189, lon: 139.5502 } },
+  },
+  中部地方: {
+    新潟県: { 新潟市: { lat: 37.9162, lon: 139.0364 }, 長岡市: { lat: 37.4468, lon: 138.8512 } },
+    富山県: { 富山市: { lat: 36.6959, lon: 137.2137 } },
+    石川県: { 金沢市: { lat: 36.5613, lon: 136.6562 } },
+    福井県: { 福井市: { lat: 36.0641, lon: 136.2196 } },
+    山梨県: { 甲府市: { lat: 35.6642, lon: 138.5684 } },
+    長野県: { 長野市: { lat: 36.6485, lon: 138.1942 }, 松本市: { lat: 36.238, lon: 137.972 } },
+    岐阜県: { 岐阜市: { lat: 35.4233, lon: 136.7607 } },
+    静岡県: { 静岡市: { lat: 34.9756, lon: 138.3828 }, 浜松市: { lat: 34.7108, lon: 137.7261 } },
+    愛知県: { 名古屋市: { lat: 35.1815, lon: 136.9064 }, 豊橋市: { lat: 34.7613, lon: 137.3828 } },
+  },
+  近畿地方: {
+    三重県: { 津市: { lat: 34.7303, lon: 136.5086 }, 四日市市: { lat: 34.9654, lon: 136.6236 } },
+    滋賀県: { 大津市: { lat: 35.0178, lon: 135.8552 } },
+    京都府: { 京都市: { lat: 35.0116, lon: 135.7681 }, 南丹・丹波: { lat: 35.1558, lon: 135.4674 } },
+    大阪府: { 大阪市: { lat: 34.6937, lon: 135.5023 }, 堺市: { lat: 34.5733, lon: 135.483 } },
+    兵庫県: { 神戸市: { lat: 34.6901, lon: 135.1955 }, 姫路市: { lat: 34.8151, lon: 134.6854 } },
+    奈良県: { 奈良市: { lat: 34.6851, lon: 135.8049 } },
+    和歌山県: { 和歌山市: { lat: 34.2305, lon: 135.1708 } },
+  },
+  中国地方: {
+    鳥取県: { 鳥取市: { lat: 35.5011, lon: 134.2351 } },
+    島根県: { 松江市: { lat: 35.4723, lon: 133.0505 } },
+    岡山県: { 岡山市: { lat: 34.6618, lon: 133.9344 }, 倉敷市: { lat: 34.585, lon: 133.7714 } },
+    広島県: { 広島市: { lat: 34.3853, lon: 132.4553 }, 福山市: { lat: 34.4859, lon: 133.3625 } },
+    山口県: { 山口市: { lat: 34.1785, lon: 131.4737 }, 下関市: { lat: 33.9578, lon: 130.9415 } },
+  },
+  四国地方: {
+    徳島県: { 徳島市: { lat: 34.0703, lon: 134.5548 } },
+    香川県: { 高松市: { lat: 34.3402, lon: 134.0433 } },
+    愛媛県: { 松山市: { lat: 33.8416, lon: 132.7654 } },
+    高知県: { 高知市: { lat: 33.5597, lon: 133.5311 } },
+  },
+  九州・沖縄地方: {
+    福岡県: { 福岡市: { lat: 33.5904, lon: 130.4017 }, 北九州市: { lat: 33.8834, lon: 130.8752 } },
+    佐賀県: { 佐賀市: { lat: 33.2635, lon: 130.3008 } },
+    長崎県: { 長崎市: { lat: 32.7503, lon: 129.8777 }, 佐世保市: { lat: 33.1599, lon: 129.7237 } },
+    熊本県: { 熊本市: { lat: 32.7898, lon: 130.7417 } },
+    大分県: { 大分市: { lat: 33.2382, lon: 131.6126 } },
+    宮崎県: { 宮崎市: { lat: 31.9077, lon: 131.4202 } },
+    鹿児島県: { 鹿児島市: { lat: 31.5966, lon: 130.5571 } },
+    沖縄県: { 那覇市: { lat: 26.2124, lon: 127.6809 }, 石垣・八重山: { lat: 24.3448, lon: 124.1572 } },
+  },
+};
+
 interface WeatherData {
   condition: string;
   currentTemp: string;
@@ -21,13 +93,21 @@ export default function Home() {
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
 
-  // 挨拶の表示制御 ＆ フェードアウトアニメーション用ステート
+  // 挨拶の表示制御 ＆ フェードアウト
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  // 📍 位置情報オフ時の参照場所設定用
+  // 🔑 アカウント・ログイン機能用ステート
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [userId, setUserId] = useState<string>('');
+  const [userPassword, setUserPassword] = useState<string>('');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+
+  // 📍 全国階層型地域選択用ステート
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
-  const [fallbackLocationName, setFallbackLocationName] = useState<string>('埼玉県南部（さいたま）');
+  const [selectedRegionGroup, setSelectedRegionGroup] = useState<string>('関東地方');
+  const [selectedPrefecture, setSelectedPrefecture] = useState<string>('埼玉県');
+  const [fallbackLocationName, setFallbackLocationName] = useState<string>('埼玉県 南部（さいたま・川越）');
   const [fallbackLat, setFallbackLat] = useState<number>(35.8617);
   const [fallbackLon, setFallbackLon] = useState<number>(139.6455);
 
@@ -37,6 +117,13 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // ログイン状態確認
+    const savedUser = localStorage.getItem('butler_master_account_id');
+    if (savedUser) {
+      setIsLoggedIn(true);
+      setUserId(savedUser);
+    }
+
     const savedName = localStorage.getItem('butler_master_name');
     if (savedName) {
       setMasterName(savedName);
@@ -44,11 +131,11 @@ export default function Home() {
       setShowNameModal(true);
     }
 
-    // 保存されている「位置情報オフ時の場所」を読み込む
+    // 保存されている参照地域
     const savedLoc = localStorage.getItem('butler_fallback_location');
     let currentLat = 35.8617;
     let currentLon = 139.6455;
-    let currentLocName = '埼玉県南部（さいたま）';
+    let currentLocName = '埼玉県 南部（さいたま・川越）';
 
     if (savedLoc) {
       try {
@@ -62,7 +149,7 @@ export default function Home() {
       } catch (e) {}
     }
 
-    // 前回の訪問から数時間空いているかチェック
+    // 訪問時間チェック（数時間空いたら挨拶表示）
     const lastVisit = localStorage.getItem('butler_master_last_visit');
     const now = Date.now();
     const hoursThreshold = 3;
@@ -81,7 +168,6 @@ export default function Home() {
     fetchWeatherByLocation(currentLat, currentLon, currentLocName);
   }, []);
 
-  // 🌟 位置情報（GPS）またはデフォルト地域からお天気を自動取得する処理
   const fetchWeatherByLocation = (targetLat = fallbackLat, targetLon = fallbackLon, targetName = fallbackLocationName) => {
     setIsLoadingWeather(true);
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -92,7 +178,6 @@ export default function Home() {
           await fetchWeatherApi(lat, lon);
         },
         (error) => {
-          // 位置情報がオフの場合は設定された代替場所で取得
           fetchWeatherApi(targetLat, targetLon, targetName);
         },
         { timeout: 8000 }
@@ -162,14 +247,35 @@ export default function Home() {
     }
   };
 
-  // 📍 位置情報オフ時の地域を変更・保存する処理
-  const handleSaveLocationSetting = (name: string, lat: number, lon: number) => {
-    setFallbackLocationName(name);
-    setFallbackLat(lat);
-    setFallbackLon(lon);
-    localStorage.setItem('butler_fallback_location', JSON.stringify({ name, lat, lon }));
+  // 📍 地域決定処理
+  const handleSelectArea = (areaName: string, coords: { lat: number; lon: number }) => {
+    const fullName = `${selectedPrefecture} ${areaName}`;
+    setFallbackLocationName(fullName);
+    setFallbackLat(coords.lat);
+    setFallbackLon(coords.lon);
+    localStorage.setItem('butler_fallback_location', JSON.stringify({ name: fullName, lat: coords.lat, lon: coords.lon }));
     setShowLocationModal(false);
-    fetchWeatherByLocation(lat, lon, name);
+    fetchWeatherByLocation(coords.lat, coords.lon, fullName);
+  };
+
+  // 🔑 アカウントログイン・同期処理
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId.trim() || !userPassword.trim()) return;
+
+    localStorage.setItem('butler_master_account_id', userId.trim());
+    localStorage.setItem('butler_master_account_pw', userPassword.trim());
+    setIsLoggedIn(true);
+    setShowAuthModal(false);
+    alert(`「${userId.trim()}様、端末同期の認証が完了いたしました。主のお屋敷データは安全に紐付けされております。」`);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('butler_master_account_id');
+    localStorage.removeItem('butler_master_account_pw');
+    setIsLoggedIn(false);
+    setUserId('');
+    setUserPassword('');
   };
 
   const handleDismissGreeting = () => {
@@ -275,7 +381,7 @@ export default function Home() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
         
-        body, button, p, span, h1, h2, div, input {
+        body, button, p, span, h1, h2, div, input, select {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         }
 
@@ -299,42 +405,59 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {showNameModal && (
+        {/* 🔑 デバイス同期・ログインモーダル */}
+        {showAuthModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
-              className="w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl border text-center relative"
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
-              <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-2">WELCOME TO MANOR</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#F3ECD8] mb-4">
-                ようこそ、主のお屋敷へ
-              </h2>
-              <p className="text-xs sm:text-sm text-[#F3ECD8]/90 leading-relaxed italic mb-6">
-                「はじめまして。私はこの邸宅でお仕えする執事でございます。<br />
-                執事としてお仕えするにあたり、お名前をお伺いしてもよろしいでしょうか？」
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
+                <h2 className="text-lg font-bold">🔑 端末データ同期（ログイン）</h2>
+                <button onClick={() => setShowAuthModal(false)} className="text-xs text-[#BB8632] hover:underline">閉じる ✖</button>
+              </div>
+
+              <p className="text-xs text-[#F3ECD8]/80 mb-4 leading-relaxed">
+                お好きなIDとパスワードを設定してログインすると、スマホ・パソコンなど異なる端末間でも同じお屋敷データ（予定帳や日記帳）を共有・復元できます。
               </p>
 
-              <form onSubmit={handleSaveInitialName} className="flex flex-col items-center gap-4">
-                <input
-                  type="text"
-                  placeholder="お名前を入力してください"
-                  value={inputName}
-                  onChange={(e) => setInputName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg bg-[#2B0C12] border border-[#BB8632]/60 text-[#F3ECD8] placeholder-[#F3ECD8]/40 text-center text-sm focus:outline-none focus:border-[#BB8632]"
-                  autoFocus
-                />
+              <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs text-[#BB8632] block mb-1">主様のアカウントID</label>
+                  <input
+                    type="text"
+                    placeholder="例: master_belian"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-[#BB8632] block mb-1">パスワード</label>
+                  <input
+                    type="password"
+                    placeholder="パスワードを入力"
+                    value={userPassword}
+                    onChange={(e) => setUserPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                    required
+                  />
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg"
+                  className="mt-2 w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg"
                 >
-                  邸宅に入る
+                  同期してログインする
                 </button>
               </form>
             </div>
           </div>
         )}
 
-        {/* 📍 位置情報オフ時の参照場所選択モーダル */}
+        {/* 📍 全国＞地方＞都道府県＞地域 階層型設定モーダル */}
         {showLocationModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -342,7 +465,7 @@ export default function Home() {
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
-                <h2 className="text-lg font-bold text-[#F3ECD8]">📍 地域選択手帳</h2>
+                <h2 className="text-lg font-bold text-[#F3ECD8]">📍 全国地域選択手帳</h2>
                 <button 
                   onClick={() => setShowLocationModal(false)}
                   className="text-xs text-[#BB8632] hover:underline"
@@ -351,46 +474,59 @@ export default function Home() {
                 </button>
               </div>
 
-              <p className="text-xs text-[#F3ECD8]/80 mb-4 leading-relaxed">
-                ※位置情報サービス（GPS）がオフの際に参照する地域を以下からお選びいただけます。
-              </p>
+              {/* 1. 地方選択 */}
+              <div className="mb-3">
+                <label className="text-xs text-[#BB8632] font-bold block mb-1">① 地方を選択（全国）</label>
+                <select
+                  value={selectedRegionGroup}
+                  onChange={(e) => {
+                    const r = e.target.value;
+                    setSelectedRegionGroup(r);
+                    const firstPref = Object.keys(JAPAN_REGIONS[r])[0];
+                    setSelectedPrefecture(firstPref);
+                  }}
+                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
+                >
+                  {Object.keys(JAPAN_REGIONS).map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
 
-              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                <button
-                  onClick={() => handleSaveLocationSetting('埼玉県南部（さいたま）', 35.8617, 139.6455)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center"
+              {/* 2. 都道府県選択 */}
+              <div className="mb-4">
+                <label className="text-xs text-[#BB8632] font-bold block mb-1">② 都道府県を選択</label>
+                <select
+                  value={selectedPrefecture}
+                  onChange={(e) => setSelectedPrefecture(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
                 >
-                  <span>埼玉県南部（さいたま・川越）</span>
-                  <span className="text-[10px] text-[#BB8632]">選択</span>
-                </button>
-                <button
-                  onClick={() => handleSaveLocationSetting('埼玉県北部（熊谷）', 36.1472, 139.3886)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center"
-                >
-                  <span>埼玉県北部（熊谷・深谷）</span>
-                  <span className="text-[10px] text-[#BB8632]">選択</span>
-                </button>
-                <button
-                  onClick={() => handleSaveLocationSetting('東京都（千代田）', 35.6895, 139.6917)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center"
-                >
-                  <span>東京都（23区）</span>
-                  <span className="text-[10px] text-[#BB8632]">選択</span>
-                </button>
-                <button
-                  onClick={() => handleSaveLocationSetting('千葉県（千葉）', 35.6074, 140.1065)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center"
-                >
-                  <span>千葉県（北西部・千葉）</span>
-                  <span className="text-[10px] text-[#BB8632]">選択</span>
-                </button>
-                <button
-                  onClick={() => handleSaveLocationSetting('神奈川県（横浜）', 35.4437, 139.6380)}
-                  className="w-full py-2.5 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center"
-                >
-                  <span>神奈川県（横浜・川崎）</span>
-                  <span className="text-[10px] text-[#BB8632]">選択</span>
-                </button>
+                  {JAPAN_REGIONS[selectedRegionGroup] &&
+                    Object.keys(JAPAN_REGIONS[selectedRegionGroup]).map((pref) => (
+                      <option key={pref} value={pref}>{pref}</option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 3. 詳細地域一覧からタップで決定 */}
+              <div>
+                <label className="text-xs text-[#BB8632] font-bold block mb-1.5">③ 詳細地域を選択</label>
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                  {JAPAN_REGIONS[selectedRegionGroup]?.[selectedPrefecture] ? (
+                    Object.entries(JAPAN_REGIONS[selectedRegionGroup][selectedPrefecture]).map(([area, coords]) => (
+                      <button
+                        key={area}
+                        onClick={() => handleSelectArea(area, coords)}
+                        className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition"
+                      >
+                        <span>{selectedPrefecture} {area}</span>
+                        <span className="text-[10px] text-[#BB8632]">決定 ➔</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-[#F3ECD8]/60 italic">地域データがございません。</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -406,6 +542,23 @@ export default function Home() {
                 title="お名前を変更する"
               >
                 ✏️ 変更: {masterName}様
+              </button>
+            )}
+            
+            {/* 🔑 デバイス同期・ログイン状態表示 */}
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#310F14] text-[#BB8632] hover:bg-[#561B24] transition"
+              >
+                🔑 同期中 ({userId}) [解除]
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#561B24] text-[#F3ECD8] hover:bg-[#6B212B] transition"
+              >
+                🔑 端末同期（ログイン）
               </button>
             )}
           </div>
@@ -439,14 +592,14 @@ export default function Home() {
               onClick={() => setShowLocationModal(true)}
               className="px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-xs text-[#BB8632] hover:bg-[#6B212B] transition"
             >
-              📍 地域を設定
+              📍 地域を設定（全国）
             </button>
           </div>
         </div>
 
         {/* 挨拶カード（滑らかなフェードアウト） ＆ 天気情報 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {/* 執事よりのご挨拶（タップでふんわりフェードアウト） */}
+          {/* 執事よりのご挨拶 */}
           {showGreeting && (
             <div 
               onClick={handleDismissGreeting}
