@@ -99,9 +99,9 @@ export default function Home() {
   // ⚙️ 設定モーダル用ステート
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   
-  // 🌤️ お天気モーダル用ステート ＆ フェードアウト用ステート
+  // 🌤️ お天気モーダル用ステート ＆ フェードイン・アウト用ステート
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
-  const [isWeatherFadingOut, setIsWeatherFadingOut] = useState<boolean>(false);
+  const [isWeatherVisible, setIsWeatherVisible] = useState<boolean>(false);
 
   // 🔑 同期・ログイン用ステート
   const [userId, setUserId] = useState<string>('');
@@ -285,18 +285,19 @@ export default function Home() {
     }, 500);
   };
 
-  // 天気手帳を開く
+  // 天気手帳をフワッと開く
   const handleOpenWeatherModal = () => {
-    setIsWeatherFadingOut(false);
     setShowWeatherModal(true);
+    setTimeout(() => {
+      setIsWeatherVisible(true);
+    }, 20);
   };
 
   // 天気手帳をフワッと閉じる
   const handleCloseWeatherModal = () => {
-    setIsWeatherFadingOut(true);
+    setIsWeatherVisible(false);
     setTimeout(() => {
       setShowWeatherModal(false);
-      setIsWeatherFadingOut(false);
     }, 500);
   };
 
@@ -410,7 +411,6 @@ export default function Home() {
           box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
         }
 
-        /* 🌟 天気ボタン用ホバー浮き上がりエフェクト */
         .gothic-weather-btn {
           transition: all 0.3s ease-in-out;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
@@ -574,18 +574,18 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🌤️ 「本日の天気手帳」モーダル */}
+        {/* 🌤️ 「本日の天気手帳」モーダル（開閉ともにフワッと滑らかなアニメーション） */}
         {showWeatherModal && (
           <div 
             onClick={handleCloseWeatherModal}
             className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-pointer transition-opacity duration-500 ${
-              isWeatherFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              isWeatherVisible ? 'opacity-100' : 'opacity-0'
             }`}
           >
             <div 
               onClick={(e) => e.stopPropagation()}
               className={`w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] cursor-default transition-all duration-500 ${
-                isWeatherFadingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                isWeatherVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               }`}
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
@@ -749,7 +749,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌟 下のバーの上の「天気」ボタン（ホバーアニメーション付き） ＆ 下のバー（ドック） */}
+        {/* 🌟 下のバーの上の「天気」ボタン ＆ 下のバー（ドック） */}
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           {/* 天気ボタン */}
           <button
