@@ -16,25 +16,84 @@ export default function AlarmPage() {
   const [label, setLabel] = useState<string>('起床');
   const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [notificationPermission, setNotificationPermission] = useState<string>('default');
+  const [lastFiredKey, setLastFiredKey] = useState<string>('');
+  
   const [butlerMessage, setButlerMessage] = useState<string>(
     '「主様のお目覚めやお時間のお知らせを、心を込めて務めさせていただきます。」'
   );
 
-  // 🌟 現在時刻のリアルタイム時計
+  // 🔔 ブラウザ通知の許可を求める関数
+  const requestNotificationPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === 'granted') {
+        setButlerMessage('「通知の許可を承りました。お時間になりましたら、端末へ確実にお知らせいたします。」');
+      } else {
+        setButlerMessage('「通知がブロックされております。ブラウザのアドレスバー等から通知を許可してくださいませ。」');
+      }
+    } else {
+      alert('お使いの環境はブラウザ通知に対応しておりません。');
+    }
+  };
+
+  // 🔔 アラーム音（ベル等）を鳴らす関数
+  const playAlarmSound = () => {
+    try {
+      const audio = new Audio('/bell.mp3'); // 音声ファイルがある場合
+      audio.volume = 1.0;
+      audio.play().catch(() => {});
+    } catch (e) {}
+  };
+
+  // 🌟 現在時刻のリアルタイム時計 ＆ アラーム監視
   useEffect(() => {
     setIsMounted(true);
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+
     const updateTime = () => {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
       const s = String(now.getSeconds()).padStart(2, '0');
-      setCurrentTimeStr(`${h}:${m}:${s}`);
+      const currentHM = `${h}:${m}`;
+      setCurrentTimeStr(`${currentHM}:${s}`);
+
+      // アラーム時刻のチェック
+      const saved = localStorage.getItem('butler_master_alarms');
+      if (saved) {
+        try {
+          const parsedAlarms: AlarmItem[] = JSON.parse(saved);
+          parsedAlarms.forEach((alarm) => {
+            if (alarm.enabled && alarm.time === currentHM) {
+              const fireKey = `${currentHM}-${alarm.id}`;
+              // 同じ分に何度も鳴らないように制御
+              if (lastFiredKey !== fireKey) {
+                setLastFiredKey(fireKey);
+
+                // 1. パソコンやスマホのプッシュ通知を送信
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                  new Notification('執事からの時刻のお知らせ', {
+                    body: `「時間でございます、主様。『${alarm.label}』のお時間です。」`,
+                  });
+                }
+
+                // 2. 音声を再生
+                playAlarmSound();
+                setButlerMessage(`「時間でございます、主様。『${alarm.label}』のお時間です。」`);
+              }
+            }
+          });
+        } catch (e) {}
+      }
     };
 
     updateTime();
     const interval = setInterval(updateTime, 1000);
 
-    // アラームの復元（初期は空）
     const saved = localStorage.getItem('butler_master_alarms');
     if (saved) {
       try {
@@ -42,12 +101,10 @@ export default function AlarmPage() {
       } catch (e) {
         setAlarms([]);
       }
-    } else {
-      setAlarms([]);
     }
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lastFiredKey]);
 
   const saveToStorage = (newAlarms: AlarmItem[]) => {
     setAlarms(newAlarms);
@@ -94,13 +151,23 @@ export default function AlarmPage() {
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-          <div className="w-full mb-3 flex justify-start">
+          <div className="w-full mb-3 flex justify-between items-center">
             <Link href="/" className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50">
               ← エントランス（ホーム）へ戻る
             </Link>
+
+            {/* 通知許可ボタン */}
+            {notificationPermission !== 'granted' && (
+              <button
+                onClick={requestNotificationPermission}
+                className="text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] px-3 py-1.5 rounded-lg font-bold transition shadow-md cursor-pointer"
+              >
+                🔔 通知を受け取る
+              </button>
+            )}
           </div>
 
-          {/* 🌟 現在時刻表示時計 */}
+          {/* 現在時刻表示時計 */}
           <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
             <p className="text-xs text-[#BB8632] font-semibold mb-0.5">PRESENT TIME</p>
             <p className="text-3xl font-extrabold tracking-widest text-[#F3ECD8]">
@@ -137,7 +204,7 @@ export default function AlarmPage() {
               </div>
               <button
                 type="submit"
-                className="w-full py-2 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition"
+                className="w-full py-2 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition cursor-pointer"
               >
                 アラームをセットする
               </button>
@@ -156,11 +223,11 @@ export default function AlarmPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => toggleAlarm(alarm.id)}
-                        className={`text-xs px-2.5 py-1 rounded-full font-bold ${alarm.enabled ? 'bg-[#BB8632] text-[#240A0E]' : 'bg-[#240A0E] text-[#F3ECD8]/50'}`}
+                        className={`text-xs px-2.5 py-1 rounded-full font-bold cursor-pointer ${alarm.enabled ? 'bg-[#BB8632] text-[#240A0E]' : 'bg-[#240A0E] text-[#F3ECD8]/50'}`}
                       >
                         {alarm.enabled ? 'ON' : 'OFF'}
                       </button>
-                      <button onClick={() => handleDelete(alarm.id)} className="text-xs text-[#8A2D2D] hover:underline">
+                      <button onClick={() => handleDelete(alarm.id)} className="text-xs text-[#8A2D2D] hover:underline cursor-pointer">
                         削除
                       </button>
                     </div>
