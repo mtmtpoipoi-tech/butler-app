@@ -88,7 +88,7 @@ const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 export default function Home() {
   const router = useRouter();
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
-  const [userToggledFire, setUserToggledFire] = useState<boolean>(false); // 🌟 手動操作フラグ
+  const [userToggledFire, setUserToggledFire] = useState<boolean>(false);
   const [isAutoTime, setIsAutoTime] = useState<boolean>(false);
   const [masterName, setMasterName] = useState<string>('');
   const [showNameModal, setShowNameModal] = useState<boolean>(false);
@@ -111,6 +111,7 @@ export default function Home() {
   const [userPassword, setUserPassword] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
+  // 📍 地域選択モーダル用ステート
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [selectedRegionGroup, setSelectedRegionGroup] = useState<string>('関東地方');
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('埼玉県');
@@ -379,7 +380,6 @@ export default function Home() {
       const shouldPlay = isSeason && isTime;
       setIsAutoTime(shouldPlay);
 
-      // 🌟 ユーザーが手動でいじっていない場合のみ自動制御
       if (!userToggledFire) {
         if (shouldPlay && audioRef.current && !isPlayingFire) {
           audioRef.current.play().then(() => {
@@ -408,7 +408,7 @@ export default function Home() {
   };
 
   const toggleFireSound = () => {
-    setUserToggledFire(true); // 🌟 手動操作フラグを立てる
+    setUserToggledFire(true);
     if (audioRef.current) {
       if (isPlayingFire) {
         audioRef.current.pause();
@@ -511,6 +511,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* ⚙️ 設定モーダル（お名前・地域・アカウント設定） */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -523,6 +524,8 @@ export default function Home() {
                   閉じる ✖
                 </button>
               </div>
+
+              {/* 1. お名前設定 */}
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">👤 主様のお名前</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
@@ -532,6 +535,25 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+
+              {/* 🌟 2. 復元：参照地域（天気）設定 */}
+              <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
+                <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 天気参照地域の設定（位置情報オフ時）</p>
+                <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
+                  <span className="text-xs text-[#F3ECD8]">{fallbackLocationName}</span>
+                  <button
+                    onClick={() => {
+                      setShowSettingsModal(false);
+                      setShowLocationModal(true);
+                    }}
+                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer"
+                  >
+                    全国から選択
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. アカウント設定 */}
               <div>
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">🔑 端末データ同期・アカウント</p>
                 {isLoggedIn ? (
@@ -553,6 +575,77 @@ export default function Home() {
                     </button>
                   </form>
                 )}
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* 📍 全国階層型地域選択モーダル */}
+        {showLocationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
+            >
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
+                <h2 className="text-lg font-bold text-[#F3ECD8]">📍 全国地域選択手帳</h2>
+                <button 
+                  onClick={() => setShowLocationModal(false)}
+                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
+                >
+                  閉じる ✖
+                </button>
+              </div>
+
+              <div className="mb-3">
+                <label className="text-xs text-[#BB8632] font-bold block mb-1">① 地方を選択（全国）</label>
+                <select
+                  value={selectedRegionGroup}
+                  onChange={(e) => {
+                    const r = e.target.value;
+                    setSelectedRegionGroup(r);
+                    const firstPref = Object.keys(JAPAN_REGIONS[r])[0];
+                    setSelectedPrefecture(firstPref);
+                  }}
+                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
+                >
+                  {Object.keys(JAPAN_REGIONS).map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-xs text-[#BB8632] font-bold block mb-1">② 都道府県を選択</label>
+                <select
+                  value={selectedPrefecture}
+                  onChange={(e) => setSelectedPrefecture(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
+                >
+                  {JAPAN_REGIONS[selectedRegionGroup] &&
+                    Object.keys(JAPAN_REGIONS[selectedRegionGroup]).map((pref) => (
+                      <option key={pref} value={pref}>{pref}</option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-[#BB8632] font-bold block mb-1.5">③ 詳細地域を選択</label>
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                  {JAPAN_REGIONS[selectedRegionGroup]?.[selectedPrefecture] ? (
+                    Object.entries(JAPAN_REGIONS[selectedRegionGroup][selectedPrefecture]).map(([area, coords]) => (
+                      <button
+                        key={area}
+                        onClick={() => handleSelectArea(area, coords)}
+                        className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition cursor-pointer"
+                      >
+                        <span>{selectedPrefecture} {area}</span>
+                        <span className="text-[10px] text-[#BB8632]">決定 ➔</span>
+                      </button>
+                    ))
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -621,7 +714,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌟 天気 ＆ レコードボタン */}
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           <div className="flex gap-2">
             <button
