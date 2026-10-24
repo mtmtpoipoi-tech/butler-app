@@ -99,8 +99,9 @@ export default function Home() {
   // ⚙️ 設定モーダル用ステート
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   
-  // 🌤️ お天気モーダル用ステート
+  // 🌤️ お天気モーダル用ステート ＆ フェードアウト用ステート
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
+  const [isWeatherFadingOut, setIsWeatherFadingOut] = useState<boolean>(false);
 
   // 🔑 同期・ログイン用ステート
   const [userId, setUserId] = useState<string>('');
@@ -281,6 +282,21 @@ export default function Home() {
     setTimeout(() => {
       setShowGreeting(false);
       localStorage.setItem('butler_master_last_visit', Date.now().toString());
+    }, 500);
+  };
+
+  // 天気手帳を開く
+  const handleOpenWeatherModal = () => {
+    setIsWeatherFadingOut(false);
+    setShowWeatherModal(true);
+  };
+
+  // 天気手帳をフワッと閉じる
+  const handleCloseWeatherModal = () => {
+    setIsWeatherFadingOut(true);
+    setTimeout(() => {
+      setShowWeatherModal(false);
+      setIsWeatherFadingOut(false);
     }, 500);
   };
 
@@ -546,21 +562,25 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🌤️ 「本日の天気手帳」モーダル（画面のどこをタッチしても閉じるよう修正） */}
+        {/* 🌤️ 「本日の天気手帳」モーダル（フワッとフェードアウトするアニメーション付き） */}
         {showWeatherModal && (
           <div 
-            onClick={() => setShowWeatherModal(false)}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-pointer"
+            onClick={handleCloseWeatherModal}
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-pointer transition-opacity duration-500 ${
+              isWeatherFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
           >
             <div 
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] cursor-default"
+              className={`w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] cursor-default transition-all duration-500 ${
+                isWeatherFadingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+              }`}
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
                 <h2 className="text-lg font-bold text-[#F3ECD8]">🌤️ 本日の天気手帳</h2>
                 <button 
-                  onClick={() => setShowWeatherModal(false)}
+                  onClick={handleCloseWeatherModal}
                   className="text-xs text-[#BB8632] hover:underline"
                 >
                   閉じる ✖
@@ -721,7 +741,7 @@ export default function Home() {
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           {/* 天気ボタン */}
           <button
-            onClick={() => setShowWeatherModal(true)}
+            onClick={handleOpenWeatherModal}
             className="w-full py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center justify-center gap-2 font-bold tracking-wider"
           >
             <span>🌤️ 天気</span>
