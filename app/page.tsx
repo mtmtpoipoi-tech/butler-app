@@ -94,7 +94,7 @@ export default function Home() {
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
 
-  // 🌟 ページ遷移時のフェードアウト用ステート
+  // 🌟 ページ遷移時の暗転フェードアウト用ステート
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
@@ -125,16 +125,19 @@ export default function Home() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 🌟 ページ遷移をフワッと実行する関数
+  // 🌟 ページ遷移を黒く暗転させながら実行する関数
   const handleNavigate = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setIsTransitioning(true);
     setTimeout(() => {
       router.push(href);
-    }, 500); // 0.5秒のフェードアウト
+    }, 500); // 0.5秒の暗転
   };
 
   useEffect(() => {
+    // 🌟 他のページから戻ってきたときに遷移ステートを確実に解除する
+    setIsTransitioning(false);
+
     const savedUser = localStorage.getItem('butler_master_account_id');
     if (savedUser) {
       setIsLoggedIn(true);
@@ -438,14 +441,19 @@ export default function Home() {
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      {/* 🌟 画面全体のフェードイン・アウトコンテナ */}
+      {/* 🌟 画面全体の背景とコンテナ */}
       <div
-        className={`min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-opacity duration-500 ${
-          isTransitioning ? 'opacity-0' : 'opacity-100'
-        }`}
+        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: `url('${bgImage}')` }}
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
+
+        {/* 🌟 画面全体の黒い暗転フェードオーバーレイ（白くならず確実に黒く沈み込みます） */}
+        <div
+          className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
+            isTransitioning ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
 
         {/* 🌟 画面右上「⚙️ 設定」ボタン */}
         <div className="absolute top-4 right-4 z-20">
@@ -775,7 +783,7 @@ export default function Home() {
             <span>🌤️ 天気</span>
           </button>
 
-          {/* ドックメニュー（画面遷移時にフェードアウトするように修正） */}
+          {/* ドックメニュー */}
           <div 
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
