@@ -14,6 +14,7 @@ export async function POST(req: Request) {
 
     const name = masterName || '主';
 
+    // 執事としてのキャラクター設定
     const systemInstruction = `
 あなたはお嬢様に仕える非常に優秀で忠実、優雅かつ温かい執事です。
 相手の名前は「${name}様」です。
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
 短く寄り添うような温かい返答を心がけてください。
 `;
 
+    // Google Gemini API 呼び出し（正式なパラメータ構造に修正）
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
@@ -29,10 +31,13 @@ export async function POST(req: Request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: systemInstruction }],
+          },
           contents: [
             {
               role: 'user',
-              parts: [{ text: `${systemInstruction}\n\n主様のお言葉: ${message}` }],
+              parts: [{ text: message }],
             },
           ],
         }),
@@ -42,6 +47,7 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('Gemini API Error Details:', data);
       throw new Error(data.error?.message || 'Gemini API Error');
     }
 
