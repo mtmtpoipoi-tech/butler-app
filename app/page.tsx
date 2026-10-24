@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // 全国地域データ定義
 const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number; lon: number }>>> = {
@@ -85,6 +85,7 @@ interface WeatherData {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
   const [isAutoTime, setIsAutoTime] = useState<boolean>(false);
   const [masterName, setMasterName] = useState<string>('');
@@ -92,6 +93,9 @@ export default function Home() {
   const [inputName, setInputName] = useState<string>('');
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
+
+  // 🌟 ページ遷移時のフェードアウト用ステート
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
@@ -120,6 +124,15 @@ export default function Home() {
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 🌟 ページ遷移をフワッと実行する関数
+  const handleNavigate = (e: React.MouseEvent, href: string) => {
+    e.preventDefault();
+    setIsTransitioning(true);
+    setTimeout(() => {
+      router.push(href);
+    }, 500); // 0.5秒のフェードアウト
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('butler_master_account_id');
@@ -425,8 +438,11 @@ export default function Home() {
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
+      {/* 🌟 画面全体のフェードイン・アウトコンテナ */}
       <div
-        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-all duration-1000"
+        className={`min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-opacity duration-500 ${
+          isTransitioning ? 'opacity-0' : 'opacity-100'
+        }`}
         style={{ backgroundImage: `url('${bgImage}')` }}
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
@@ -435,7 +451,7 @@ export default function Home() {
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
-            className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5 cursor-pointer"
           >
             <span>⚙️ 設定</span>
           </button>
@@ -468,7 +484,7 @@ export default function Home() {
                 />
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg"
+                  className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
                 >
                   邸宅に入る
                 </button>
@@ -488,7 +504,7 @@ export default function Home() {
                 <h2 className="text-lg font-bold text-[#F3ECD8]">⚙️ お屋敷の設定</h2>
                 <button 
                   onClick={() => setShowSettingsModal(false)}
-                  className="text-xs text-[#BB8632] hover:underline"
+                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
                 >
                   閉じる ✖
                 </button>
@@ -501,7 +517,7 @@ export default function Home() {
                   <span className="text-xs text-[#F3ECD8]">{masterName || '主'} 様</span>
                   <button
                     onClick={handleChangeName}
-                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition"
+                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer"
                   >
                     名前を変更
                   </button>
@@ -515,7 +531,7 @@ export default function Home() {
                   <span className="text-xs text-[#F3ECD8]">{fallbackLocationName}</span>
                   <button
                     onClick={() => setShowLocationModal(true)}
-                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition"
+                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer"
                   >
                     全国から選択
                   </button>
@@ -537,7 +553,7 @@ export default function Home() {
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition"
+                      className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition cursor-pointer"
                     >
                       同期解除
                     </button>
@@ -562,7 +578,7 @@ export default function Home() {
                     />
                     <button
                       type="submit"
-                      className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition"
+                      className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition cursor-pointer"
                     >
                       アカウントを登録する
                     </button>
@@ -574,7 +590,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🌤️ 「本日の天気手帳」モーダル（開閉ともにフワッと滑らかなアニメーション） */}
+        {/* 🌤️ 「本日の天気手帳」モーダル */}
         {showWeatherModal && (
           <div 
             onClick={handleCloseWeatherModal}
@@ -593,7 +609,7 @@ export default function Home() {
                 <h2 className="text-lg font-bold text-[#F3ECD8]">🌤️ 本日の天気手帳</h2>
                 <button 
                   onClick={handleCloseWeatherModal}
-                  className="text-xs text-[#BB8632] hover:underline"
+                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
                 >
                   閉じる ✖
                 </button>
@@ -637,7 +653,7 @@ export default function Home() {
                 <h2 className="text-lg font-bold text-[#F3ECD8]">📍 全国地域選択手帳</h2>
                 <button 
                   onClick={() => setShowLocationModal(false)}
-                  className="text-xs text-[#BB8632] hover:underline"
+                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
                 >
                   閉じる ✖
                 </button>
@@ -683,7 +699,7 @@ export default function Home() {
                       <button
                         key={area}
                         onClick={() => handleSelectArea(area, coords)}
-                        className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition"
+                        className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition cursor-pointer"
                       >
                         <span>{selectedPrefecture} {area}</span>
                         <span className="text-[10px] text-[#BB8632]">決定 ➔</span>
@@ -749,7 +765,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌟 下のバーの上の「天気」ボタン ＆ 下のバー（ドック） */}
+        {/* 下のバーの上の「天気」ボタン ＆ 下のバー（ドック） */}
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           {/* 天気ボタン */}
           <button
@@ -759,12 +775,12 @@ export default function Home() {
             <span>🌤️ 天気</span>
           </button>
 
-          {/* ドックメニュー */}
+          {/* ドックメニュー（画面遷移時にフェードアウトするように修正） */}
           <div 
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
           >
-            <Link href="/timer" className="flex flex-col items-center group">
+            <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
                 style={{ borderColor: '#BB8632' }}
@@ -772,9 +788,9 @@ export default function Home() {
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
-            </Link>
+            </a>
 
-            <Link href="/alarm" className="flex flex-col items-center group">
+            <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
                 style={{ borderColor: '#BB8632' }}
@@ -782,9 +798,9 @@ export default function Home() {
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
-            </Link>
+            </a>
 
-            <Link href="/journal" className="flex flex-col items-center group">
+            <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
                 style={{ borderColor: '#BB8632' }}
@@ -792,9 +808,9 @@ export default function Home() {
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
-            </Link>
+            </a>
 
-            <Link href="/calendar" className="flex flex-col items-center group">
+            <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
               <div 
                 className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
                 style={{ borderColor: '#BB8632' }}
@@ -802,7 +818,7 @@ export default function Home() {
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
-            </Link>
+            </a>
 
             <button 
               onClick={() => alert(`「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
