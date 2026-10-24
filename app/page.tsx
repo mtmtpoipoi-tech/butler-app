@@ -400,13 +400,13 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌟 画面右上「⚙️ お屋敷の設定」ボタン */}
+        {/* 🌟 画面右上「⚙️ 設定」ボタン（表示は「設定」） */}
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
             className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5"
           >
-            <span>⚙️ お屋敷の設定</span>
+            <span>⚙️ 設定</span>
           </button>
         </div>
 
@@ -446,7 +446,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ⚙️ 総合「お屋敷の設定」モーダル */}
+        {/* ⚙️ 総合「お屋敷の設定」モーダル（開いたときのタイトルは「お屋敷の設定」） */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
