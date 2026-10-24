@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 type TimerMode = 'pomodoro25' | 'deep50' | 'min60' | 'min90' | 'min180';
 
@@ -50,17 +51,16 @@ interface BgmOption {
   file: string;
 }
 
+// 🌟 指定された3つのBGMを削除いたしました
 const BGM_LIST: BgmOption[] = [
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
-  { id: 'focus', name: 'Deep Focus（深海集中）', file: '/bgm1.mp3' },
-  { id: 'mansion', name: '静寂の洋館（ピアノ）', file: '/bgm2.mp3' },
-  { id: 'rain', name: '静かな雨と書斎', file: '/bgm3.mp3' },
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
 
 export default function TimerPage() {
+  const router = useRouter();
   const [currentMode, setCurrentMode] = useState<TimerMode>('pomodoro25');
   const [isBreak, setIsBreak] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(MODES.pomodoro25.workSeconds);
@@ -69,10 +69,9 @@ export default function TimerPage() {
   const [selectedActivity, setSelectedActivity] = useState<string>('勉強');
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
-  
-  // 活動ごとの集計ステート
   const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false); // 🌟 フェードアウト用ステート
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
@@ -126,14 +125,22 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔔 カウントダウン（合図の音声）を再生する関数
+  // 🌟 ふわっと黒く暗転しながらホームに戻る関数
+  const handleNavigateHome = (e: React.MouseEvent) => {
+    e.preventDefault();
+    stopBgmWithFadeOut();
+    setIsTransitioning(true);
+    setTimeout(() => {
+      router.push('/');
+    }, 500);
+  };
+
   const playCountdownAudio = () => {
     const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
     audio.volume = 1.0;
     audio.play().catch(() => {});
   };
 
-  // BGMフェードイン
   const playBgmWithFadeIn = () => {
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -153,7 +160,6 @@ export default function TimerPage() {
     }
   };
 
-  // BGMフェードアウト
   const stopBgmWithFadeOut = (onComplete?: () => void) => {
     if (audioRef.current && isPlayingBgm) {
       let vol = audioRef.current.volume;
@@ -191,7 +197,6 @@ export default function TimerPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
-      // 🌟 残り3秒になった瞬間にBGMのフェードアウトとカウントダウン音声を同時に開始
       if (timeLeft === 3) {
         if (isPlayingBgm) {
           stopBgmWithFadeOut();
@@ -215,7 +220,6 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
@@ -317,68 +321,43 @@ export default function TimerPage() {
       >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
 
+        {/* 🌟 暗転フェードオーバーレイ */}
+        <div
+          className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
+            isTransitioning ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           
-          {/* ホームに戻るボタン */}
           <div className="w-full mb-3 flex justify-start">
             <a 
               href="/" 
-              onClick={() => sessionStorage.setItem('skip_door', 'true')}
-              className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50"
+              onClick={handleNavigateHome}
+              className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer"
             >
               ← エントランス（ホーム）へ戻る
             </a>
           </div>
 
-          {/* 日付・曜日・現在時刻 */}
-          <div 
-            className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center"
-            style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}
-          >
-            <p className="text-base font-bold tracking-widest" style={{ color: '#F3ECD8' }}>
-              {dateTimeStr || '----年--月--日 (-) --:--:--'}
-            </p>
+          <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
+            <p className="text-base font-bold tracking-widest" style={{ color: '#F3ECD8' }}>{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
           </div>
 
-          {/* 執事からのメッセージ枠 */}
-          <div 
-            className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md"
-            style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}
-          >
-            <p className="text-xs font-semibold mb-1 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>
-              執事からの言葉
-            </p>
-            <p className="text-base leading-relaxed" style={{ color: '#F3ECD8' }}>
-              {message}
-            </p>
+          <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
+            <p className="text-xs font-semibold mb-1 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>執事からの言葉</p>
+            <p className="text-base leading-relaxed" style={{ color: '#F3ECD8' }}>{message}</p>
           </div>
 
-          {/* 本日の活動別・集中時間内訳 */}
-          <div 
-            className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5"
-            style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}
-          >
-            <span className="text-xs font-semibold tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>
-              本日の集中実績
-            </span>
-            <span className="text-sm font-bold tracking-wide" style={{ color: '#BB8632' }}>
-              {isMounted ? renderActivitySummary() : '0分'}
-            </span>
+          <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
+            <span className="text-xs font-semibold tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>本日の集中実績</span>
+            <span className="text-sm font-bold tracking-wide" style={{ color: '#BB8632' }}>{isMounted ? renderActivitySummary() : '0分'}</span>
           </div>
 
-          {/* メインのタイマーカード */}
-          <div 
-            className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md"
-            style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}
-          >
-            <h1 className="text-2xl font-bold mb-1 tracking-wide" style={{ color: '#F3ECD8' }}>
-              {isBreak ? '休憩時間' : MODES[currentMode].name}
-            </h1>
-            <p className="text-xs mb-4 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>
-              {isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}
-            </p>
+          <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+            <h1 className="text-2xl font-bold mb-1 tracking-wide" style={{ color: '#F3ECD8' }}>{isBreak ? '休憩時間' : MODES[currentMode].name}</h1>
+            <p className="text-xs mb-4 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>{isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}</p>
 
-            {/* 内容選択バー */}
             {!isBreak && (
               <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
                 <span className="text-xs text-[#BB8632] mr-1">内容:</span>
@@ -389,12 +368,7 @@ export default function TimerPage() {
                       key={activity}
                       onClick={() => setSelectedActivity(activity)}
                       className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
-                      style={{
-                        backgroundColor: isSelected ? '#BB8632' : '#3B1218',
-                        color: isSelected ? '#240A0E' : '#F3ECD8',
-                        border: '1px solid #BB8632',
-                        opacity: isSelected ? 1 : 0.8,
-                      }}
+                      style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}
                     >
                       {activity}
                     </button>
@@ -403,36 +377,22 @@ export default function TimerPage() {
               </div>
             )}
 
-            <div
-              className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
-              style={{ color: '#F3ECD8' }}
-            >
+            <div className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]" style={{ color: '#F3ECD8' }}>
               {formatTime(timeLeft)}
             </div>
 
-            {/* ボタン部分 */}
             <div className="flex justify-center space-x-4 mb-8">
               <button
                 onClick={toggleTimer}
                 className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
-                style={{ 
-                  background: isRunning 
-                    ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' 
-                    : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', 
-                  color: '#F3ECD8', 
-                  border: '1px solid #BB8632' 
-                }}
+                style={{ background: isRunning ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
               >
                 {isRunning ? '一時停止' : (isBreak ? '休憩開始' : `${selectedActivity}開始`)}
               </button>
               <button
                 onClick={handleReset}
                 className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
-                style={{ 
-                  background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', 
-                  color: '#F3ECD8', 
-                  border: '1px solid rgba(187, 134, 50, 0.5)' 
-                }}
+                style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}
               >
                 リセット
               </button>
@@ -448,14 +408,7 @@ export default function TimerPage() {
                       key={modeKey}
                       onClick={() => setCurrentMode(modeKey)}
                       className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
-                      style={{ 
-                        background: isSelected 
-                          ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' 
-                          : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)',
-                        color: '#F3ECD8', 
-                        opacity: isSelected ? 1 : 0.8,
-                        border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)'
-                      }}
+                      style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}
                     >
                       {MODES[modeKey].name}
                     </button>
@@ -464,20 +417,12 @@ export default function TimerPage() {
               </div>
             </div>
 
-            {/* BGM選択と再生/停止ボタン */}
-            <div 
-              className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4"
-              style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}
-            >
+            <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
               <select
                 value={selectedBgm}
                 onChange={(e) => handleBgmChange(e.target.value)}
                 className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
-                style={{ 
-                  backgroundColor: '#3B1218', 
-                  color: '#F3ECD8', 
-                  border: '1px solid #BB8632' 
-                }}
+                style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
               >
                 {BGM_LIST.map((bgm) => (
                   <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
@@ -489,13 +434,7 @@ export default function TimerPage() {
               <button
                 onClick={toggleBgmManually}
                 className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
-                style={{ 
-                  background: isPlayingBgm 
-                    ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' 
-                    : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', 
-                  color: '#F3ECD8', 
-                  border: '1px solid #BB8632' 
-                }}
+                style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
                 title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
               >
                 <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-// 全国地域データ定義
 const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number; lon: number }>>> = {
   '北海道地方': {
     北海道: {
@@ -89,6 +88,7 @@ const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 export default function Home() {
   const router = useRouter();
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
+  const [userToggledFire, setUserToggledFire] = useState<boolean>(false); // 🌟 手動操作フラグ
   const [isAutoTime, setIsAutoTime] = useState<boolean>(false);
   const [masterName, setMasterName] = useState<string>('');
   const [showNameModal, setShowNameModal] = useState<boolean>(false);
@@ -96,7 +96,6 @@ export default function Home() {
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
 
-  // 日付と時刻用ステート
   const [dateString, setDateString] = useState<string>('');
   const [timeString, setTimeString] = useState<string>('');
 
@@ -124,7 +123,6 @@ export default function Home() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // リアルタイム時計の更新（毎秒）
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -301,7 +299,7 @@ export default function Home() {
     localStorage.setItem('butler_master_account_id', userId.trim());
     localStorage.setItem('butler_master_account_pw', userPassword.trim());
     setIsLoggedIn(true);
-    alert(`「${userId.trim()}様、アカウント情報を登録いたしました。※別デバイスでの完全同期にはクラウドサーバー連携が必要となります。」`);
+    alert(`「${userId.trim()}様、アカウント情報を登録いたしました。」`);
   };
 
   const handleLogout = () => {
@@ -343,7 +341,7 @@ export default function Home() {
   };
 
   const handleChangeName = () => {
-    const newName = window.prompt('執事がお呼びするお名前（主様のお名前）を入力してくださいませ：', masterName || '主');
+    const newName = window.prompt('執事がお呼びするお名前を入力してくださいませ：', masterName || '主');
     if (newName && newName.trim() !== '') {
       const trimmed = newName.trim();
       setMasterName(trimmed);
@@ -381,24 +379,22 @@ export default function Home() {
       const shouldPlay = isSeason && isTime;
       setIsAutoTime(shouldPlay);
 
-      if (shouldPlay && audioRef.current && !isPlayingFire) {
-        audioRef.current.play().then(() => {
-          setIsPlayingFire(true);
-        }).catch(() => {
-          setIsPlayingFire(false);
-        });
-      } else if (!shouldPlay && isPlayingFire) {
-        if (audioRef.current) {
-          audioRef.current.pause();
+      // 🌟 ユーザーが手動でいじっていない場合のみ自動制御
+      if (!userToggledFire) {
+        if (shouldPlay && audioRef.current && !isPlayingFire) {
+          audioRef.current.play().then(() => {
+            setIsPlayingFire(true);
+          }).catch(() => {
+            setIsPlayingFire(false);
+          });
         }
-        setIsPlayingFire(false);
       }
     };
 
     checkEnvironment();
     const timer = setInterval(checkEnvironment, 30000);
     return () => clearInterval(timer);
-  }, [isPlayingFire]);
+  }, [isPlayingFire, userToggledFire]);
 
   const getButlerGreeting = () => {
     const name = masterName || '主';
@@ -412,6 +408,7 @@ export default function Home() {
   };
 
   const toggleFireSound = () => {
+    setUserToggledFire(true); // 🌟 手動操作フラグを立てる
     if (audioRef.current) {
       if (isPlayingFire) {
         audioRef.current.pause();
@@ -463,21 +460,18 @@ export default function Home() {
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      {/* 画面全体の背景とコンテナ */}
       <div
         className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: `url('${bgImage}')` }}
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 画面全体の黒い暗転フェードオーバーレイ */}
         <div
           className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
             isTransitioning ? 'opacity-100' : 'opacity-0'
           }`}
         />
 
-        {/* 画面右上「⚙️ 設定」ボタン */}
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -487,7 +481,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 初回お名前入力モーダル */}
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -498,11 +491,6 @@ export default function Home() {
               <h2 className="text-xl sm:text-2xl font-bold text-[#F3ECD8] mb-4">
                 ようこそ、主のお屋敷へ
               </h2>
-              <p className="text-xs sm:text-sm text-[#F3ECD8]/90 leading-relaxed italic mb-6">
-                「はじめまして。私はこの邸宅でお仕えする執事でございます。<br />
-                執事としてお仕えするにあたり、お名前をお伺いしてもよろしいでしょうか？」
-              </p>
-
               <form onSubmit={handleSaveInitialName} className="flex flex-col items-center gap-4">
                 <input
                   type="text"
@@ -523,7 +511,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ⚙️ 総合「お屋敷の設定」モーダル */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -532,237 +519,76 @@ export default function Home() {
             >
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
                 <h2 className="text-lg font-bold text-[#F3ECD8]">⚙️ お屋敷の設定</h2>
-                <button 
-                  onClick={() => setShowSettingsModal(false)}
-                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
-                >
+                <button onClick={() => setShowSettingsModal(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">
                   閉じる ✖
                 </button>
               </div>
-
-              {/* 1. お名前設定 */}
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">👤 主様のお名前</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
                   <span className="text-xs text-[#F3ECD8]">{masterName || '主'} 様</span>
-                  <button
-                    onClick={handleChangeName}
-                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer"
-                  >
+                  <button onClick={handleChangeName} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">
                     名前を変更
                   </button>
                 </div>
               </div>
-
-              {/* 2. 地域設定 */}
-              <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
-                <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 参照地域の設定（位置情報オフ時）</p>
-                <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
-                  <span className="text-xs text-[#F3ECD8]">{fallbackLocationName}</span>
-                  <button
-                    onClick={() => setShowLocationModal(true)}
-                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer"
-                  >
-                    全国から選択
-                  </button>
-                </div>
-              </div>
-
-              {/* 3. アカウント同期設定 */}
               <div>
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">🔑 端末データ同期・アカウント</p>
-                <p className="text-[10px] text-[#F3ECD8]/70 mb-3 leading-relaxed">
-                  ※複数端末間での完全な自動同期には専用のクラウドサーバーが必要となりますが、こちらでIDを紐付けることができます。
-                </p>
-
                 {isLoggedIn ? (
                   <div className="bg-[#2B0C12] p-3 rounded border border-[#BB8632]/40 flex justify-between items-center">
                     <div>
                       <p className="text-[10px] text-[#BB8632]">ログイン中</p>
                       <p className="text-xs font-bold text-[#F3ECD8]">{userId} 様</p>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition cursor-pointer"
-                    >
+                    <button onClick={handleLogout} className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition cursor-pointer">
                       同期解除
                     </button>
                   </div>
                 ) : (
                   <form onSubmit={handleLoginSubmit} className="flex flex-col gap-2.5 bg-[#2B0C12] p-3 rounded border border-[#BB8632]/40">
-                    <input
-                      type="text"
-                      placeholder="アカウントID"
-                      value={userId}
-                      onChange={(e) => setUserId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
-                      required
-                    />
-                    <input
-                      type="password"
-                      placeholder="パスワード"
-                      value={userPassword}
-                      onChange={(e) => setUserPassword(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
-                      required
-                    />
-                    <button
-                      type="submit"
-                      className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition cursor-pointer"
-                    >
+                    <input type="text" placeholder="アカウントID" value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none" required />
+                    <input type="password" placeholder="パスワード" value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none" required />
+                    <button type="submit" className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition cursor-pointer">
                       アカウントを登録する
                     </button>
                   </form>
                 )}
               </div>
-
             </div>
           </div>
         )}
 
-        {/* 🌤️ 「本日の天気手帳」モーダル */}
         {showWeatherModal && (
-          <div 
-            onClick={handleCloseWeatherModal}
-            className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-pointer transition-opacity duration-500 ${
-              isWeatherVisible ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] cursor-default transition-all duration-500 ${
-                isWeatherVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-              }`}
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
-            >
+          <div onClick={handleCloseWeatherModal} className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-pointer transition-opacity duration-500 ${isWeatherVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] cursor-default transition-all duration-500 ${isWeatherVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}>
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
                 <h2 className="text-lg font-bold text-[#F3ECD8]">🌤️ 本日の天気手帳</h2>
-                <button 
-                  onClick={handleCloseWeatherModal}
-                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
-                >
-                  閉じる ✖
-                </button>
+                <button onClick={handleCloseWeatherModal} className="text-xs text-[#BB8632] hover:underline cursor-pointer">閉じる ✖</button>
               </div>
-
               {isLoadingWeather ? (
                 <p className="text-xs text-[#F3ECD8]/70 italic py-6 text-center">お天気を確認中でございます……</p>
               ) : weatherData ? (
                 <div className="leading-relaxed text-center py-2">
-                  <p className="text-xs font-bold text-[#BB8632] mb-2">
-                    📍 {weatherData.locationName}
-                  </p>
-                  <p className="text-base font-bold text-[#F3ECD8] mb-1">
-                    天気：{weatherData.condition}
-                  </p>
-                  <p className="text-lg font-bold text-[#F3ECD8] mb-2">
-                    現在の気温：{weatherData.currentTemp}
-                  </p>
-                  <p className="text-xs text-[#F3ECD8]/80 mb-4">
-                    （最高気温：{weatherData.maxTemp} / 最低気温：{weatherData.minTemp}）
-                  </p>
-                  <p className="text-xs text-[#F3ECD8]/90 italic leading-relaxed border-t border-[#BB8632]/30 pt-3">
-                    「{weatherData.comment} {masterName || '主'}様」
-                  </p>
+                  <p className="text-xs font-bold text-[#BB8632] mb-2">📍 {weatherData.locationName}</p>
+                  <p className="text-base font-bold text-[#F3ECD8] mb-1">天気：{weatherData.condition}</p>
+                  <p className="text-lg font-bold text-[#F3ECD8] mb-2">現在の気温：{weatherData.currentTemp}</p>
+                  <p className="text-xs text-[#F3ECD8]/80 mb-4">（最高気温：{weatherData.maxTemp} / 最低気温：{weatherData.minTemp}）</p>
+                  <p className="text-xs text-[#F3ECD8]/90 italic leading-relaxed border-t border-[#BB8632]/30 pt-3">「{weatherData.comment} {masterName || '主'}様」</p>
                 </div>
-              ) : (
-                <p className="text-xs text-[#F3ECD8]/70 italic py-6 text-center">お天気データを読み込んでおります……</p>
-              )}
+              ) : null}
             </div>
           </div>
         )}
 
-        {/* 📍 全国階層型地域選択モーダル */}
-        {showLocationModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div 
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
-            >
-              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
-                <h2 className="text-lg font-bold text-[#F3ECD8]">📍 全国地域選択手帳</h2>
-                <button 
-                  onClick={() => setShowLocationModal(false)}
-                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
-                >
-                  閉じる ✖
-                </button>
-              </div>
-
-              <div className="mb-3">
-                <label className="text-xs text-[#BB8632] font-bold block mb-1">① 地方を選択（全国）</label>
-                <select
-                  value={selectedRegionGroup}
-                  onChange={(e) => {
-                    const r = e.target.value;
-                    setSelectedRegionGroup(r);
-                    const firstPref = Object.keys(JAPAN_REGIONS[r])[0];
-                    setSelectedPrefecture(firstPref);
-                  }}
-                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
-                >
-                  {Object.keys(JAPAN_REGIONS).map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="text-xs text-[#BB8632] font-bold block mb-1">② 都道府県を選択</label>
-                <select
-                  value={selectedPrefecture}
-                  onChange={(e) => setSelectedPrefecture(e.target.value)}
-                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
-                >
-                  {JAPAN_REGIONS[selectedRegionGroup] &&
-                    Object.keys(JAPAN_REGIONS[selectedRegionGroup]).map((pref) => (
-                      <option key={pref} value={pref}>{pref}</option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-[#BB8632] font-bold block mb-1.5">③ 詳細地域を選択</label>
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-                  {JAPAN_REGIONS[selectedRegionGroup]?.[selectedPrefecture] ? (
-                    Object.entries(JAPAN_REGIONS[selectedRegionGroup][selectedPrefecture]).map(([area, coords]) => (
-                      <button
-                        key={area}
-                        onClick={() => handleSelectArea(area, coords)}
-                        className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition cursor-pointer"
-                      >
-                        <span>{selectedPrefecture} {area}</span>
-                        <span className="text-[10px] text-[#BB8632]">決定 ➔</span>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-xs text-[#F3ECD8]/60 italic">地域データがございません。</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 🌟 ヘッダー＆時計エリア */}
         <div className="relative z-10 w-full max-w-lg text-center pt-4 flex flex-col items-center">
           <p className="text-[10px] tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
-
           <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
-          {/* 🕰️ ゴシック調・日付＆控えめな現在時刻カード */}
-          <div 
-            className="w-full max-w-[220px] my-1.5 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5"
-            style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}
-          >
-            <p className="text-[11px] tracking-wider text-[#BB8632] font-bold">
-              {dateString || '----年--月--日（-）'}
-            </p>
-            <p className="gothic-clock-time text-xl sm:text-2xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              {timeString || '00:00:00'}
-            </p>
+          <div className="w-full max-w-[220px] my-1.5 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5" style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}>
+            <p className="text-[11px] tracking-wider text-[#BB8632] font-bold">{dateString || '----年--月--日（-）'}</p>
+            <p className="gothic-clock-time text-xl sm:text-2xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{timeString || '00:00:00'}</p>
           </div>
 
           <div className="flex items-center gap-2 mt-1">
@@ -771,115 +597,82 @@ export default function Home() {
               <button
                 type="button"
                 onClick={toggleFireSound}
-                className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'
-                }`}
+                className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'}`}
                 role="switch"
                 aria-checked={isPlayingFire}
               >
-                <span
-                  className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-[#F3ECD8] shadow transition duration-200 ease-in-out ${
-                    isPlayingFire ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-                />
+                <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-[#F3ECD8] shadow transition duration-200 ease-in-out ${isPlayingFire ? 'translate-x-4' : 'translate-x-0'}`} />
               </button>
-              {isAutoTime && <span className="text-[10px] text-[#BB8632] font-bold">（夜長モード）</span>}
             </div>
           </div>
         </div>
 
-        {/* 挨拶カード */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
           {showGreeting && (
             <div 
               onClick={handleDismissGreeting}
-              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${
-                isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
-              }`}
+              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
               title="タップして挨拶をしまう"
             >
-              <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
-                執事よりのご挨拶
-              </p>
-              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
-                {getButlerGreeting()}
-              </p>
+              <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶</p>
+              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
             </div>
           )}
         </div>
 
-        {/* 下のバーの上の「天気」ボタン ＆ 下のバー（ドック） */}
+        {/* 🌟 天気 ＆ レコードボタン */}
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
-          {/* 天気ボタン */}
-          <button
-            onClick={handleOpenWeatherModal}
-            className="gothic-weather-btn w-full py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
-          >
-            <span>🌤️ 天気</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleOpenWeatherModal}
+              className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
+            >
+              <span>🌤️ 天気</span>
+            </button>
+            <button
+              onClick={() => alert(`「${masterName || '主'}様、レコード室の準備はまもなく調います。」`)}
+              className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
+            >
+              <span>🎶 レコード</span>
+            </button>
+          </div>
 
-          {/* ドックメニュー */}
-          <div 
-            className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
-            style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
-          >
+          <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
             <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
-              <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
-                style={{ borderColor: '#BB8632' }}
-              >
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </a>
 
             <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
-              <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
-                style={{ borderColor: '#BB8632' }}
-              >
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </a>
 
             <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
-              <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
-                style={{ borderColor: '#BB8632' }}
-              >
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </a>
 
             <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
-              <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]"
-                style={{ borderColor: '#BB8632' }}
-              >
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </a>
 
-            <button 
-              onClick={() => alert(`「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
-              className="flex flex-col items-center group cursor-pointer"
-            >
-              <div 
-                className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl opacity-80"
-                style={{ backgroundColor: '#310F14', borderColor: 'rgba(187, 134, 50, 0.5)', color: '#F3ECD8' }}
-              >
-                ☕
-              </div>
+            <button onClick={() => alert(`「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)} className="flex flex-col items-center group cursor-pointer">
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl opacity-80" style={{ backgroundColor: '#310F14', borderColor: 'rgba(187, 134, 50, 0.5)', color: '#F3ECD8' }}>☕</div>
               <span className="text-[10px] mt-1 text-[#F3ECD8]/70 group-hover:text-[#BB8632] transition">サロン</span>
             </button>
-
           </div>
         </div>
-
       </div>
     </>
   );
