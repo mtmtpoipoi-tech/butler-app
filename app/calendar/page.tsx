@@ -13,10 +13,13 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [eventTitle, setEventTitle] = useState<string>('');
+  
+  // 🌟 エラー回避のため、初期値は固定値にしておき、マウント時に現在時刻を設定します
   const [currentYearMonth, setCurrentYearMonth] = useState<{ year: number; month: number }>({
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
+    year: 2026,
+    month: 10,
   });
+
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [butlerMessage, setButlerMessage] = useState<string>(
     '「主様の大切なご予定を、どうぞお気軽にお申し付けくださいませ。外部カレンダーへの連携も承ります。」'
@@ -33,6 +36,13 @@ export default function CalendarPage() {
   useEffect(() => {
     setIsMounted(true);
     setSelectedDate(getTodayStr());
+
+    // 🌟 マウント時に安全に現在の年月に更新
+    const now = new Date();
+    setCurrentYearMonth({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+    });
 
     const saved = localStorage.getItem('butler_master_calendar_events');
     if (saved) {
@@ -73,14 +83,14 @@ export default function CalendarPage() {
     setButlerMessage('「ご予定をひとつ整理いたしました。」');
   };
 
-  // 🌟 Googleカレンダー追加リンク生成
+  // Googleカレンダー追加リンク生成
   const getGoogleCalendarUrl = (ev: CalendarEvent) => {
     const dateFormatted = ev.date.replace(/-/g, '');
     const titleEncoded = encodeURIComponent(ev.title);
     return `https://www.google.com/calendar/render?action=TEMPLATE&text=${titleEncoded}&dates=${dateFormatted}/${dateFormatted}`;
   };
 
-  // 🌟 Appleカレンダー (.ics) ダウンロード
+  // Appleカレンダー (.ics) ダウンロード
   const downloadIcs = (ev: CalendarEvent) => {
     const dateFormatted = ev.date.replace(/-/g, '');
     const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${ev.title}\nDTSTART;VALUE=DATE:${dateFormatted}\nEND:VEVENT\nEND:VCALENDAR`;
@@ -144,7 +154,7 @@ export default function CalendarPage() {
               主の予定帳
             </h1>
 
-            {/* 🌟 当月カレンダー表示 */}
+            {/* 当月カレンダー表示 */}
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-bold text-[#BB8632]">
@@ -204,7 +214,7 @@ export default function CalendarPage() {
               </button>
             </form>
 
-            {/* 🌟 予定一覧 ＆ 外部カレンダー連携ボタン */}
+            {/* 予定一覧 ＆ 外部カレンダー連携ボタン */}
             <div className="flex flex-col gap-2.5 max-h-48 overflow-y-auto pr-1">
               {isMounted && events.length === 0 ? (
                 <p className="text-center text-xs text-[#F3ECD8]/50 italic py-2">登録されたご予定はございません。</p>
@@ -221,7 +231,6 @@ export default function CalendarPage() {
                       </button>
                     </div>
 
-                    {/* 🌟 カレンダー連携リンクボタン */}
                     <div className="flex gap-2 pt-1 border-t border-[#BB8632]/20">
                       <a
                         href={getGoogleCalendarUrl(ev)}
