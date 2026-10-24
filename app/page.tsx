@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 interface WeatherData {
   condition: string;
+  currentTemp: string;
   maxTemp: string;
   minTemp: string;
   comment: string;
@@ -25,7 +26,6 @@ export default function Home() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // お名前の読み込み ＆ 位置情報に基づいたお天気自動取得
   useEffect(() => {
     const savedName = localStorage.getItem('butler_master_name');
     if (savedName) {
@@ -37,7 +37,7 @@ export default function Home() {
     fetchWeatherByLocation();
   }, []);
 
-  // 🌟 ブラウザの位置情報を取得して天気を反映する関数
+  // 🌟 現在地のリアルタイム気温・天気・最高最低気温を取得する関数
   const fetchWeatherByLocation = () => {
     setIsLoadingWeather(true);
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -48,28 +48,28 @@ export default function Home() {
           await fetchWeatherApi(lat, lon);
         },
         (error) => {
-          // 位置情報が拒否された場合などのフォールバック（デフォルト: 埼玉・東京周辺）
-          fetchWeatherApi(35.8617, 139.6455);
+          // 許可されなかった場合のフォールバック（東京・埼玉周辺）
+          fetchWeatherApi(35.6895, 139.6917);
         },
         { timeout: 10000 }
       );
     } else {
-      // 位置情報非対応ブラウザの場合
-      fetchWeatherApi(35.8617, 139.6455);
+      fetchWeatherApi(35.6895, 139.6917);
     }
   };
 
-  // 天気APIからデータを取得する処理
   const fetchWeatherApi = async (lat: number, lon: number) => {
     try {
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`);
+      // 🌟 現在の気温（current）と日別予報（daily）を同時に取得
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`);
       const data = await res.json();
 
-      if (data && data.daily) {
+      if (data && data.current && data.daily) {
+        const currentT = Math.round(data.current.temperature_2m);
         const max = Math.round(data.daily.temperature_2m_max[0]);
         const min = Math.round(data.daily.temperature_2m_min[0]);
         const pop = data.daily.precipitation_probability_max[0];
-        const code = data.daily.weathercode[0];
+        const code = data.current.weathercode;
 
         let cond = '晴れ';
         let comment = '本日はとても過ごしやすい一日となりそうでございます。';
@@ -84,6 +84,7 @@ export default function Home() {
 
         setWeatherData({
           condition: cond,
+          currentTemp: `${currentT}℃`,
           maxTemp: `${max}℃`,
           minTemp: `${min}℃`,
           comment: comment,
@@ -92,6 +93,7 @@ export default function Home() {
     } catch (e) {
       setWeatherData({
         condition: '晴れのち曇り',
+        currentTemp: '18℃',
         maxTemp: '20℃',
         minTemp: '12℃',
         comment: 'お出かけの際は、どうぞ暖かくしてお過ごしくださいませ。',
@@ -170,12 +172,12 @@ export default function Home() {
   const getButlerGreeting = () => {
     const name = masterName || '主';
     if (isAutoTime || currentHour >= 17 || currentHour < 6) {
-      return `「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
+      return `☕️「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
     }
     if (currentHour >= 6 && currentHour < 11) {
-      return `「おはようございます、${name}様。」`;
+      return `☕️「おはようございます、${name}様。」`;
     }
-    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
+    return `☕️「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
   const toggleFireSound = () => {
@@ -298,26 +300,32 @@ export default function Home() {
               onClick={fetchWeatherByLocation}
               className="px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-xs text-[#BB8632] hover:bg-[#6B212B] transition"
             >
-              📍 現在地の天気更新
+              📍 天気を更新
             </button>
           </div>
         </div>
 
+        {/* 🌤 改行して見やすくなった現在地のお天気・気温カード */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {/* 現在地のお天気自動表示欄 */}
           <div 
             className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
           >
-            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-1">CURRENT LOCATION WEATHER</p>
+            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-2">CURRENT LOCATION WEATHER</p>
             {isLoadingWeather ? (
-              <p className="text-xs text-[#F3ECD8]/70 italic py-1">現在地のお天気を確認中でございます……</p>
+              <p className="text-xs text-[#F3ECD8]/70 italic py-2">現在地のお天気を確認中でございます……</p>
             ) : weatherData ? (
-              <div>
-                <p className="text-sm font-bold text-[#F3ECD8] mb-1">
-                  本日の天気：{weatherData.condition} / 最高気温：{weatherData.maxTemp}、最低気温：{weatherData.minTemp}
+              <div className="leading-relaxed">
+                <p className="text-sm font-bold text-[#F3ECD8]">
+                  本日の天気：{weatherData.condition}
                 </p>
-                <p className="text-xs text-[#F3ECD8]/90 italic leading-relaxed border-t border-[#BB8632]/30 pt-2 mt-2">
+                <p className="text-sm font-bold text-[#F3ECD8] mt-1">
+                  現在の気温：{weatherData.currentTemp}
+                </p>
+                <p className="text-xs text-[#F3ECD8]/80 mt-1">
+                  （最高気温：{weatherData.maxTemp} / 最低気温：{weatherData.minTemp}）
+                </p>
+                <p className="text-xs text-[#F3ECD8]/90 italic leading-relaxed border-t border-[#BB8632]/30 pt-2 mt-2.5">
                   「{weatherData.comment} {masterName || '主'}様」
                 </p>
               </div>
