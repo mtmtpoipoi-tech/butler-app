@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-// 全国地域データ定義（特殊文字・中黒を含むキーをすべてクォーテーションで保護）
+// 全国地域データ定義
 const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number; lon: number }>>> = {
   '北海道地方': {
     北海道: {
@@ -96,11 +96,15 @@ export default function Home() {
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  // ⚙️ 設定モーダル用ステート
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  
+  // 🔑 同期・ログイン用ステート
   const [userId, setUserId] = useState<string>('');
   const [userPassword, setUserPassword] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
+  // 📍 地域選択用ステート
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [selectedRegionGroup, setSelectedRegionGroup] = useState<string>('関東地方');
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('埼玉県');
@@ -258,8 +262,7 @@ export default function Home() {
     localStorage.setItem('butler_master_account_id', userId.trim());
     localStorage.setItem('butler_master_account_pw', userPassword.trim());
     setIsLoggedIn(true);
-    setShowAuthModal(false);
-    alert(`「${userId.trim()}様、端末同期の認証が完了いたしました。主のお屋敷データは安全に紐付けされております。」`);
+    alert(`「${userId.trim()}様、アカウント情報を登録いたしました。※別デバイスでの完全同期にはクラウドサーバー連携が必要となります。」`);
   };
 
   const handleLogout = () => {
@@ -397,57 +400,150 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {showAuthModal && (
+        {/* 🌟 画面右上「⚙️ 設定」ボタン */}
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5"
+          >
+            <span>⚙️ 設定</span>
+          </button>
+        </div>
+
+        {/* 初回お名前入力モーダル */}
+        {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
+              className="w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl border text-center relative"
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
-              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
-                <h2 className="text-lg font-bold">🔑 端末データ同期（ログイン）</h2>
-                <button onClick={() => setShowAuthModal(false)} className="text-xs text-[#BB8632] hover:underline">閉じる ✖</button>
-              </div>
-
-              <p className="text-xs text-[#F3ECD8]/80 mb-4 leading-relaxed">
-                お好きなIDとパスワードを設定してログインすると、スマホ・パソコンなど異なる端末間でも同じお屋敷データ（予定帳や日記帳）を共有・復元できます。
+              <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-2">WELCOME TO MANOR</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F3ECD8] mb-4">
+                ようこそ、主のお屋敷へ
+              </h2>
+              <p className="text-xs sm:text-sm text-[#F3ECD8]/90 leading-relaxed italic mb-6">
+                「はじめまして。私はこの邸宅でお仕えする執事でございます。<br />
+                執事としてお仕えするにあたり、お名前をお伺いしてもよろしいでしょうか？」
               </p>
 
-              <form onSubmit={handleLoginSubmit} className="flex flex-col gap-3">
-                <div>
-                  <label className="text-xs text-[#BB8632] block mb-1">主様のアカウントID</label>
-                  <input
-                    type="text"
-                    placeholder="例: master_belian"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                    className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-[#BB8632] block mb-1">パスワード</label>
-                  <input
-                    type="password"
-                    placeholder="パスワードを入力"
-                    value={userPassword}
-                    onChange={(e) => setUserPassword(e.target.value)}
-                    className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
-                    required
-                  />
-                </div>
-
+              <form onSubmit={handleSaveInitialName} className="flex flex-col items-center gap-4">
+                <input
+                  type="text"
+                  placeholder="お名前を入力してください"
+                  value={inputName}
+                  onChange={(e) => setInputName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg bg-[#2B0C12] border border-[#BB8632]/60 text-[#F3ECD8] placeholder-[#F3ECD8]/40 text-center text-sm focus:outline-none focus:border-[#BB8632]"
+                  autoFocus
+                />
                 <button
                   type="submit"
-                  className="mt-2 w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg"
+                  className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg"
                 >
-                  同期してログインする
+                  邸宅に入る
                 </button>
               </form>
             </div>
           </div>
         )}
 
+        {/* ⚙️ 総合「設定手帳」モーダル */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] max-h-[90vh] overflow-y-auto"
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
+            >
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
+                <h2 className="text-lg font-bold text-[#F3ECD8]">⚙️ お屋敷の設定手帳</h2>
+                <button 
+                  onClick={() => setShowSettingsModal(false)}
+                  className="text-xs text-[#BB8632] hover:underline"
+                >
+                  閉じる ✖
+                </button>
+              </div>
+
+              {/* 1. お名前設定 */}
+              <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
+                <p className="text-xs font-bold text-[#BB8632] mb-1.5">👤 主様のお名前</p>
+                <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
+                  <span className="text-xs text-[#F3ECD8]">{masterName || '主'} 様</span>
+                  <button
+                    onClick={handleChangeName}
+                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition"
+                  >
+                    名前を変更
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. 地域設定 */}
+              <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
+                <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 参照地域の設定（位置情報オフ時）</p>
+                <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
+                  <span className="text-xs text-[#F3ECD8]">{fallbackLocationName}</span>
+                  <button
+                    onClick={() => setShowLocationModal(true)}
+                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition"
+                  >
+                    全国から選択
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. アカウント同期設定 */}
+              <div>
+                <p className="text-xs font-bold text-[#BB8632] mb-1.5">🔑 端末データ同期・アカウント</p>
+                <p className="text-[10px] text-[#F3ECD8]/70 mb-3 leading-relaxed">
+                  ※複数端末間での完全な自動同期には専用のクラウドサーバーが必要となりますが、こちらでIDを紐付けることができます。
+                </p>
+
+                {isLoggedIn ? (
+                  <div className="bg-[#2B0C12] p-3 rounded border border-[#BB8632]/40 flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] text-[#BB8632]">ログイン中</p>
+                      <p className="text-xs font-bold text-[#F3ECD8]">{userId} 様</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition"
+                    >
+                      同期解除
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleLoginSubmit} className="flex flex-col gap-2.5 bg-[#2B0C12] p-3 rounded border border-[#BB8632]/40">
+                    <input
+                      type="text"
+                      placeholder="アカウントID"
+                      value={userId}
+                      onChange={(e) => setUserId(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                      required
+                    />
+                    <input
+                      type="password"
+                      placeholder="パスワード"
+                      value={userPassword}
+                      onChange={(e) => setUserPassword(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition"
+                    >
+                      アカウントを登録する
+                    </button>
+                  </form>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* 📍 全国階層型地域選択モーダル */}
         {showLocationModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -520,34 +616,7 @@ export default function Home() {
         )}
 
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-xs tracking-[0.3em] text-[#BB8632]">THE BUTLER'S MANOR</p>
-            {masterName && (
-              <button
-                onClick={handleChangeName}
-                className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#310F14] text-[#BB8632] hover:bg-[#561B24] transition"
-                title="お名前を変更する"
-              >
-                ✏️ 変更: {masterName}様
-              </button>
-            )}
-            
-            {isLoggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#310F14] text-[#BB8632] hover:bg-[#561B24] transition"
-              >
-                🔑 同期中 ({userId}) [解除]
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="text-[10px] px-2 py-0.5 rounded border border-[#BB8632]/50 bg-[#561B24] text-[#F3ECD8] hover:bg-[#6B212B] transition"
-              >
-                🔑 端末同期（ログイン）
-              </button>
-            )}
-          </div>
+          <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-3">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
@@ -573,16 +642,10 @@ export default function Home() {
               </button>
               {isAutoTime && <span className="text-[10px] text-[#BB8632] font-bold">（夜長モード）</span>}
             </div>
-
-            <button
-              onClick={() => setShowLocationModal(true)}
-              className="px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-xs text-[#BB8632] hover:bg-[#6B212B] transition"
-            >
-              📍 地域を設定（全国）
-            </button>
           </div>
         </div>
 
+        {/* 挨拶カード ＆ 天気情報 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
           {showGreeting && (
             <div 
