@@ -358,7 +358,7 @@ export default function Home() {
     if (currentHour >= 6 && currentHour < 11) {
       return `「おはようございます、${name}様。」`;
     }
-    return `("おかえりなさいませ、${name}様。お待ちしておりました。」)`;
+    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
   const toggleFireSound = () => {
@@ -546,11 +546,15 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🌤️ 「本日の天気手帳」モーダル */}
+        {/* 🌤️ 「本日の天気手帳」モーダル（画面のどこをタッチしても閉じるよう修正） */}
         {showWeatherModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div 
+            onClick={() => setShowWeatherModal(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-pointer"
+          >
             <div 
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] cursor-default"
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
@@ -700,7 +704,7 @@ export default function Home() {
               className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${
                 isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}
-              style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
               title="タップして挨拶をしまう"
             >
               <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
