@@ -99,6 +99,9 @@ export default function Home() {
   // ⚙️ 設定モーダル用ステート
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   
+  // 🌤️ お天気モーダル用ステート
+  const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
+
   // 🔑 同期・ログイン用ステート
   const [userId, setUserId] = useState<string>('');
   const [userPassword, setUserPassword] = useState<string>('');
@@ -355,7 +358,7 @@ export default function Home() {
     if (currentHour >= 6 && currentHour < 11) {
       return `「おはようございます、${name}様。」`;
     }
-    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
+    return `("おかえりなさいませ、${name}様。お待ちしておりました。」)`;
   };
 
   const toggleFireSound = () => {
@@ -400,7 +403,7 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌟 画面右上「⚙️ 設定」ボタン（表示は「設定」） */}
+        {/* 🌟 画面右上「⚙️ 設定」ボタン */}
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -446,7 +449,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ⚙️ 総合「お屋敷の設定」モーダル（開いたときのタイトルは「お屋敷の設定」） */}
+        {/* ⚙️ 総合「お屋敷の設定」モーダル */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -539,6 +542,50 @@ export default function Home() {
                 )}
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* 🌤️ 「本日の天気手帳」モーダル */}
+        {showWeatherModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
+            >
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
+                <h2 className="text-lg font-bold text-[#F3ECD8]">🌤️ 本日の天気手帳</h2>
+                <button 
+                  onClick={() => setShowWeatherModal(false)}
+                  className="text-xs text-[#BB8632] hover:underline"
+                >
+                  閉じる ✖
+                </button>
+              </div>
+
+              {isLoadingWeather ? (
+                <p className="text-xs text-[#F3ECD8]/70 italic py-6 text-center">お天気を確認中でございます……</p>
+              ) : weatherData ? (
+                <div className="leading-relaxed text-center py-2">
+                  <p className="text-xs font-bold text-[#BB8632] mb-2">
+                    📍 {weatherData.locationName}
+                  </p>
+                  <p className="text-base font-bold text-[#F3ECD8] mb-1">
+                    天気：{weatherData.condition}
+                  </p>
+                  <p className="text-lg font-bold text-[#F3ECD8] mb-2">
+                    現在の気温：{weatherData.currentTemp}
+                  </p>
+                  <p className="text-xs text-[#F3ECD8]/80 mb-4">
+                    （最高気温：{weatherData.maxTemp} / 最低気温：{weatherData.minTemp}）
+                  </p>
+                  <p className="text-xs text-[#F3ECD8]/90 italic leading-relaxed border-t border-[#BB8632]/30 pt-3">
+                    「{weatherData.comment} {masterName || '主'}様」
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-[#F3ECD8]/70 italic py-6 text-center">お天気データを読み込んでおります……</p>
+              )}
             </div>
           </div>
         )}
@@ -645,7 +692,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 挨拶カード ＆ 天気情報 */}
+        {/* 挨拶カード */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
           {showGreeting && (
             <div 
@@ -664,41 +711,19 @@ export default function Home() {
               </p>
             </div>
           )}
-
-          <div 
-            className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
-            style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
-          >
-            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-2">
-              WEATHER INFORMATION
-            </p>
-            {isLoadingWeather ? (
-              <p className="text-xs text-[#F3ECD8]/70 italic py-2">お天気を確認中でございます……</p>
-            ) : weatherData ? (
-              <div className="leading-relaxed">
-                <p className="text-xs font-bold text-[#BB8632] mb-1">
-                  📍 {weatherData.locationName}
-                </p>
-                <p className="text-sm font-bold text-[#F3ECD8]">
-                  本日の天気：{weatherData.condition}
-                </p>
-                <p className="text-sm font-bold text-[#F3ECD8] mt-1">
-                  現在の気温：{weatherData.currentTemp}
-                </p>
-                <p className="text-xs text-[#F3ECD8]/80 mt-1">
-                  （最高気温：{weatherData.maxTemp} / 最低気温：{weatherData.minTemp}）
-                </p>
-                <p className="text-xs text-[#F3ECD8]/90 italic leading-relaxed border-t border-[#BB8632]/30 pt-2 mt-2.5">
-                  「{weatherData.comment} {masterName || '主'}様」
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-[#F3ECD8]/70 italic py-2">お天気データを読み込んでおります……</p>
-            )}
-          </div>
         </div>
 
-        <div className="relative z-10 w-full max-w-md pb-4">
+        {/* 🌟 下のバーの上の「天気」ボタン ＆ 下のバー（ドック） */}
+        <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
+          {/* 天気ボタン */}
+          <button
+            onClick={() => setShowWeatherModal(true)}
+            className="w-full py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center justify-center gap-2 font-bold tracking-wider"
+          >
+            <span>🌤️ 天気</span>
+          </button>
+
+          {/* ドックメニュー */}
           <div 
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}
