@@ -111,7 +111,6 @@ export default function CalendarPage() {
     }, 500);
   };
 
-  // 🌟 カレンダー計算ロジック
   const prevMonth = () => {
     setCurrentYearMonth((prev) => {
       if (prev.month === 1) return { year: prev.year - 1, month: 12 };
@@ -166,20 +165,11 @@ export default function CalendarPage() {
         style={{ backgroundImage: "url('/485142.jpg')" }}
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
-
-        <div
-          className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
-            isTransitioning ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           <div className="w-full mb-3 flex justify-start">
-            <Link 
-              href="/" 
-              onClick={handleNavigateHome}
-              className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer"
-            >
+            <Link href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
               ← エントランス（ホーム）へ戻る
             </Link>
           </div>
@@ -193,7 +183,6 @@ export default function CalendarPage() {
             <p className="text-sm leading-relaxed">{butlerMessage}</p>
           </div>
 
-          {/* 🌟 復元：月間カレンダー表示 */}
           <div className="w-full rounded-2xl p-5 mb-4 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
             <div className="flex justify-between items-center mb-4">
               <button onClick={prevMonth} className="text-xs text-[#BB8632] font-bold hover:underline cursor-pointer">◀ 前月</button>
@@ -203,7 +192,6 @@ export default function CalendarPage() {
               <button onClick={nextMonth} className="text-xs text-[#BB8632] font-bold hover:underline cursor-pointer">次月 ▶</button>
             </div>
 
-            {/* 曜日ヘッダー */}
             <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-[#BB8632] mb-2">
               <span className="text-[#8A2D2D]">日</span>
               <span>月</span>
@@ -214,7 +202,6 @@ export default function CalendarPage() {
               <span className="text-[#5B82A6]">土</span>
             </div>
 
-            {/* 日付グリッド */}
             <div className="grid grid-cols-7 gap-1 text-center text-xs">
               {getCalendarDays().map((item, idx) => {
                 if (!item) {
@@ -228,9 +215,7 @@ export default function CalendarPage() {
                     key={item.dateStr}
                     onClick={() => setSelectedDate(item.dateStr)}
                     className={`h-9 rounded-lg flex flex-col items-center justify-center relative cursor-pointer transition ${
-                      isSelected
-                        ? 'bg-[#BB8632] text-[#2B0C12] font-bold'
-                        : 'bg-[#3B1218] hover:bg-[#561B24] text-[#F3ECD8]'
+                      isSelected ? 'bg-[#BB8632] text-[#2B0C12] font-bold' : 'bg-[#3B1218] hover:bg-[#561B24] text-[#F3ECD8]'
                     }`}
                   >
                     <span>{item.dayNum}</span>
@@ -243,7 +228,6 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* 選択日付のご予定 ＆ 新規登録 */}
           <div className="w-full rounded-2xl p-5 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
             <p className="text-xs font-bold text-[#BB8632] mb-3">📅 {selectedDate} のご予定</p>
 
@@ -256,10 +240,7 @@ export default function CalendarPage() {
                 className="bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-3 py-1.5 rounded-lg text-xs outline-none flex-1"
                 required
               />
-              <button
-                type="submit"
-                className="px-3 py-1.5 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition cursor-pointer"
-              >
+              <button type="submit" className="px-3 py-1.5 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition cursor-pointer">
                 追加
               </button>
             </form>
@@ -280,7 +261,6 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* 外部カレンダー連携設定 */}
           <div className="w-full rounded-2xl p-4 mt-4 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
             <p className="text-xs font-semibold mb-2 text-[#BB8632]">🔗 外部カレンダー連携 (iCal / Google Calendar URL)</p>
             <form onSubmit={handleSaveExternalUrl} className="flex gap-2">
@@ -291,10 +271,7 @@ export default function CalendarPage() {
                 onChange={(e) => setExternalUrl(e.target.value)}
                 className="bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-3 py-1.5 rounded-lg text-xs outline-none flex-1"
               />
-              <button
-                type="submit"
-                className="px-3 py-1.5 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition cursor-pointer"
-              >
+              <button type="submit" className="px-3 py-1.5 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition cursor-pointer">
                 保存
               </button>
             </form>

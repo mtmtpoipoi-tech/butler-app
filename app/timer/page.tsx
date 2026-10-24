@@ -115,7 +115,6 @@ export default function TimerPage() {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-
       setDateTimeStr(`${year}年${month}月${date}日 (${day}) ${hours}:${minutes}:${seconds}`);
     };
 
@@ -290,25 +289,15 @@ export default function TimerPage() {
     <>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
-        
         body, button, select, input, p, span, h1, div {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         }
-
         .gothic-btn {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3);
           transition: all 0.2s ease-in-out;
         }
-        
-        .gothic-btn:hover {
-          filter: brightness(1.15);
-          transform: translateY(-1px);
-        }
-
-        .gothic-btn:active {
-          transform: translateY(1px);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4);
-        }
+        .gothic-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
       <audio ref={audioRef} src={selectedBgm} loop />
@@ -318,42 +307,32 @@ export default function TimerPage() {
         style={{ backgroundImage: "url('/485142.jpg')" }}
       >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-
-        <div
-          className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
-            isTransitioning ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-          
           <div className="w-full mb-3 flex justify-start">
-            <a 
-              href="/" 
-              onClick={handleNavigateHome}
-              className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer"
-            >
+            <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
               ← エントランス（ホーム）へ戻る
             </a>
           </div>
 
           <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-            <p className="text-base font-bold tracking-widest" style={{ color: '#F3ECD8' }}>{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
+            <p className="text-base font-bold tracking-widest">{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
           </div>
 
           <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-            <p className="text-xs font-semibold mb-1 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>執事からの言葉</p>
-            <p className="text-base leading-relaxed" style={{ color: '#F3ECD8' }}>{message}</p>
+            <p className="text-xs font-semibold mb-1 tracking-wider opacity-80">執事からの言葉</p>
+            <p className="text-base leading-relaxed">{message}</p>
           </div>
 
           <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-            <span className="text-xs font-semibold tracking-wider" style={{ color: '#F3ECD8', opacity: 0.8 }}>本日の集中実績</span>
-            <span className="text-sm font-bold tracking-wide" style={{ color: '#BB8632' }}>{isMounted ? renderActivitySummary() : '0分'}</span>
+            <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績</span>
+            <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderActivitySummary() : '0分'}</span>
           </div>
 
           <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
-            <h1 className="text-2xl font-bold mb-1 tracking-wide" style={{ color: '#F3ECD8' }}>{isBreak ? '休憩時間' : MODES[currentMode].name}</h1>
-            <p className="text-xs mb-4 tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>{isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}</p>
+            <h1 className="text-2xl font-bold mb-1 tracking-wide">{isBreak ? '休憩時間' : MODES[currentMode].name}</h1>
+            <p className="text-xs mb-4 tracking-wider opacity-70">{isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}</p>
 
             {!isBreak && (
               <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
@@ -374,7 +353,7 @@ export default function TimerPage() {
               </div>
             )}
 
-            <div className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]" style={{ color: '#F3ECD8' }}>
+            <div className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
               {formatTime(timeLeft)}
             </div>
 
@@ -396,7 +375,7 @@ export default function TimerPage() {
             </div>
 
             <div className="border-t pt-6 mb-6" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
-              <p className="text-xs mb-3 text-left tracking-wider" style={{ color: '#F3ECD8', opacity: 0.7 }}>モード選択</p>
+              <p className="text-xs mb-3 text-left tracking-wider opacity-70">モード選択</p>
               <div className="grid grid-cols-1 gap-2.5">
                 {(Object.keys(MODES) as TimerMode[]).map((modeKey) => {
                   const isSelected = currentMode === modeKey && !isBreak;
