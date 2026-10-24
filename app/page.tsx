@@ -409,6 +409,18 @@ export default function Home() {
           filter: brightness(1.15);
           box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
         }
+
+        /* 🌟 天気ボタン用ホバー浮き上がりエフェクト */
+        .gothic-weather-btn {
+          transition: all 0.3s ease-in-out;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+        }
+
+        .gothic-weather-btn:hover {
+          transform: translateY(-4px);
+          filter: brightness(1.15);
+          box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
+        }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
@@ -562,7 +574,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🌤️ 「本日の天気手帳」モーダル（フワッとフェードアウトするアニメーション付き） */}
+        {/* 🌤️ 「本日の天気手帳」モーダル */}
         {showWeatherModal && (
           <div 
             onClick={handleCloseWeatherModal}
@@ -737,12 +749,12 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌟 下のバーの上の「天気」ボタン ＆ 下のバー（ドック） */}
+        {/* 🌟 下のバーの上の「天気」ボタン（ホバーアニメーション付き） ＆ 下のバー（ドック） */}
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           {/* 天気ボタン */}
           <button
             onClick={handleOpenWeatherModal}
-            className="w-full py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center justify-center gap-2 font-bold tracking-wider"
+            className="gothic-weather-btn w-full py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
           >
             <span>🌤️ 天気</span>
           </button>
