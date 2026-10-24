@@ -400,13 +400,13 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌟 画面右上「⚙️ 設定」ボタン */}
+        {/* 🌟 画面右上「⚙️ お屋敷の設定」ボタン */}
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
             className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5"
           >
-            <span>⚙️ 設定</span>
+            <span>⚙️ お屋敷の設定</span>
           </button>
         </div>
 
@@ -446,7 +446,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ⚙️ 総合「設定手帳」モーダル */}
+        {/* ⚙️ 総合「お屋敷の設定」モーダル */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -454,7 +454,7 @@ export default function Home() {
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
             >
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
-                <h2 className="text-lg font-bold text-[#F3ECD8]">⚙️ お屋敷の設定手帳</h2>
+                <h2 className="text-lg font-bold text-[#F3ECD8]">⚙️ お屋敷の設定</h2>
                 <button 
                   onClick={() => setShowSettingsModal(false)}
                   className="text-xs text-[#BB8632] hover:underline"
@@ -653,7 +653,7 @@ export default function Home() {
               className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${
                 isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
+              style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
               title="タップして挨拶をしまう"
             >
               <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
