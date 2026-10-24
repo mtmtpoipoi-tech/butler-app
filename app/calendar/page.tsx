@@ -13,9 +13,13 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [eventTitle, setEventTitle] = useState<string>('');
+  const [currentYearMonth, setCurrentYearMonth] = useState<{ year: number; month: number }>({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+  });
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [butlerMessage, setButlerMessage] = useState<string>(
-    '「主様の大切なご予定を、どうぞお気軽にお申し付けくださいませ。」'
+    '「主様の大切なご予定を、どうぞお気軽にお申し付けくださいませ。外部カレンダーへの連携も承ります。」'
   );
 
   const getTodayStr = () => {
@@ -38,7 +42,6 @@ export default function CalendarPage() {
         setEvents([]);
       }
     } else {
-      // 🌟 最初から空の状態にする
       setEvents([]);
     }
   }, []);
@@ -70,6 +73,45 @@ export default function CalendarPage() {
     setButlerMessage('「ご予定をひとつ整理いたしました。」');
   };
 
+  // 🌟 Googleカレンダー追加リンク生成
+  const getGoogleCalendarUrl = (ev: CalendarEvent) => {
+    const dateFormatted = ev.date.replace(/-/g, '');
+    const titleEncoded = encodeURIComponent(ev.title);
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${titleEncoded}&dates=${dateFormatted}/${dateFormatted}`;
+  };
+
+  // 🌟 Appleカレンダー (.ics) ダウンロード
+  const downloadIcs = (ev: CalendarEvent) => {
+    const dateFormatted = ev.date.replace(/-/g, '');
+    const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${ev.title}\nDTSTART;VALUE=DATE:${dateFormatted}\nEND:VEVENT\nEND:VCALENDAR`;
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${ev.title}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // カレンダーグリッド計算
+  const getDaysInMonth = (year: number, month: number) => {
+    const date = new Date(year, month - 1, 1);
+    const days = [];
+    const firstDayIndex = date.getDay();
+    const lastDate = new Date(year, month, 0).getDate();
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push(null);
+    }
+    for (let d = 1; d <= lastDate; d++) {
+      days.push(d);
+    }
+    return days;
+  };
+
+  const daysGrid = getDaysInMonth(currentYearMonth.year, currentYearMonth.month);
+
   return (
     <>
       <style jsx global>{`
@@ -97,17 +139,53 @@ export default function CalendarPage() {
             <p className="text-sm leading-relaxed">{butlerMessage}</p>
           </div>
 
-          <div className="w-full rounded-2xl p-6 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
-            <h1 className="text-xl font-bold tracking-widest text-center text-[#F3ECD8] mb-6 border-b border-[#BB8632]/40 pb-2">
+          <div className="w-full rounded-2xl p-5 shadow-2xl border mb-4" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
+            <h1 className="text-xl font-bold tracking-widest text-center text-[#F3ECD8] mb-4 border-b border-[#BB8632]/40 pb-2">
               主の予定帳
             </h1>
 
-            <form onSubmit={handleAddEvent} className="flex flex-col gap-3 mb-6 bg-[#3B1218] p-4 rounded-xl border border-[#BB8632]/40">
+            {/* 🌟 当月カレンダー表示 */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-bold text-[#BB8632]">
+                  {currentYearMonth.year}年 {currentYearMonth.month}月
+                </span>
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
+                  <span key={d} className={`font-bold py-1 ${i === 0 ? 'text-[#D45D5D]' : i === 6 ? 'text-[#5D8BD4]' : 'text-[#BB8632]'}`}>
+                    {d}
+                  </span>
+                ))}
+                {daysGrid.map((day, idx) => {
+                  if (day === null) return <div key={`empty-${idx}`} className="h-7" />;
+                  const dateStr = `${currentYearMonth.year}-${String(currentYearMonth.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  const isSelected = selectedDate === dateStr;
+                  const hasEvent = events.some((e) => e.date === dateStr);
+
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDate(dateStr)}
+                      className={`h-7 rounded-lg text-xs font-bold transition relative flex items-center justify-center ${
+                        isSelected ? 'bg-[#BB8632] text-[#240A0E]' : 'bg-[#3B1218] text-[#F3ECD8] hover:bg-[#561B24]'
+                      }`}
+                    >
+                      {day}
+                      {hasEvent && <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-[#D49E4B]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 登録フォーム */}
+            <form onSubmit={handleAddEvent} className="flex flex-col gap-2 mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-3 py-2 rounded-lg text-xs outline-none"
+                className="bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-3 py-1.5 rounded-lg text-xs outline-none"
                 required
               />
               <input
@@ -115,30 +193,51 @@ export default function CalendarPage() {
                 placeholder="ご予定内容（例: 模試、受診、面談）"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
-                className="bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-3 py-2 rounded-lg text-xs outline-none"
+                className="bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-3 py-1.5 rounded-lg text-xs outline-none"
                 required
               />
               <button
                 type="submit"
-                className="w-full py-2 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition"
+                className="w-full py-1.5 rounded-lg font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition"
               >
                 ご予定を記録する
               </button>
             </form>
 
-            <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto pr-1">
+            {/* 🌟 予定一覧 ＆ 外部カレンダー連携ボタン */}
+            <div className="flex flex-col gap-2.5 max-h-48 overflow-y-auto pr-1">
               {isMounted && events.length === 0 ? (
-                <p className="text-center text-xs text-[#F3ECD8]/50 italic py-4">登録されたご予定はございません。</p>
+                <p className="text-center text-xs text-[#F3ECD8]/50 italic py-2">登録されたご予定はございません。</p>
               ) : (
                 isMounted && events.map((ev) => (
-                  <div key={ev.id} className="flex justify-between items-center bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
-                    <div>
-                      <span className="text-xs font-bold text-[#BB8632] block">{ev.date}</span>
-                      <span className="text-sm text-[#F3ECD8]">{ev.title}</span>
+                  <div key={ev.id} className="flex flex-col bg-[#3B1218] p-2.5 rounded-xl border border-[#BB8632]/40 gap-1.5">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] font-bold text-[#BB8632] block">{ev.date}</span>
+                        <span className="text-xs font-bold text-[#F3ECD8]">{ev.title}</span>
+                      </div>
+                      <button onClick={() => handleDelete(ev.id)} className="text-[10px] text-[#8A2D2D] hover:underline">
+                        削除
+                      </button>
                     </div>
-                    <button onClick={() => handleDelete(ev.id)} className="text-xs text-[#8A2D2D] hover:underline">
-                      削除
-                    </button>
+
+                    {/* 🌟 カレンダー連携リンクボタン */}
+                    <div className="flex gap-2 pt-1 border-t border-[#BB8632]/20">
+                      <a
+                        href={getGoogleCalendarUrl(ev)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[9px] px-2 py-0.5 rounded bg-[#240A0E] text-[#BB8632] border border-[#BB8632]/40 hover:bg-[#561B24]"
+                      >
+                        📅 Google連携
+                      </a>
+                      <button
+                        onClick={() => downloadIcs(ev)}
+                        className="text-[9px] px-2 py-0.5 rounded bg-[#240A0E] text-[#BB8632] border border-[#BB8632]/40 hover:bg-[#561B24]"
+                      >
+                        🍏 Apple/iCal連携
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

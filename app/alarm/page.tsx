@@ -14,13 +14,27 @@ export default function AlarmPage() {
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
   const [time, setTime] = useState<string>('07:00');
   const [label, setLabel] = useState<string>('起床');
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [butlerMessage, setButlerMessage] = useState<string>(
     '「主様のお目覚めやお時間のお知らせを、心を込めて務めさせていただきます。」'
   );
 
+  // 🌟 現在時刻のリアルタイム時計
   useEffect(() => {
     setIsMounted(true);
+    const updateTime = () => {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      setCurrentTimeStr(`${h}:${m}:${s}`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    // アラームの復元（初期は空）
     const saved = localStorage.getItem('butler_master_alarms');
     if (saved) {
       try {
@@ -29,9 +43,10 @@ export default function AlarmPage() {
         setAlarms([]);
       }
     } else {
-      // 🌟 最初から空の状態にする
       setAlarms([]);
     }
+
+    return () => clearInterval(interval);
   }, []);
 
   const saveToStorage = (newAlarms: AlarmItem[]) => {
@@ -83,6 +98,14 @@ export default function AlarmPage() {
             <Link href="/" className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50">
               ← エントランス（ホーム）へ戻る
             </Link>
+          </div>
+
+          {/* 🌟 現在時刻表示時計 */}
+          <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
+            <p className="text-xs text-[#BB8632] font-semibold mb-0.5">PRESENT TIME</p>
+            <p className="text-3xl font-extrabold tracking-widest text-[#F3ECD8]">
+              {currentTimeStr || '--:--:--'}
+            </p>
           </div>
 
           <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
