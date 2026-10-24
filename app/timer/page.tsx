@@ -78,7 +78,6 @@ export default function TimerPage() {
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const bellAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const getTodayLocalDateStr = () => {
     const now = new Date();
@@ -127,24 +126,11 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔔 ベルの音源を3回連続で鳴らす関数
-  const playBellThreeTimes = () => {
-    let count = 0;
-    const soundFile = '/bell.mp3'; // 🌟 ベル音源のファイルパス
-
-    const playNext = () => {
-      if (count < 3) {
-        count++;
-        const audio = new Audio(soundFile);
-        audio.volume = 1.0;
-        audio.onended = () => {
-          setTimeout(playNext, 300); // 鳴り終わった後0.3秒間隔を空けて次の鳴動へ
-        };
-        audio.play().catch(() => {});
-      }
-    };
-
-    playNext();
+  // 🔔 カウントダウン（合図の音声）を再生する関数
+  const playCountdownAudio = () => {
+    const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
+    audio.volume = 1.0;
+    audio.play().catch(() => {});
   };
 
   // BGMフェードイン
@@ -205,8 +191,12 @@ export default function TimerPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
-      if (timeLeft === 3 && isPlayingBgm) {
-        stopBgmWithFadeOut();
+      // 🌟 残り3秒になった瞬間にBGMのフェードアウトとカウントダウン音声を同時に開始
+      if (timeLeft === 3) {
+        if (isPlayingBgm) {
+          stopBgmWithFadeOut();
+        }
+        playCountdownAudio();
       }
 
       timer = setInterval(() => {
@@ -226,9 +216,6 @@ export default function TimerPage() {
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       
-      // 🌟 時間が終了した際にベルを3回鳴らす
-      playBellThreeTimes();
-
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
