@@ -44,7 +44,7 @@ const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number;
   近畿地方: {
     三重県: { 津市: { lat: 34.7303, lon: 136.5086 }, 四日市市: { lat: 34.9654, lon: 136.6236 } },
     滋賀県: { 大津市: { lat: 35.0178, lon: 135.8552 } },
-    京都府: { 京都市: { lat: 35.0116, lon: 135.7681 }, 南丹・丹波: { lat: 35.1558, lon: 135.4674 } },
+    京都府: { 京都市: { lat: 35.0116, lon: 135.7681 }, '南丹・丹波': { lat: 35.1558, lon: 135.4674 } },
     大阪府: { 大阪市: { lat: 34.6937, lon: 135.5023 }, 堺市: { lat: 34.5733, lon: 135.483 } },
     兵庫県: { 神戸市: { lat: 34.6901, lon: 135.1955 }, 姫路市: { lat: 34.8151, lon: 134.6854 } },
     奈良県: { 奈良市: { lat: 34.6851, lon: 135.8049 } },
@@ -590,7 +590,7 @@ export default function Home() {
               className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${
                 isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}
-              style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
               title="タップして挨拶をしまう"
             >
               <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
