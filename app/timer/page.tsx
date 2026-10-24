@@ -70,7 +70,7 @@ export default function TimerPage() {
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
   const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false); // 🌟 初期値を必ずfalseに
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
@@ -87,6 +87,8 @@ export default function TimerPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    setIsTransitioning(false); // 🌟 画面が開いた瞬間に暗転を確実に解除する
+
     const todayStr = getTodayLocalDateStr();
     const savedDate = localStorage.getItem('butler_master_activity_date');
     const savedData = localStorage.getItem('butler_master_activity_seconds');
@@ -129,7 +131,7 @@ export default function TimerPage() {
     setIsTransitioning(true);
     setTimeout(() => {
       router.push('/');
-    }, 500);
+    }, 400);
   };
 
   const playCountdownAudio = () => {
@@ -307,6 +309,8 @@ export default function TimerPage() {
         style={{ backgroundImage: "url('/485142.jpg')" }}
       >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+        
+        {/* 🌟 pointer-events-none を付与し、暗転が残り続けても操作をブロックしないようガード */}
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
