@@ -96,29 +96,22 @@ export default function Home() {
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
 
-  // 🌟 現在の日付と24時間表示の時刻用ステート
+  // 日付と時刻用ステート
   const [dateString, setDateString] = useState<string>('');
   const [timeString, setTimeString] = useState<string>('');
 
-  // 🌟 ページ遷移時の暗転フェードアウト用ステート
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  // ⚙️ 設定モーダル用ステート
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
-  
-  // 🌤️ お天気モーダル用ステート ＆ フェードイン・アウト用ステート
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
   const [isWeatherVisible, setIsWeatherVisible] = useState<boolean>(false);
 
-  // 🔑 同期・ログイン用ステート
   const [userId, setUserId] = useState<string>('');
   const [userPassword, setUserPassword] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  // 📍 地域選択用ステート
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [selectedRegionGroup, setSelectedRegionGroup] = useState<string>('関東地方');
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('埼玉県');
@@ -131,7 +124,7 @@ export default function Home() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 🌟 リアルタイム時計の更新（毎秒）
+  // リアルタイム時計の更新（毎秒）
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -153,7 +146,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🌟 ページ遷移を黒く暗転させながら実行する関数
   const handleNavigate = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setIsTransitioning(true);
@@ -443,7 +435,7 @@ export default function Home() {
 
         .gothic-clock-time {
           font-family: 'Cinzel', 'Shippori Mincho', serif;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.08em;
         }
 
         .gothic-dock-item {
@@ -756,19 +748,19 @@ export default function Home() {
         <div className="relative z-10 w-full max-w-lg text-center pt-4 flex flex-col items-center">
           <p className="text-[10px] tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-3">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
-          {/* 🕰️ ゴシック調・日付＆24時間表示時計カード */}
+          {/* 🕰️ ゴシック調・日付＆控えめな現在時刻カード */}
           <div 
-            className="w-full max-w-xs my-2 py-3 px-4 rounded-2xl border shadow-2xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5"
+            className="w-full max-w-[220px] my-1.5 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5"
             style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}
           >
-            <p className="text-xs tracking-wider text-[#BB8632] font-bold">
+            <p className="text-[11px] tracking-wider text-[#BB8632] font-bold">
               {dateString || '----年--月--日（-）'}
             </p>
-            <p className="gothic-clock-time text-3xl sm:text-4xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+            <p className="gothic-clock-time text-xl sm:text-2xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               {timeString || '00:00:00'}
             </p>
           </div>
