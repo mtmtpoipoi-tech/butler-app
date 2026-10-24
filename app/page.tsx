@@ -19,13 +19,13 @@ export default function Home() {
   const [bgImage, setBgImage] = useState<string>('/home-bg.jpg');
   const [currentHour, setCurrentHour] = useState<number>(12);
 
-  // 🌟 ヤフー天気データ保持用
+  // 天気データ保持用
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // お名前の読み込み ＆ 天気情報の自動取得
+  // お名前の読み込み ＆ 位置情報に基づいたお天気自動取得
   useEffect(() => {
     const savedName = localStorage.getItem('butler_master_name');
     if (savedName) {
@@ -34,15 +34,35 @@ export default function Home() {
       setShowNameModal(true);
     }
 
-    fetchYahooWeather();
+    fetchWeatherByLocation();
   }, []);
 
-  // 🌟 ヤフー天気から本日の天気・気温・指数情報を取得する関数
-  const fetchYahooWeather = async () => {
+  // 🌟 ブラウザの位置情報を取得して天気を反映する関数
+  const fetchWeatherByLocation = () => {
     setIsLoadingWeather(true);
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          await fetchWeatherApi(lat, lon);
+        },
+        (error) => {
+          // 位置情報が拒否された場合などのフォールバック（デフォルト: 埼玉・東京周辺）
+          fetchWeatherApi(35.8617, 139.6455);
+        },
+        { timeout: 10000 }
+      );
+    } else {
+      // 位置情報非対応ブラウザの場合
+      fetchWeatherApi(35.8617, 139.6455);
+    }
+  };
+
+  // 天気APIからデータを取得する処理
+  const fetchWeatherApi = async (lat: number, lon: number) => {
     try {
-      // Open-Meteo等の天気API / Yahoo!天気の情報を取得（例として東京/埼玉地域のAPI連携）
-      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo');
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`);
       const data = await res.json();
 
       if (data && data.daily) {
@@ -59,7 +79,7 @@ export default function Home() {
           comment = '少々雲が多いようでございます。お出かけの際はお足元にお気をつけくださいませ。';
         } else if (code >= 51 || pop >= 40) {
           cond = '雨';
-          comment = '本日はお話の通り雨の予報が出ております。お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。';
+          comment = 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。';
         }
 
         setWeatherData({
@@ -70,12 +90,11 @@ export default function Home() {
         });
       }
     } catch (e) {
-      // ネットワーク等のフォールバック
       setWeatherData({
         condition: '晴れのち曇り',
         maxTemp: '20℃',
         minTemp: '12℃',
-        comment: 'お出かけの際は、どうぞ暖かくしてお出かけくださいませ。',
+        comment: 'お出かけの際は、どうぞ暖かくしてお過ごしくださいませ。',
       });
     } finally {
       setIsLoadingWeather(false);
@@ -201,7 +220,6 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
 
-        {/* 🌹 初回お名前入力モーダル */}
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div 
@@ -237,7 +255,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 上部：タイトル ＆ お名前変更 ＆ 暖炉・お天気ボタン */}
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-xs tracking-[0.3em] text-[#BB8632]">THE BUTLER'S MANOR</p>
@@ -278,24 +295,23 @@ export default function Home() {
             </div>
 
             <button
-              onClick={fetchYahooWeather}
+              onClick={fetchWeatherByLocation}
               className="px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-xs text-[#BB8632] hover:bg-[#6B212B] transition"
             >
-              🔄 天気更新
+              📍 現在地の天気更新
             </button>
           </div>
         </div>
 
-        {/* 🌤 ヤフー天気情報カード ＆ 執事よりのご挨拶 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {/* ヤフーお天気自動表示欄 */}
+          {/* 現在地のお天気自動表示欄 */}
           <div 
             className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
           >
-            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-1">TODAY'S WEATHER (YAHOO! JAPAN)</p>
+            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-1">CURRENT LOCATION WEATHER</p>
             {isLoadingWeather ? (
-              <p className="text-xs text-[#F3ECD8]/70 italic py-1">お天気情報を確認中でございます……</p>
+              <p className="text-xs text-[#F3ECD8]/70 italic py-1">現在地のお天気を確認中でございます……</p>
             ) : weatherData ? (
               <div>
                 <p className="text-sm font-bold text-[#F3ECD8] mb-1">
@@ -310,7 +326,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* 執事よりのご挨拶 */}
           <div 
             className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
@@ -324,7 +339,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 下部：ドック */}
         <div className="relative z-10 w-full max-w-md pb-4">
           <div 
             className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2"
