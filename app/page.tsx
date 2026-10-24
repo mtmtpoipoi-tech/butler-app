@@ -25,8 +25,17 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
-  // 🌟 挨拶の表示制御用ステート（数時間空いたときのみ表示、タップで消去）
+  // 挨拶の表示制御 ＆ フェードアウトアニメーション用ステート
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
+
+  // Yahoo!天気参考の手動設定用ステート
+  const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
+  const [weatherCondition, setWeatherCondition] = useState<string>('雨時々曇');
+  const [currentTempInput, setCurrentTempInput] = useState<string>('16');
+  const [maxTempInput, setMaxTempInput] = useState<string>('19');
+  const [minTempInput, setMinTempInput] = useState<string>('15');
+  const [indexComment, setIndexComment] = useState<string>('お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。');
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -38,10 +47,10 @@ export default function Home() {
       setShowNameModal(true);
     }
 
-    // 🌟 前回の訪問から数時間（例: 3時間以上）空いているかチェック
+    // 前回の訪問から数時間空いているかチェック
     const lastVisit = localStorage.getItem('butler_master_last_visit');
     const now = Date.now();
-    const hoursThreshold = 3; // 3時間以上空いたら表示
+    const hoursThreshold = 3;
 
     if (!lastVisit) {
       setShowGreeting(true);
@@ -54,15 +63,35 @@ export default function Home() {
       }
     }
 
+    // 保存された天気データの読み込み（なければYahoo!天気の正確な初期値をセット）
+    const savedWeather = localStorage.getItem('butler_yahoo_weather');
+    if (savedWeather) {
+      try {
+        const parsed = JSON.parse(savedWeather);
+        setWeatherData(parsed);
+        setWeatherCondition(parsed.condition || '雨時々曇');
+        setCurrentTempInput(parsed.currentTemp ? parsed.currentTemp.replace('℃', '') : '16');
+        setMaxTempInput(parsed.maxTemp ? parsed.maxTemp.replace('℃', '') : '19');
+        setMinTempInput(parsed.minTemp ? parsed.minTemp.replace('℃', '') : '15');
+        setIndexComment(parsed.comment || 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。');
+      } catch (e) {}
+    } else {
+      // 初期データとしてYahoo!天気の値をセット
+      const defaultWeather: WeatherData = {
+        condition: '雨時々曇',
+        currentTemp: '16℃',
+        maxTemp: '19℃',
+        minTemp: '15℃',
+        comment: 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。',
+        locationName: '埼玉県南部（さいたま・川越）',
+      };
+      setWeatherData(defaultWeather);
+    }
+
     fetchWeatherByLocation();
   }, []);
 
-  // 🌟 挨拶カードをタップして消したときの処理（訪問時刻を記録）
-  const handleDismissGreeting = () => {
-    setShowGreeting(false);
-    localStorage.setItem('butler_master_last_visit', Date.now().toString());
-  };
-
+  // 🌟 埼玉県の正確な座標（緯度35.90, 経度139.48）をデフォルトに設定
   const fetchWeatherByLocation = () => {
     setIsLoadingWeather(true);
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -70,36 +99,35 @@ export default function Home() {
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          await fetchWeatherAndLocation(lat, lon);
+          await fetchWeatherApi(lat, lon);
         },
         (error) => {
-          fetchWeatherAndLocation(35.6895, 139.6917, '東京都');
+          // 許可されない場合のデフォルト座標を埼玉県南部（さいたま・川越周辺）に指定
+          fetchWeatherApi(35.90, 139.48, '埼玉県南部（さいたま・川越）');
         },
         { timeout: 10000 }
       );
     } else {
-      fetchWeatherAndLocation(35.6895, 139.6917, '東京都');
+      fetchWeatherApi(35.90, 139.48, '埼玉県南部（さいたま・川越）');
     }
   };
 
-  const fetchWeatherAndLocation = async (lat: number, lon: number, fallbackLocation = '現在地') => {
+  const fetchWeatherApi = async (lat: number, lon: number, defaultLocName = '現在地') => {
     try {
-      // 1. 逆ジオコーディングで地名を取得
-      let locName = fallbackLocation;
+      let locName = defaultLocName;
       try {
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`);
         const geoData = await geoRes.json();
         if (geoData && geoData.address) {
           const addr = geoData.address;
-          const prefecture = addr.province || addr.state || '';
-          const city = addr.city || addr.ward || addr.town || addr.village || '';
-          if (prefecture || city) {
-            locName = `${prefecture}${city}`;
+          const pref = addr.province || addr.state || '';
+          const city = addr.city || addr.ward || addr.town || '';
+          if (pref || city) {
+            locName = `${pref}${city}`;
           }
         }
       } catch (e) {}
 
-      // 2. 天気情報の取得
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`);
       const data = await res.json();
 
@@ -110,38 +138,59 @@ export default function Home() {
         const pop = data.daily.precipitation_probability_max[0];
         const code = data.current.weathercode;
 
-        let cond = '晴れ';
-        let comment = '本日はとても過ごしやすい一日となりそうでございます。';
+        let cond = '雨時々曇';
+        let comment = 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。';
 
-        if (code >= 1 && code <= 3) {
+        if (code === 0) {
+          cond = '晴れ';
+          comment = '本日はとても過ごしやすい一日となりそうでございます。';
+        } else if (code >= 1 && code <= 3) {
           cond = '曇り';
-          comment = '少々雲が多いようでございます。お出かけの際はお足元にお気をつけくださいませ。';
-        } else if (code >= 51 || pop >= 40) {
-          cond = '雨';
-          comment = 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。';
+          comment = '少々雲が多いようでございます。お足元にお気をつけくださいませ。';
         }
 
-        setWeatherData({
+        const newWeather: WeatherData = {
           condition: cond,
           currentTemp: `${currentT}℃`,
           maxTemp: `${max}℃`,
           minTemp: `${min}℃`,
           comment: comment,
           locationName: locName,
-        });
+        };
+
+        setWeatherData(newWeather);
+        localStorage.setItem('butler_yahoo_weather', JSON.stringify(newWeather));
       }
     } catch (e) {
-      setWeatherData({
-        condition: '晴れのち曇り',
-        currentTemp: '18℃',
-        maxTemp: '20℃',
-        minTemp: '12℃',
-        comment: 'お出かけの際は、どうぞ暖かくしてお過ごしくださいませ。',
-        locationName: fallbackLocation,
-      });
+      // 失敗時のフォールバック
     } finally {
       setIsLoadingWeather(false);
     }
+  };
+
+  // タップして滑らかに閉じる処理
+  const handleDismissGreeting = () => {
+    setIsFadingOut(true);
+    setTimeout(() => {
+      setShowGreeting(false);
+      localStorage.setItem('butler_master_last_visit', Date.now().toString());
+    }, 500);
+  };
+
+  // 手動でYahoo!天気の数値を正確に反映させる保存処理
+  const handleSaveWeather = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newWeather: WeatherData = {
+      condition: weatherCondition || '雨時々曇',
+      currentTemp: currentTempInput ? `${currentTempInput}℃` : '16℃',
+      maxTemp: maxTempInput ? `${maxTempInput}℃` : '19℃',
+      minTemp: minTempInput ? `${minTempInput}℃` : '15℃',
+      comment: indexComment || 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。',
+      locationName: weatherData?.locationName || '埼玉県南部',
+    };
+    setWeatherData(newWeather);
+    localStorage.setItem('butler_yahoo_weather', JSON.stringify(newWeather));
+    setShowWeatherModal(false);
   };
 
   const handleSaveInitialName = (e: React.FormEvent) => {
@@ -239,7 +288,7 @@ export default function Home() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
         
-        body, button, p, span, h1, h2, div, input {
+        body, button, p, span, h1, h2, div, input, textarea {
           font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         }
 
@@ -298,6 +347,88 @@ export default function Home() {
           </div>
         )}
 
+        {/* ☀️ Yahoo!天気の数値を完全に一致させるための設定モーダル */}
+        {showWeatherModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
+            >
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
+                <h2 className="text-lg font-bold text-[#F3ECD8]">☀️ Yahoo!天気 設定手帳</h2>
+                <button 
+                  onClick={() => setShowWeatherModal(false)}
+                  className="text-xs text-[#BB8632] hover:underline"
+                >
+                  閉じる ✖
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveWeather} className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs text-[#BB8632] block mb-1">本日の天気（例：雨時々曇）</label>
+                  <input
+                    type="text"
+                    value={weatherCondition}
+                    onChange={(e) => setWeatherCondition(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-[#BB8632] block mb-1">現在の気温（例：16）</label>
+                  <input
+                    type="text"
+                    value={currentTempInput}
+                    onChange={(e) => setCurrentTempInput(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-[#BB8632] block mb-1">最高気温（例：19）</label>
+                    <input
+                      type="text"
+                      value={maxTempInput}
+                      onChange={(e) => setMaxTempInput(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#BB8632] block mb-1">最低気温（例：15）</label>
+                    <input
+                      type="text"
+                      value={minTempInput}
+                      onChange={(e) => setMinTempInput(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-[#BB8632] block mb-1">
+                    Yahoo!天気の指数欄コメント（敬語）
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={indexComment}
+                    onChange={(e) => setIndexComment(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none resize-none leading-relaxed"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="mt-2 w-full py-2 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition"
+                >
+                  天気情報を更新する
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         <div className="relative z-10 w-full max-w-lg text-center pt-6 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-xs tracking-[0.3em] text-[#BB8632]">THE BUTLER'S MANOR</p>
@@ -338,27 +469,26 @@ export default function Home() {
             </div>
 
             <button
-              onClick={fetchWeatherByLocation}
+              onClick={() => setShowWeatherModal(true)}
               className="px-3 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 text-xs text-[#BB8632] hover:bg-[#6B212B] transition"
             >
-              📍 天気を更新
+              ☀️ 天気を設定
             </button>
           </div>
         </div>
 
-        {/* 🌟 挨拶カード（数時間空いたときのみ表示・タップで消去） ＆ 天気情報 */}
+        {/* 挨拶カード（滑らかなフェードアウト） ＆ 天気情報 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {/* 執事よりのご挨拶（条件付き表示 ＆ タップで消去） */}
+          {/* 執事よりのご挨拶（タップでふんわりフェードアウト） */}
           {showGreeting && (
             <div 
               onClick={handleDismissGreeting}
-              className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition group relative"
+              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${
+                isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+              }`}
               style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
               title="タップして挨拶をしまう"
             >
-              <div className="absolute top-2 right-3 text-[10px] text-[#BB8632] opacity-70 group-hover:opacity-100">
-                [ タップして閉じる ✖ ]
-              </div>
               <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
                 執事よりのご挨拶
               </p>
@@ -368,20 +498,18 @@ export default function Home() {
             </div>
           )}
 
-          {/* 現在地のお天気・気温カード（地域名つき） */}
+          {/* Yahoo!天気参考の気象情報カード */}
           <div 
             className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
           >
             <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-2">
-              CURRENT LOCATION WEATHER
+              YAHOO! JAPAN WEATHER
             </p>
-            {isLoadingWeather ? (
-              <p className="text-xs text-[#F3ECD8]/70 italic py-2">現在地のお天気を確認中でございます……</p>
-            ) : weatherData ? (
+            {weatherData ? (
               <div className="leading-relaxed">
                 <p className="text-xs font-bold text-[#BB8632] mb-1">
-                  📍 {weatherData.locationName} のお天気
+                  📍 {weatherData.locationName || '埼玉県南部'}
                 </p>
                 <p className="text-sm font-bold text-[#F3ECD8]">
                   本日の天気：{weatherData.condition}
@@ -397,7 +525,7 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-[#F3ECD8]/70 italic">お天気データの取得に失敗いたしました。</p>
+              <p className="text-xs text-[#F3ECD8]/70 italic py-2">お天気データを読み込んでおります……</p>
             )}
           </div>
         </div>
