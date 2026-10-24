@@ -9,6 +9,7 @@ interface WeatherData {
   maxTemp: string;
   minTemp: string;
   comment: string;
+  locationName: string;
 }
 
 export default function Home() {
@@ -24,6 +25,9 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
+  // 🌟 挨拶の表示制御用ステート（数時間空いたときのみ表示、タップで消去）
+  const [showGreeting, setShowGreeting] = useState<boolean>(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -34,8 +38,30 @@ export default function Home() {
       setShowNameModal(true);
     }
 
+    // 🌟 前回の訪問から数時間（例: 3時間以上）空いているかチェック
+    const lastVisit = localStorage.getItem('butler_master_last_visit');
+    const now = Date.now();
+    const hoursThreshold = 3; // 3時間以上空いたら表示
+
+    if (!lastVisit) {
+      setShowGreeting(true);
+    } else {
+      const diffHours = (now - parseInt(lastVisit, 10)) / (1000 * 60 * 60);
+      if (diffHours >= hoursThreshold) {
+        setShowGreeting(true);
+      } else {
+        setShowGreeting(false);
+      }
+    }
+
     fetchWeatherByLocation();
   }, []);
+
+  // 🌟 挨拶カードをタップして消したときの処理（訪問時刻を記録）
+  const handleDismissGreeting = () => {
+    setShowGreeting(false);
+    localStorage.setItem('butler_master_last_visit', Date.now().toString());
+  };
 
   const fetchWeatherByLocation = () => {
     setIsLoadingWeather(true);
@@ -44,20 +70,36 @@ export default function Home() {
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          await fetchWeatherApi(lat, lon);
+          await fetchWeatherAndLocation(lat, lon);
         },
         (error) => {
-          fetchWeatherApi(35.6895, 139.6917);
+          fetchWeatherAndLocation(35.6895, 139.6917, '東京都');
         },
         { timeout: 10000 }
       );
     } else {
-      fetchWeatherApi(35.6895, 139.6917);
+      fetchWeatherAndLocation(35.6895, 139.6917, '東京都');
     }
   };
 
-  const fetchWeatherApi = async (lat: number, lon: number) => {
+  const fetchWeatherAndLocation = async (lat: number, lon: number, fallbackLocation = '現在地') => {
     try {
+      // 1. 逆ジオコーディングで地名を取得
+      let locName = fallbackLocation;
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`);
+        const geoData = await geoRes.json();
+        if (geoData && geoData.address) {
+          const addr = geoData.address;
+          const prefecture = addr.province || addr.state || '';
+          const city = addr.city || addr.ward || addr.town || addr.village || '';
+          if (prefecture || city) {
+            locName = `${prefecture}${city}`;
+          }
+        }
+      } catch (e) {}
+
+      // 2. 天気情報の取得
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`);
       const data = await res.json();
 
@@ -85,6 +127,7 @@ export default function Home() {
           maxTemp: `${max}℃`,
           minTemp: `${min}℃`,
           comment: comment,
+          locationName: locName,
         });
       }
     } catch (e) {
@@ -94,6 +137,7 @@ export default function Home() {
         maxTemp: '20℃',
         minTemp: '12℃',
         comment: 'お出かけの際は、どうぞ暖かくしてお過ごしくださいませ。',
+        locationName: fallbackLocation,
       });
     } finally {
       setIsLoadingWeather(false);
@@ -302,31 +346,43 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 🌟 執事からのご挨拶を上、お天気情報を下に配置 */}
+        {/* 🌟 挨拶カード（数時間空いたときのみ表示・タップで消去） ＆ 天気情報 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {/* 執事よりのご挨拶（上） */}
-          <div 
-            className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
-            style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
-          >
-            <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
-              執事よりのご挨拶
-            </p>
-            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
-              {getButlerGreeting()}
-            </p>
-          </div>
+          {/* 執事よりのご挨拶（条件付き表示 ＆ タップで消去） */}
+          {showGreeting && (
+            <div 
+              onClick={handleDismissGreeting}
+              className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition group relative"
+              style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', borderColor: '#BB8632' }}
+              title="タップして挨拶をしまう"
+            >
+              <div className="absolute top-2 right-3 text-[10px] text-[#BB8632] opacity-70 group-hover:opacity-100">
+                [ タップして閉じる ✖ ]
+              </div>
+              <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
+                執事よりのご挨拶
+              </p>
+              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
+                {getButlerGreeting()}
+              </p>
+            </div>
+          )}
 
-          {/* 現在地のお天気・気温カード（下） */}
+          {/* 現在地のお天気・気温カード（地域名つき） */}
           <div 
             className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
           >
-            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-2">CURRENT LOCATION WEATHER</p>
+            <p className="text-[10px] tracking-widest text-[#BB8632] font-bold mb-2">
+              CURRENT LOCATION WEATHER
+            </p>
             {isLoadingWeather ? (
               <p className="text-xs text-[#F3ECD8]/70 italic py-2">現在地のお天気を確認中でございます……</p>
             ) : weatherData ? (
               <div className="leading-relaxed">
+                <p className="text-xs font-bold text-[#BB8632] mb-1">
+                  📍 {weatherData.locationName} のお天気
+                </p>
                 <p className="text-sm font-bold text-[#F3ECD8]">
                   本日の天気：{weatherData.condition}
                 </p>
@@ -392,7 +448,7 @@ export default function Home() {
             </Link>
 
             <button 
-              onClick={() => alert(`🎵 「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
+              onClick={() => alert(`「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
               className="flex flex-col items-center group cursor-pointer"
             >
               <div 
