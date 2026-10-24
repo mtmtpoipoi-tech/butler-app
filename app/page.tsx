@@ -37,7 +37,6 @@ export default function Home() {
     fetchWeatherByLocation();
   }, []);
 
-  // 🌟 現在地のリアルタイム気温・天気・最高最低気温を取得する関数
   const fetchWeatherByLocation = () => {
     setIsLoadingWeather(true);
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -48,7 +47,6 @@ export default function Home() {
           await fetchWeatherApi(lat, lon);
         },
         (error) => {
-          // 許可されなかった場合のフォールバック（東京・埼玉周辺）
           fetchWeatherApi(35.6895, 139.6917);
         },
         { timeout: 10000 }
@@ -60,7 +58,6 @@ export default function Home() {
 
   const fetchWeatherApi = async (lat: number, lon: number) => {
     try {
-      // 🌟 現在の気温（current）と日別予報（daily）を同時に取得
       const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`);
       const data = await res.json();
 
@@ -172,12 +169,12 @@ export default function Home() {
   const getButlerGreeting = () => {
     const name = masterName || '主';
     if (isAutoTime || currentHour >= 17 || currentHour < 6) {
-      return `☕️「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
+      return `「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
     }
     if (currentHour >= 6 && currentHour < 11) {
-      return `☕️「おはようございます、${name}様。」`;
+      return `「おはようございます、${name}様。」`;
     }
-    return `☕️「おかえりなさいませ、${name}様。お待ちしておりました。」`;
+    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
   const toggleFireSound = () => {
@@ -305,8 +302,22 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 🌤 改行して見やすくなった現在地のお天気・気温カード */}
+        {/* 🌟 執事からのご挨拶を上、お天気情報を下に配置 */}
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
+          {/* 執事よりのご挨拶（上） */}
+          <div 
+            className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
+            style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
+          >
+            <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
+              執事よりのご挨拶
+            </p>
+            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
+              {getButlerGreeting()}
+            </p>
+          </div>
+
+          {/* 現在地のお天気・気温カード（下） */}
           <div 
             className="rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center border"
             style={{ backgroundColor: 'rgba(59, 18, 24, 0.88)', borderColor: '#BB8632' }}
@@ -332,18 +343,6 @@ export default function Home() {
             ) : (
               <p className="text-xs text-[#F3ECD8]/70 italic">お天気データの取得に失敗いたしました。</p>
             )}
-          </div>
-
-          <div 
-            className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border"
-            style={{ backgroundColor: 'rgba(86, 27, 36, 0.85)', borderColor: '#BB8632' }}
-          >
-            <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">
-              執事よりのご挨拶
-            </p>
-            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">
-              {getButlerGreeting()}
-            </p>
           </div>
         </div>
 
@@ -393,7 +392,7 @@ export default function Home() {
             </Link>
 
             <button 
-              onClick={() => alert(`「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
+              onClick={() => alert(`🎵 「${masterName || '主'}様、ティーサロンの設えはまもなく完了いたします。」`)}
               className="flex flex-col items-center group cursor-pointer"
             >
               <div 
