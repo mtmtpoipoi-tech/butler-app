@@ -127,17 +127,30 @@ export default function TimerPage() {
 
   const handleNavigate = (e: React.MouseEvent, path: string) => {
     e.preventDefault();
-    stopBgmWithFadeOut();
-    setIsTransitioning(true);
-    setTimeout(() => {
-      router.push(path);
-    }, 400);
+    stopBgmWithFadeOut(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        router.push(path);
+      }, 400);
+    });
   };
 
+  // 🔔 3秒前カウントダウン音
   const playCountdownAudio = () => {
-    const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
-    audio.volume = 1.0;
-    audio.play().catch(() => {});
+    try {
+      const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
+      audio.volume = 1.0;
+      audio.play().catch((err) => console.log('Countdown audio error:', err));
+    } catch (e) {}
+  };
+
+  // 🔔 終了時ベル音（チリン）
+  const playFinishAudio = () => {
+    try {
+      const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
+      audio.volume = 1.0;
+      audio.play().catch((err) => console.log('Finish audio error:', err));
+    } catch (e) {}
   };
 
   const playBgmWithFadeIn = () => {
@@ -155,7 +168,7 @@ export default function TimerPage() {
             if (audioRef.current) audioRef.current.volume = vol;
           }
         }, 150);
-      }).catch(() => {});
+      }).catch((err) => console.log('BGM play error:', err));
     }
   };
 
@@ -196,10 +209,8 @@ export default function TimerPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
+      // 残り3秒のときにカウントダウン音を鳴らす
       if (timeLeft === 3) {
-        if (isPlayingBgm) {
-          stopBgmWithFadeOut();
-        }
         playCountdownAudio();
       }
 
@@ -217,7 +228,6 @@ export default function TimerPage() {
             localStorage.setItem('butler_master_activity_date', todayStr);
             localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
 
-            // 🕒 タイムラインログ用の詳細データを保存
             const now = new Date();
             const timeKey = `${String(now.getHours()).padStart(2, '0')}:${String(Math.floor(now.getMinutes() / 10) * 10).padStart(2, '0')}`;
             const logsStr = localStorage.getItem('butler_master_activity_logs');
@@ -231,6 +241,11 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
+      // タイマー終了時にフェードアウトしつつベル音（チリン）を鳴らす
+      stopBgmWithFadeOut(() => {
+        playFinishAudio();
+      });
+
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
@@ -322,7 +337,6 @@ export default function TimerPage() {
             <a href="/" onClick={(e) => handleNavigate(e, '/')} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
               ← ホームへ戻る
             </a>
-            {/* 📋 本日の作業ボタン */}
             <a href="/schedule" onClick={(e) => handleNavigate(e, '/schedule')} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
               📋 本日の作業
             </a>
