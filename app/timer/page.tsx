@@ -70,7 +70,7 @@ export default function TimerPage() {
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
   const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false); // 🌟 初期値を必ずfalseに
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
@@ -87,7 +87,7 @@ export default function TimerPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    setIsTransitioning(false); // 🌟 画面が開いた瞬間に暗転を確実に解除する
+    setIsTransitioning(false);
 
     const todayStr = getTodayLocalDateStr();
     const savedDate = localStorage.getItem('butler_master_activity_date');
@@ -206,6 +206,11 @@ export default function TimerPage() {
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
         if (!isBreak) {
+          // 👑 永久累計時間（butler_lifetime_seconds）を1秒加算
+          const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
+          const nextLifetime = curLifetime + 1;
+          localStorage.setItem('butler_lifetime_seconds', String(nextLifetime));
+
           setActivitySeconds((prev) => {
             const currentVal = prev[selectedActivity] || 0;
             const nextVal = currentVal + 1;
@@ -291,26 +296,16 @@ export default function TimerPage() {
     <>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
-        body, button, select, input, p, span, h1, div {
-          font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-        }
-        .gothic-btn {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-          transition: all 0.2s ease-in-out;
-        }
+        body, button, select, input, p, span, h1, div { font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif; }
+        .gothic-btn { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3); transition: all 0.2s ease-in-out; }
         .gothic-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
         .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
       <audio ref={audioRef} src={selectedBgm} loop />
 
-      <div
-        className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
-        style={{ backgroundImage: "url('/485142.jpg')" }}
-      >
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: "url('/485142.jpg')" }}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-        
-        {/* 🌟 pointer-events-none を付与し、暗転が残り続けても操作をブロックしないようガード */}
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
@@ -344,12 +339,7 @@ export default function TimerPage() {
                 {ACTIVITY_LIST.map((activity) => {
                   const isSelected = selectedActivity === activity;
                   return (
-                    <button
-                      key={activity}
-                      onClick={() => setSelectedActivity(activity)}
-                      className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
-                      style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}
-                    >
+                    <button key={activity} onClick={() => setSelectedActivity(activity)} className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer" style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}>
                       {activity}
                     </button>
                   );
@@ -362,18 +352,10 @@ export default function TimerPage() {
             </div>
 
             <div className="flex justify-center space-x-4 mb-8">
-              <button
-                onClick={toggleTimer}
-                className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
-                style={{ background: isRunning ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
-              >
+              <button onClick={toggleTimer} className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: isRunning ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}>
                 {isRunning ? '一時停止' : (isBreak ? '休憩開始' : `${selectedActivity}開始`)}
               </button>
-              <button
-                onClick={handleReset}
-                className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
-                style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}
-              >
+              <button onClick={handleReset} className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}>
                 リセット
               </button>
             </div>
@@ -384,12 +366,7 @@ export default function TimerPage() {
                 {(Object.keys(MODES) as TimerMode[]).map((modeKey) => {
                   const isSelected = currentMode === modeKey && !isBreak;
                   return (
-                    <button
-                      key={modeKey}
-                      onClick={() => setCurrentMode(modeKey)}
-                      className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
-                      style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}
-                    >
+                    <button key={modeKey} onClick={() => setCurrentMode(modeKey)} className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer" style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}>
                       {MODES[modeKey].name}
                     </button>
                   );
@@ -398,12 +375,7 @@ export default function TimerPage() {
             </div>
 
             <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
-              <select
-                value={selectedBgm}
-                onChange={(e) => handleBgmChange(e.target.value)}
-                className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
-                style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
-              >
+              <select value={selectedBgm} onChange={(e) => handleBgmChange(e.target.value)} className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1" style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}>
                 {BGM_LIST.map((bgm) => (
                   <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
                     {bgm.name}
@@ -411,16 +383,10 @@ export default function TimerPage() {
                 ))}
               </select>
 
-              <button
-                onClick={toggleBgmManually}
-                className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
-                style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
-                title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
-              >
+              <button onClick={toggleBgmManually} className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer" style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }} title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}>
                 <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
               </button>
             </div>
-
           </div>
         </div>
       </div>

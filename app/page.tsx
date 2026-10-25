@@ -128,7 +128,6 @@ export default function Home() {
   const [userPassword, setUserPassword] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  // 📍 地域選択モーダル用ステート
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [selectedRegionGroup, setSelectedRegionGroup] = useState<string>('関東地方');
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('埼玉県');
@@ -139,13 +138,11 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
-  // 🎵 レコードプレイヤー用ステート
   const [isRecordModalOpen, setIsRecordModalOpen] = useState<boolean>(false);
   const [isPlayingRecord, setIsPlayingRecord] = useState<boolean>(false);
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const recordAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 👑 タイマー連動・作業時間用ステート
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
   const [isFemalePeerage, setIsFemalePeerage] = useState<boolean>(true);
   const [isPeerageModalOpen, setIsPeerageModalOpen] = useState<boolean>(false);
@@ -173,58 +170,36 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 👑 タイマーの蓄積時間（butler_master_activity_seconds 等）を強力に同期するロジック
+  // 👑 日付が変わっても絶対消えない累計時間（butler_lifetime_seconds）を同期
   useEffect(() => {
     const syncWorkSeconds = () => {
       let maxSeconds = 0;
 
-      // 1. タイマーが保存している活動別実績オブジェクトを合算
+      // 1. 永久保存用の累計キーを最優先で取得
+      const lifetime = localStorage.getItem('butler_lifetime_seconds');
+      if (lifetime && !isNaN(Number(lifetime))) {
+        maxSeconds = Number(lifetime);
+      }
+
+      // 2. 当日実績も含めて大きい方を採用
       const activityJson = localStorage.getItem('butler_master_activity_seconds');
       if (activityJson) {
         try {
           const parsed = JSON.parse(activityJson);
           let sum = 0;
           for (const key in parsed) {
-            if (typeof parsed[key] === 'number') {
-              sum += parsed[key];
-            }
+            if (typeof parsed[key] === 'number') sum += parsed[key];
           }
           if (sum > maxSeconds) maxSeconds = sum;
         } catch (e) {}
       }
 
-      // 2. 従来の数値キー候補もチェック
-      const candidateKeys = [
-        'totalWorkSeconds',
-        'butler_total_work_seconds',
-        'timerSeconds',
-        'timer_seconds',
-        'studySeconds',
-        'workSeconds',
-        'elapsedSeconds'
-      ];
-
+      const candidateKeys = ['totalWorkSeconds', 'butler_total_work_seconds', 'timerSeconds'];
       for (const key of candidateKeys) {
         const val = localStorage.getItem(key);
         if (val && !isNaN(Number(val))) {
           const num = Number(val);
           if (num > maxSeconds) maxSeconds = num;
-        }
-      }
-
-      // 3. その他数値っぽいキーを走査
-      if (maxSeconds === 0) {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('second') || key.includes('time') || key.includes('work') || key.includes('study') || key.includes('timer'))) {
-            const val = localStorage.getItem(key);
-            if (val && !isNaN(Number(val))) {
-              const num = Number(val);
-              if (num > maxSeconds && num < 86400 * 365) {
-                maxSeconds = num;
-              }
-            }
-          }
         }
       }
 
@@ -581,62 +556,22 @@ export default function Home() {
     <>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&family=Cinzel:wght@400;600;700&display=swap');
-        
-        body, button, p, span, h1, h2, div, input, select {
-          font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-        }
-
-        .gothic-clock-time {
-          font-family: 'Cinzel', 'Shippori Mincho', serif;
-          letter-spacing: 0.08em;
-        }
-
-        .gothic-dock-item {
-          transition: all 0.3s ease-in-out;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-        }
-        
-        .gothic-dock-item:hover {
-          transform: translateY(-4px);
-          filter: brightness(1.15);
-          box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
-        }
-
-        .gothic-weather-btn {
-          transition: all 0.3s ease-in-out;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-        }
-
-        .gothic-weather-btn:hover {
-          transform: translateY(-4px);
-          filter: brightness(1.15);
-          box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5);
-        }
+        body, button, p, span, h1, h2, div, input, select { font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif; }
+        .gothic-clock-time { font-family: 'Cinzel', 'Shippori Mincho', serif; letter-spacing: 0.08em; }
+        .gothic-dock-item { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); }
+        .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
+        .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); }
+        .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      <div
-        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-      >
+      <div className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
-        <div
-          className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${
-            isTransitioning ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-
-        {/* ========================================== */}
-        {/* 👑 左上に配置されたPEERAGEバッジ */}
-        {/* ========================================== */}
         <div className="absolute top-4 left-4 z-20">
-          <button
-            onClick={() => setIsPeerageModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer"
-            title="タップして全爵位と進捗を確認"
-          >
+          <button onClick={() => setIsPeerageModalOpen(true)} className="px-3 py-1.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer" title="タップして全爵位と進捗を確認">
             <span className="text-[10px] tracking-widest text-[#BB8632] uppercase">PEERAGE</span>
             <div className="flex flex-col mt-0.5">
               <span className="text-sm font-bold tracking-wide text-[#F3ECD8] group-hover:text-[#BB8632] transition-colors leading-tight">
@@ -650,78 +585,45 @@ export default function Home() {
         </div>
 
         <div className="absolute top-4 right-4 z-20">
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5 cursor-pointer"
-          >
+          <button onClick={() => setShowSettingsModal(true)} className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5 cursor-pointer">
             <span>⚙️ 設定</span>
           </button>
         </div>
 
         {showNameModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div 
-              className="w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl border text-center relative"
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
-            >
+            <div className="w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl border text-center relative" style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}>
               <p className="text-xs tracking-[0.3em] text-[#BB8632] mb-2">WELCOME TO MANOR</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#F3ECD8] mb-4">
-                ようこそ、主のお屋敷へ
-              </h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F3ECD8] mb-4">ようこそ、主のお屋敷へ</h2>
               <form onSubmit={handleSaveInitialName} className="flex flex-col items-center gap-4">
-                <input
-                  type="text"
-                  placeholder="お名前を入力してください"
-                  value={inputName}
-                  onChange={(e) => setInputName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg bg-[#2B0C12] border border-[#BB8632]/60 text-[#F3ECD8] placeholder-[#F3ECD8]/40 text-center text-sm focus:outline-none focus:border-[#BB8632]"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
-                >
-                  邸宅に入る
-                </button>
+                <input type="text" placeholder="お名前を入力してください" value={inputName} onChange={(e) => setInputName(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-[#2B0C12] border border-[#BB8632]/60 text-[#F3ECD8] placeholder-[#F3ECD8]/40 text-center text-sm focus:outline-none focus:border-[#BB8632]" autoFocus />
+                <button type="submit" className="w-full py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-sm hover:bg-[#D49E4B] transition shadow-lg cursor-pointer">邸宅に入る</button>
               </form>
             </div>
           </div>
         )}
 
-        {/* ⚙️ 設定モーダル */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div 
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] max-h-[90vh] overflow-y-auto"
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
-            >
+            <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8] max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}>
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
                 <h2 className="text-lg font-bold text-[#F3ECD8]">⚙️ お屋敷の設定</h2>
-                <button onClick={() => setShowSettingsModal(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">
-                  閉じる ✖
-                </button>
+                <button onClick={() => setShowSettingsModal(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">閉じる ✖</button>
               </div>
 
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">👤 主様のお名前</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
                   <span className="text-xs text-[#F3ECD8]">{masterName || '主'} 様</span>
-                  <button onClick={handleChangeName} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">
-                    名前を変更
-                  </button>
+                  <button onClick={handleChangeName} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">名前を変更</button>
                 </div>
               </div>
 
-              {/* 👑 爵位の表記形式設定 */}
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">👑 爵位の表記形式</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
-                  <span className="text-xs text-[#F3ECD8]">
-                    {isFemalePeerage ? '女性形（女公爵・女男爵など）' : '男性形（公爵・男爵など）'}
-                  </span>
-                  <button onClick={handleTogglePeerageType} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">
-                    切替
-                  </button>
+                  <span className="text-xs text-[#F3ECD8]">{isFemalePeerage ? '女性形（女公爵・女男爵など）' : '男性形（公爵・男爵など）'}</span>
+                  <button onClick={handleTogglePeerageType} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">切替</button>
                 </div>
               </div>
 
@@ -729,15 +631,7 @@ export default function Home() {
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 天気参照地域の設定（位置情報オフ時）</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
                   <span className="text-xs text-[#F3ECD8]">{fallbackLocationName}</span>
-                  <button
-                    onClick={() => {
-                      setShowSettingsModal(false);
-                      setShowLocationModal(true);
-                    }}
-                    className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer"
-                  >
-                    全国から選択
-                  </button>
+                  <button onClick={() => { setShowSettingsModal(false); setShowLocationModal(true); }} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">全国から選択</button>
                 </div>
               </div>
 
@@ -749,89 +643,51 @@ export default function Home() {
                       <p className="text-[10px] text-[#BB8632]">ログイン中</p>
                       <p className="text-xs font-bold text-[#F3ECD8]">{userId} 様</p>
                     </div>
-                    <button onClick={handleLogout} className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition cursor-pointer">
-                      同期解除
-                    </button>
+                    <button onClick={handleLogout} className="px-2.5 py-1 rounded bg-[#561B24] text-[#F3ECD8] border border-[#BB8632]/50 text-[10px] hover:bg-[#6B212B] transition cursor-pointer">同期解除</button>
                   </div>
                 ) : (
                   <form onSubmit={handleLoginSubmit} className="flex flex-col gap-2.5 bg-[#2B0C12] p-3 rounded border border-[#BB8632]/40">
                     <input type="text" placeholder="アカウントID" value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none" required />
                     <input type="password" placeholder="パスワード" value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className="w-full px-2.5 py-1.5 rounded bg-[#1A070B] border border-[#BB8632]/50 text-xs text-[#F3ECD8] outline-none" required />
-                    <button type="submit" className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition cursor-pointer">
-                      アカウントを登録する
-                    </button>
+                    <button type="submit" className="w-full py-2 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition cursor-pointer">アカウントを登録する</button>
                   </form>
                 )}
               </div>
-
             </div>
           </div>
         )}
 
-        {/* 📍 全国地域選択モーダル */}
         {showLocationModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div 
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
-            >
+            <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]" style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}>
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
                 <h2 className="text-lg font-bold text-[#F3ECD8]">📍 全国地域選択手帳</h2>
-                <button 
-                  onClick={() => setShowLocationModal(false)}
-                  className="text-xs text-[#BB8632] hover:underline cursor-pointer"
-                >
-                  閉じる ✖
-                </button>
+                <button onClick={() => setShowLocationModal(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">閉じる ✖</button>
               </div>
 
               <div className="mb-3">
                 <label className="text-xs text-[#BB8632] font-bold block mb-1">① 地方を選択（全国）</label>
-                <select
-                  value={selectedRegionGroup}
-                  onChange={(e) => {
-                    const r = e.target.value;
-                    setSelectedRegionGroup(r);
-                    const firstPref = Object.keys(JAPAN_REGIONS[r])[0];
-                    setSelectedPrefecture(firstPref);
-                  }}
-                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
-                >
-                  {Object.keys(JAPAN_REGIONS).map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
+                <select value={selectedRegionGroup} onChange={(e) => { const r = e.target.value; setSelectedRegionGroup(r); setSelectedPrefecture(Object.keys(JAPAN_REGIONS[r])[0]); }} className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none">
+                  {Object.keys(JAPAN_REGIONS).map((r) => (<option key={r} value={r}>{r}</option>))}
                 </select>
               </div>
 
               <div className="mb-4">
                 <label className="text-xs text-[#BB8632] font-bold block mb-1">② 都道府県を選択</label>
-                <select
-                  value={selectedPrefecture}
-                  onChange={(e) => setSelectedPrefecture(e.target.value)}
-                  className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none"
-                >
-                  {JAPAN_REGIONS[selectedRegionGroup] &&
-                    Object.keys(JAPAN_REGIONS[selectedRegionGroup]).map((pref) => (
-                      <option key={pref} value={pref}>{pref}</option>
-                    ))}
+                <select value={selectedPrefecture} onChange={(e) => setSelectedPrefecture(e.target.value)} className="w-full px-3 py-2 rounded bg-[#2B0C12] border border-[#BB8632]/60 text-xs text-[#F3ECD8] outline-none">
+                  {JAPAN_REGIONS[selectedRegionGroup] && Object.keys(JAPAN_REGIONS[selectedRegionGroup]).map((pref) => (<option key={pref} value={pref}>{pref}</option>))}
                 </select>
               </div>
 
               <div>
                 <label className="text-xs text-[#BB8632] font-bold block mb-1.5">③ 詳細地域を選択</label>
                 <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-                  {JAPAN_REGIONS[selectedRegionGroup]?.[selectedPrefecture] ? (
-                    Object.entries(JAPAN_REGIONS[selectedRegionGroup][selectedPrefecture]).map(([area, coords]) => (
-                      <button
-                        key={area}
-                        onClick={() => handleSelectArea(area, coords)}
-                        className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition cursor-pointer"
-                      >
-                        <span>{selectedPrefecture} {area}</span>
-                        <span className="text-[10px] text-[#BB8632]">決定 ➔</span>
-                      </button>
-                    ))
-                  ) : null}
+                  {JAPAN_REGIONS[selectedRegionGroup]?.[selectedPrefecture] ? Object.entries(JAPAN_REGIONS[selectedRegionGroup][selectedPrefecture]).map(([area, coords]) => (
+                    <button key={area} onClick={() => handleSelectArea(area, coords)} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/40 hover:border-[#BB8632] text-xs text-left text-[#F3ECD8] font-bold flex justify-between items-center transition cursor-pointer">
+                      <span>{selectedPrefecture} {area}</span>
+                      <span className="text-[10px] text-[#BB8632]">決定 ➔</span>
+                    </button>
+                  )) : null}
                 </div>
               </div>
             </div>
@@ -874,19 +730,12 @@ export default function Home() {
           <div className="flex items-center gap-2 mt-1">
             <div className="px-4 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-3">
               <span className="text-xs text-[#F3ECD8]">暖炉の火</span>
-              <button
-                type="button"
-                onClick={toggleFireSound}
-                className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'}`}
-                role="switch"
-                aria-checked={isPlayingFire}
-              >
+              <button type="button" onClick={toggleFireSound} className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'}`} role="switch" aria-checked={isPlayingFire}>
                 <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-[#F3ECD8] shadow transition duration-200 ease-in-out ${isPlayingFire ? 'translate-x-4' : 'translate-x-0'}`} />
               </button>
             </div>
           </div>
 
-          {/* 🎵 再生中のレコード表示 */}
           {isPlayingRecord && (
             <div className="w-full max-w-xs mt-3 px-3 py-1.5 rounded-xl border flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
               <span>🎵 再生中: {currentTrack} (Loop)</span>
@@ -897,12 +746,7 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
           {showGreeting && (
-            <div 
-              onClick={handleDismissGreeting}
-              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
-              title="タップして挨拶をしまう"
-            >
+            <div onClick={handleDismissGreeting} className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`} style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }} title="タップして挨拶をしまう">
               <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶</p>
               <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
             </div>
@@ -911,18 +755,10 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           <div className="flex gap-2">
-            <button
-              onClick={handleOpenWeatherModal}
-              className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
-            >
+            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer">
               <span>🌤️ 天気</span>
             </button>
-
-            {/* 🎶 レコードボタン（モーダルを開く） */}
-            <button
-              onClick={() => setIsRecordModalOpen(true)}
-              className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
-            >
+            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer">
               <span>🎶 レコード</span>
             </button>
           </div>
@@ -956,55 +792,32 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </a>
 
-            {/* 🌟 ティーサロン（準備中アラート表示） */}
-            <button 
-              onClick={() => alert(`「${masterName || '主'}様、サロンの準備はまもなく調います。今しばらくお待ちくださいませ。」`)} 
-              className="flex flex-col items-center group cursor-pointer bg-transparent border-0 p-0"
-            >
+            <button onClick={() => alert(`「${masterName || '主'}様、サロンの準備はまもなく調います。今しばらくお待ちくださいませ。」`)} className="flex flex-col items-center group cursor-pointer bg-transparent border-0 p-0">
               <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl bg-[#310F14]" style={{ borderColor: '#BB8632', color: '#F3ECD8' }}>☕</div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">サロン</span>
             </button>
           </div>
         </div>
 
-        {/* ========================================== */}
-        {/* 📜 全爵位・自分の立ち位置確認モーダル */}
-        {/* ========================================== */}
         {isPeerageModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
             <div className="bg-[#1B1B1E] border border-[#BB8632] rounded-2xl w-full max-w-md p-6 shadow-2xl text-[#F3ECD8] relative max-h-[90vh] overflow-y-auto">
-              
               <div className="flex justify-between items-center border-b border-[#BB8632]/30 pb-3 mb-4">
-                <h2 className="text-lg font-bold text-[#F3ECD8] flex items-center gap-2">
-                  <span>👑</span> 爵位一覧と昇格の軌跡
-                </h2>
-                <button
-                  onClick={() => setIsPeerageModalOpen(false)}
-                  className="text-[#BB8632] hover:text-[#F3ECD8] text-sm font-bold px-2 py-1 cursor-pointer"
-                >
-                  閉じる ✕
-                </button>
+                <h2 className="text-lg font-bold text-[#F3ECD8] flex items-center gap-2"><span>👑</span> 爵位一覧と昇格の軌跡</h2>
+                <button onClick={() => setIsPeerageModalOpen(false)} className="text-[#BB8632] hover:text-[#F3ECD8] text-sm font-bold px-2 py-1 cursor-pointer">閉じる ✕</button>
               </div>
 
-              {/* 現在の状況サマリー（タイマーの総集中時間を反映） */}
               <div className="mb-5 p-3 rounded-xl bg-[#2B0C12]/60 border border-[#BB8632]/40 text-center">
                 <p className="text-xs text-[#BB8632] tracking-wider mb-1">現在の累計作業時間（タイマー連動）</p>
                 <p className="text-xl font-bold text-[#F3ECD8]">{totalHours.toFixed(1)} 時間</p>
-                <p className="text-xs text-[#F3ECD8]/80 mt-1">
-                  現在の称号：<span className="text-[#BB8632] font-bold">
-                    {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale} ({isFemalePeerage ? currentRank.engFemale : currentRank.engMale})
-                  </span>
-                </p>
+                <p className="text-xs text-[#F3ECD8]/80 mt-1">現在の称号：<span className="text-[#BB8632] font-bold">{isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale} ({isFemalePeerage ? currentRank.engFemale : currentRank.engMale})</span></p>
                 {nextRank ? (
-                  <p className="text-[11px] text-[#F3ECD8]/70 mt-1">
-                    次の「{isFemalePeerage ? nextRank.nameFemale : nextRank.nameMale}」まであと <span className="text-[#BB8632] font-bold">{hoursUntilNext.toFixed(1)}時間</span>
-                  </p>
+                  <p className="text-[11px] text-[#F3ECD8]/70 mt-1">次の「{isFemalePeerage ? nextRank.nameFemale : nextRank.nameMale}」まであと <span className="text-[#BB8632] font-bold">{hoursUntilNext.toFixed(1)}時間</span></p>
                 ) : (
                   <p className="text-[11px] text-[#BB8632] font-bold mt-1">✨ すべての爵位を極められました！お見事でございます。</p>
                 )}
               </div>
 
-              {/* 爵位ロードマップ一覧 */}
               <div className="space-y-3">
                 {PEERAGE_RANKS.map((rank) => {
                   const isCurrent = currentRank.id === rank.id;
@@ -1013,36 +826,18 @@ export default function Home() {
                   const rankEng = isFemalePeerage ? rank.engFemale : rank.engMale;
 
                   return (
-                    <div
-                      key={rank.id}
-                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
-                        isCurrent
-                          ? 'bg-[#3B1218] border-[#BB8632] shadow-md ring-1 ring-[#BB8632]'
-                          : isAchieved
-                          ? 'bg-[#1E1E22] border-[#BB8632]/40 opacity-90'
-                          : 'bg-[#151518] border-white/10 opacity-50'
-                      }`}
-                    >
+                    <div key={rank.id} className={`p-3 rounded-xl border transition-all flex items-center justify-between ${isCurrent ? 'bg-[#3B1218] border-[#BB8632] shadow-md ring-1 ring-[#BB8632]' : isAchieved ? 'bg-[#1E1E22] border-[#BB8632]/40 opacity-90' : 'bg-[#151518] border-white/10 opacity-50'}`}>
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-base text-[#F3ECD8]">{rankName}</span>
                           <span className="text-xs text-[#BB8632]">({rankEng})</span>
-                          {isCurrent && (
-                            <span className="text-[10px] bg-[#BB8632] text-[#121214] px-1.5 py-0.5 rounded font-bold">
-                              現在の位
-                            </span>
-                          )}
+                          {isCurrent && (<span className="text-[10px] bg-[#BB8632] text-[#121214] px-1.5 py-0.5 rounded font-bold">現在の位</span>)}
                         </div>
                         <p className="text-xs text-[#F3ECD8]/60 mt-0.5">必要時間: {rank.hoursRequired}時間以上</p>
                       </div>
-
                       <div>
-                        {isAchieved && !isCurrent && (
-                          <span className="text-xs text-[#BB8632] font-bold">✓ 達成済</span>
-                        )}
-                        {!isAchieved && (
-                          <span className="text-xs text-[#F3ECD8]/40">未達成</span>
-                        )}
+                        {isAchieved && !isCurrent && (<span className="text-xs text-[#BB8632] font-bold">✓ 達成済</span>)}
+                        {!isAchieved && (<span className="text-xs text-[#F3ECD8]/40">未達成</span>)}
                       </div>
                     </div>
                   );
@@ -1050,37 +845,22 @@ export default function Home() {
               </div>
 
               <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setIsPeerageModalOpen(false)}
-                  className="px-4 py-2 bg-[#2B0C12] text-[#F3ECD8] border border-[#BB8632]/50 rounded-lg text-xs hover:bg-[#3B1218] transition-all cursor-pointer"
-                >
-                  閉じる
-                </button>
+                <button onClick={() => setIsPeerageModalOpen(false)} className="px-4 py-2 bg-[#2B0C12] text-[#F3ECD8] border border-[#BB8632]/50 rounded-lg text-xs hover:bg-[#3B1218] transition-all cursor-pointer">閉じる</button>
               </div>
-
             </div>
           </div>
         )}
 
-        {/* 💿 レコード選択モーダル */}
         {isRecordModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div 
-              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
-            >
+            <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]" style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}>
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
                 <h2 className="text-lg font-bold text-[#F3ECD8]">「どのレコードを流しますか」</h2>
-                <button onClick={() => setIsRecordModalOpen(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">
-                  閉じる ✖
-                </button>
+                <button onClick={() => setIsRecordModalOpen(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">閉じる ✖</button>
               </div>
 
               <div className="space-y-3 my-4">
-                <button
-                  onClick={() => handlePlayRecord('Café Jazz', '/cafe-jazz.m4a')}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2B0C12] border border-[#BB8632]/40 hover:border-[#BB8632] transition text-left group cursor-pointer"
-                >
+                <button onClick={() => handlePlayRecord('Café Jazz', '/cafe-jazz.m4a')} className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2B0C12] border border-[#BB8632]/40 hover:border-[#BB8632] transition text-left group cursor-pointer">
                   <div>
                     <p className="font-semibold text-[#F3ECD8] group-hover:text-[#BB8632]">Café Jazz</p>
                     <p className="text-[10px] text-[#F3ECD8]/70">優雅で心地よいジャズの音源</p>
@@ -1090,12 +870,7 @@ export default function Home() {
               </div>
 
               <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setIsRecordModalOpen(false)}
-                  className="px-4 py-2 bg-[#2B0C12] text-[#F3ECD8] border border-[#BB8632]/50 rounded-lg text-xs hover:bg-[#3B1218] transition cursor-pointer"
-                >
-                  閉じる
-                </button>
+                <button onClick={() => setIsRecordModalOpen(false)} className="px-4 py-2 bg-[#2B0C12] text-[#F3ECD8] border border-[#BB8632]/50 rounded-lg text-xs hover:bg-[#3B1218] transition cursor-pointer">閉じる</button>
               </div>
             </div>
           </div>
