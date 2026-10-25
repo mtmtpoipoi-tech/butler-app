@@ -146,7 +146,7 @@ export default function Home() {
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const recordAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 👑 タイマー連携・作業時間用ステート
+  // 👑 タイマー連動・作業時間用ステート
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
   const [isFemalePeerage, setIsFemalePeerage] = useState<boolean>(true);
   const [isPeerageModalOpen, setIsPeerageModalOpen] = useState<boolean>(false);
@@ -174,31 +174,63 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 👑 タイマーの総集中時間を読み込む（localStorageの複数のキーに対応）
+  // 👑 タイマーの蓄積時間をあらゆる可能性から強力に同期するロジック
   useEffect(() => {
-    const loadWorkSeconds = () => {
-      const seconds1 = localStorage.getItem('totalWorkSeconds');
-      const seconds2 = localStorage.getItem('butler_total_work_seconds');
-      const target = seconds1 ? Number(seconds1) : (seconds2 ? Number(seconds2) : 0);
-      setTotalWorkSeconds(target);
+    const syncWorkSeconds = () => {
+      let maxSeconds = 0;
+
+      // 1. 考えられるすべてのキー候補をチェック
+      const candidateKeys = [
+        'totalWorkSeconds',
+        'butler_total_work_seconds',
+        'timerSeconds',
+        'timer_seconds',
+        'studySeconds',
+        'workSeconds',
+        'elapsedSeconds'
+      ];
+
+      for (const key of candidateKeys) {
+        const val = localStorage.getItem(key);
+        if (val && !isNaN(Number(val))) {
+          const num = Number(val);
+          if (num > maxSeconds) maxSeconds = num;
+        }
+      }
+
+      // 2. もし上記で見つからない場合、localStorage内を走査して数値っぽいものを探す
+      if (maxSeconds === 0) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('second') || key.includes('time') || key.includes('work') || key.includes('study') || key.includes('timer'))) {
+            const val = localStorage.getItem(key);
+            if (val && !isNaN(Number(val))) {
+              const num = Number(val);
+              if (num > maxSeconds && num < 86400 * 365) {
+                maxSeconds = num;
+              }
+            }
+          }
+        }
+      }
+
+      setTotalWorkSeconds(maxSeconds);
     };
 
-    loadWorkSeconds();
-    // 画面を開いている間にタイマー側で時間が更新された時用に関数を呼べるようにする
-    const handleStorageChange = () => loadWorkSeconds();
-    window.addEventListener('storage', handleStorageChange);
+    syncWorkSeconds();
+
+    // タイマー画面から戻ってきたときやデータ更新時に即座に反映されるよう定期チェック
+    const syncInterval = setInterval(syncWorkSeconds, 1500);
 
     const savedPeerageType = localStorage.getItem('butler_is_female_peerage');
     if (savedPeerageType !== null) {
       setIsFemalePeerage(savedPeerageType === 'true');
     }
 
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    return () => clearInterval(syncInterval);
   }, []);
 
-  // 👑 現在のランクを計算
+  // 👑 現在のランクを計算（分単位を考慮して換算）
   const totalHours = totalWorkSeconds / 3600;
 
   const getCurrentRank = () => {
@@ -588,7 +620,7 @@ export default function Home() {
         />
 
         {/* ========================================== */}
-        {/* 👑 左上に配置されたPEERAGEバッジ（「称号」を削除・改行表示・タップで全爵位） */}
+        {/* 👑 左上に配置されたPEERAGEバッジ */}
         {/* ========================================== */}
         <div className="absolute top-4 left-4 z-20">
           <button
