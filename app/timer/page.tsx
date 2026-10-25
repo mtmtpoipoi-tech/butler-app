@@ -125,12 +125,12 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleNavigateHome = (e: React.MouseEvent) => {
+  const handleNavigate = (e: React.MouseEvent, path: string) => {
     e.preventDefault();
     stopBgmWithFadeOut();
     setIsTransitioning(true);
     setTimeout(() => {
-      router.push('/');
+      router.push(path);
     }, 400);
   };
 
@@ -206,10 +206,8 @@ export default function TimerPage() {
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
         if (!isBreak) {
-          // 👑 永久累計時間（butler_lifetime_seconds）を1秒加算
           const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
-          const nextLifetime = curLifetime + 1;
-          localStorage.setItem('butler_lifetime_seconds', String(nextLifetime));
+          localStorage.setItem('butler_lifetime_seconds', String(curLifetime + 1));
 
           setActivitySeconds((prev) => {
             const currentVal = prev[selectedActivity] || 0;
@@ -218,6 +216,15 @@ export default function TimerPage() {
             const todayStr = getTodayLocalDateStr();
             localStorage.setItem('butler_master_activity_date', todayStr);
             localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
+
+            // 🕒 タイムラインログ用の詳細データを保存
+            const now = new Date();
+            const timeKey = `${String(now.getHours()).padStart(2, '0')}:${String(Math.floor(now.getMinutes() / 10) * 10).padStart(2, '0')}`;
+            const logsStr = localStorage.getItem('butler_master_activity_logs');
+            let logs: Record<string, string> = logsStr ? JSON.parse(logsStr) : {};
+            logs[timeKey] = selectedActivity;
+            localStorage.setItem('butler_master_activity_logs', JSON.stringify(logs));
+
             return nextObj;
           });
         }
@@ -283,35 +290,41 @@ export default function TimerPage() {
 
   const renderActivitySummary = () => {
     const entries = Object.entries(activitySeconds).filter(([_, secs]) => secs > 0);
-    if (entries.length === 0) {
-      return '0分';
-    }
-    return entries.map(([act, secs]) => {
-      const totalMins = Math.floor(secs / 60);
-      return `${act} ${totalMins}分`;
-    }).join(' ');
+    if (entries.length === 0) return '0分';
+    return entries.map(([act, secs]) => `${act} ${Math.floor(secs / 60)}分`).join(' ');
   };
 
   return (
     <>
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
-        body, button, select, input, p, span, h1, div { font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif; }
-        .gothic-btn { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3); transition: all 0.2s ease-in-out; }
+        body, button, select, input, p, span, h1, div {
+          font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+        }
+        .gothic-btn {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+          transition: all 0.2s ease-in-out;
+        }
         .gothic-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
-        .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
       <audio ref={audioRef} src={selectedBgm} loop />
 
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: "url('/485142.jpg')" }}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
+        style={{ backgroundImage: "url('/485142.jpg')" }}
+      >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-          <div className="w-full mb-3 flex justify-start">
-            <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
-              ← エントランス（ホーム）へ戻る
+          <div className="w-full mb-3 flex justify-between items-center">
+            <a href="/" onClick={(e) => handleNavigate(e, '/')} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
+              ← ホームへ戻る
+            </a>
+            {/* 📋 本日の作業ボタン */}
+            <a href="/schedule" onClick={(e) => handleNavigate(e, '/schedule')} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
+              📋 本日の作業
             </a>
           </div>
 
@@ -339,7 +352,12 @@ export default function TimerPage() {
                 {ACTIVITY_LIST.map((activity) => {
                   const isSelected = selectedActivity === activity;
                   return (
-                    <button key={activity} onClick={() => setSelectedActivity(activity)} className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer" style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}>
+                    <button
+                      key={activity}
+                      onClick={() => setSelectedActivity(activity)}
+                      className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
+                      style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}
+                    >
                       {activity}
                     </button>
                   );
@@ -352,10 +370,18 @@ export default function TimerPage() {
             </div>
 
             <div className="flex justify-center space-x-4 mb-8">
-              <button onClick={toggleTimer} className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: isRunning ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}>
+              <button
+                onClick={toggleTimer}
+                className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
+                style={{ background: isRunning ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+              >
                 {isRunning ? '一時停止' : (isBreak ? '休憩開始' : `${selectedActivity}開始`)}
               </button>
-              <button onClick={handleReset} className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}>
+              <button
+                onClick={handleReset}
+                className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
+                style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}
+              >
                 リセット
               </button>
             </div>
@@ -366,7 +392,12 @@ export default function TimerPage() {
                 {(Object.keys(MODES) as TimerMode[]).map((modeKey) => {
                   const isSelected = currentMode === modeKey && !isBreak;
                   return (
-                    <button key={modeKey} onClick={() => setCurrentMode(modeKey)} className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer" style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}>
+                    <button
+                      key={modeKey}
+                      onClick={() => setCurrentMode(modeKey)}
+                      className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
+                      style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}
+                    >
                       {MODES[modeKey].name}
                     </button>
                   );
@@ -375,7 +406,12 @@ export default function TimerPage() {
             </div>
 
             <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
-              <select value={selectedBgm} onChange={(e) => handleBgmChange(e.target.value)} className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1" style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}>
+              <select
+                value={selectedBgm}
+                onChange={(e) => handleBgmChange(e.target.value)}
+                className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
+                style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+              >
                 {BGM_LIST.map((bgm) => (
                   <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
                     {bgm.name}
@@ -383,10 +419,16 @@ export default function TimerPage() {
                 ))}
               </select>
 
-              <button onClick={toggleBgmManually} className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer" style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }} title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}>
+              <button
+                onClick={toggleBgmManually}
+                className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
+                style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
+              >
                 <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
               </button>
             </div>
+
           </div>
         </div>
       </div>
