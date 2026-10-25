@@ -74,7 +74,6 @@ const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number;
   },
 };
 
-// 👑 爵位ランクの定義
 type PeerageRank = {
   id: string;
   nameMale: string;
@@ -174,12 +173,10 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 👑 タイマーの蓄積時間をあらゆる可能性から強力に同期するロジック
+  // 👑 タイマーの蓄積時間を強力に同期するロジック
   useEffect(() => {
     const syncWorkSeconds = () => {
       let maxSeconds = 0;
-
-      // 1. 考えられるすべてのキー候補をチェック
       const candidateKeys = [
         'totalWorkSeconds',
         'butler_total_work_seconds',
@@ -198,7 +195,6 @@ export default function Home() {
         }
       }
 
-      // 2. もし上記で見つからない場合、localStorage内を走査して数値っぽいものを探す
       if (maxSeconds === 0) {
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
@@ -218,8 +214,6 @@ export default function Home() {
     };
 
     syncWorkSeconds();
-
-    // タイマー画面から戻ってきたときやデータ更新時に即座に反映されるよう定期チェック
     const syncInterval = setInterval(syncWorkSeconds, 1500);
 
     const savedPeerageType = localStorage.getItem('butler_is_female_peerage');
@@ -230,7 +224,6 @@ export default function Home() {
     return () => clearInterval(syncInterval);
   }, []);
 
-  // 👑 現在のランクを計算（分単位を考慮して換算）
   const totalHours = totalWorkSeconds / 3600;
 
   const getCurrentRank = () => {
@@ -247,7 +240,6 @@ export default function Home() {
 
   const currentRank = getCurrentRank();
 
-  // 次のランクを計算
   const getNextRank = () => {
     const currentIndex = PEERAGE_RANKS.findIndex(r => r.id === currentRank.id);
     if (currentIndex < PEERAGE_RANKS.length - 1) {
@@ -273,7 +265,6 @@ export default function Home() {
     }, 500);
   };
 
-  // 🎵 レコード再生・停止関数
   const handlePlayRecord = (trackName: string, audioSrc: string) => {
     if (recordAudioRef.current) {
       recordAudioRef.current.pause();
@@ -287,7 +278,7 @@ export default function Home() {
       setIsRecordModalOpen(false);
     }).catch((err) => {
       console.error('Audio play error:', err);
-      alert('音源の再生に失敗いたしました。publicフォルダに「cafe-jazz.m4a」があるかご確認くださいませ。');
+      alert('音源の再生に失敗いたしました。');
     });
   };
 
