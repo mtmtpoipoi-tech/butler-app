@@ -1,173 +1,134 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-interface ChatMessage {
-  sender: 'master' | 'butler';
+interface Message {
+  role: 'user' | 'assistant';
   text: string;
 }
 
 export default function SalonPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [masterName, setMasterName] = useState<string>('主');
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', text: '「お話し相手をお探しでございますか、主様？何なりとお聞かせくださいませ。」' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 自動スクロール
   useEffect(() => {
-    setIsTransitioning(false);
-    const savedName = localStorage.getItem('butler_master_name');
-    const currentName = savedName && savedName.trim() !== '' ? savedName.trim() : '主';
-    setMasterName(currentName);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
-    setMessages([
-      {
-        sender: 'butler',
-        text: `「お話し相手をお探しでございますか、${currentName}様？何なりとお聞かせくださいませ。」`,
-      },
-    ]);
-  }, []);
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleNavigateHome = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsTransitioning(true);
-    setTimeout(() => {
-      router.push('/');
-    }, 400);
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const userText = input.trim();
+    const userMessage = input.trim();
     setInput('');
-
-    const updatedMessages: ChatMessage[] = [
-      ...messages,
-      { sender: 'master', text: userText },
-    ];
-    setMessages(updatedMessages);
-    setLoading(true);
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsLoading(true);
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText, masterName }),
+        body: JSON.stringify({ message: userMessage, masterName: '万柚子' }),
       });
 
       const data = await res.json();
-      setMessages([
-        ...updatedMessages,
-        { sender: 'butler', text: data.reply },
-      ]);
-    } catch (error) {
-      setMessages([
-        ...updatedMessages,
-        {
-          sender: 'butler',
-          text: `「大変申し訳ございません、${masterName}様。お声が届きにくくなっているようでございます。」`,
-        },
+      
+      const replyText = data.reply || '「お聞き及びいたしました、万柚子様。」';
+      setMessages(prev => [...prev, { role: 'assistant', text: replyText }]);
+
+    } catch (err: any) {
+      console.error('Chat error:', err);
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', text: `「恐れ入ります、万柚子様。通信中に不具合が生じたようでございます（${err.message || '不明なエラー'}）。」` }
       ]);
     } finally {
-      setLoading(false);
+      // ★ ここで絶対にローディングを解除する（フリーズを防止）
+      setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700;800&display=swap');
-        body, button, input, p, span, h1, div {
-          font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-        }
-      `}</style>
+    <main className="min-h-screen relative flex flex-col items-center justify-between p-4 bg-cover bg-center" style={{ backgroundImage: `url('/home-bg-night.jpg')` }}>
+      {/* 背景の暗幕 */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs z-0" />
 
-      <div
-        className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
-        style={{ backgroundImage: "url('/485142.jpg')" }}
-      >
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
-        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
-
-        <div className="relative z-10 w-full max-w-md flex flex-col items-center h-full flex-1 justify-between">
-          <div className="w-full mb-3 flex justify-start">
-            <Link 
-              href="/" 
-              onClick={handleNavigateHome}
-              className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer"
-            >
-              ← エントランス（ホーム）へ戻る
-            </Link>
-          </div>
-
-          <div className="w-full rounded-2xl p-4 sm:p-5 shadow-2xl border flex flex-col flex-1 max-h-[68vh] mb-4 overflow-hidden" style={{ backgroundColor: 'rgba(46, 18, 23, 0.92)', borderColor: '#BB8632' }}>
-            <div className="border-b border-[#BB8632]/40 pb-2 mb-3 text-center">
-              <h1 className="text-base font-bold text-[#F3ECD8] tracking-widest">
-                ☕ 執事のティーサロン
-              </h1>
-              <p className="text-[10px] text-[#BB8632]">執事とのご歓談</p>
-            </div>
-
-            <div className="flex-1 overflow-y-auto flex flex-col gap-3 pr-1">
-              {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex flex-col ${msg.sender === 'master' ? 'items-end' : 'items-start'}`}
-                >
-                  <span className="text-[10px] text-[#BB8632] mb-1 px-1">
-                    {msg.sender === 'master' ? `${masterName}様` : '執事'}
-                  </span>
-                  <div
-                    className={`max-w-[85%] p-3 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-md ${
-                      msg.sender === 'master'
-                        ? 'bg-[#8B5A2B] text-[#F3ECD8] rounded-br-none border border-[#BB8632]/60'
-                        : 'bg-[#3B1218] text-[#F3ECD8] rounded-bl-none border border-[#BB8632]/40'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex flex-col items-start">
-                  <span className="text-[10px] text-[#BB8632] mb-1 px-1">執事</span>
-                  <div className="bg-[#3B1218] text-[#BB8632] italic text-xs p-3 rounded-2xl rounded-bl-none border border-[#BB8632]/40">
-                    言葉をお選びしております……
-                  </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-          </div>
-
-          <form onSubmit={handleSendMessage} className="w-full flex gap-2 mb-2">
-            <input
-              type="text"
-              placeholder="執事にお話ししたいことを入力してください..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-[#240A0E] text-[#F3ECD8] border border-[#BB8632]/60 px-4 py-2.5 rounded-xl text-xs sm:text-sm outline-none placeholder-[#F3ECD8]/40"
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="px-4 py-2.5 rounded-xl font-bold text-xs text-[#2B0C12] bg-[#BB8632] hover:bg-[#D49E4B] transition cursor-pointer disabled:opacity-50 shadow-md shrink-0"
-            >
-              話しかける
-            </button>
-          </form>
+      {/* ヘッダー */}
+      <div className="relative z-10 w-full max-w-2xl flex justify-between items-center py-4">
+        <button
+          onClick={() => router.push('/')}
+          className="px-4 py-2 bg-amber-950/60 hover:bg-amber-900/80 text-amber-200 border border-amber-700/50 rounded-lg text-sm transition-all shadow-md"
+        >
+          ← エントランス（ホーム）へ戻る
+        </button>
+        <div className="text-center">
+          <h1 className="text-amber-100 font-serif text-lg tracking-wider">執事のティーサロン</h1>
+          <p className="text-xs text-amber-300/70">執事とのご歓談</p>
         </div>
+        <div className="w-24" /> {/* バランス用 */}
       </div>
-    </>
+
+      {/* チャットメッセージ表示エリア */}
+      <div className="relative z-10 w-full max-w-2xl flex-1 my-4 overflow-y-auto space-y-4 pr-2 max-h-[65vh]">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[80%] p-4 rounded-xl shadow-lg leading-relaxed text-sm ${
+                msg.role === 'user'
+                  ? 'bg-amber-900/80 text-amber-100 border border-amber-600/40 rounded-br-none'
+                  : 'bg-stone-900/90 text-amber-100 border border-amber-700/50 rounded-bl-none font-serif'
+              }`}
+            >
+              <p className="text-xs text-amber-400/70 mb-1">
+                {msg.role === 'user' ? '万柚子様' : '執事'}
+              </p>
+              <p className="whitespace-pre-wrap">{msg.text}</p>
+            </div>
+          </div>
+        ))}
+
+        {/* 言葉を選んでいるときの表示 */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-stone-900/90 text-amber-200/80 border border-amber-700/50 p-4 rounded-xl rounded-bl-none text-sm font-serif animate-pulse">
+              <p className="text-xs text-amber-400/70 mb-1">執事</p>
+              <p>「言葉を選んでおります……」</p>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* 入力フォーム */}
+      <div className="relative z-10 w-full max-w-2xl mb-4">
+        <form onSubmit={handleSend} className="flex gap-2 bg-stone-900/80 p-2 rounded-xl border border-amber-700/50 shadow-xl">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="執事にお話ししたいことを入力してください..."
+            className="flex-1 bg-transparent px-4 py-2 text-amber-100 placeholder-amber-300/40 focus:outline-none text-sm font-serif"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="px-6 py-2 bg-amber-800 hover:bg-amber-700 disabled:opacity-50 text-amber-100 font-serif rounded-lg text-sm transition-all shadow-md"
+          >
+            話しかける
+          </button>
+        </form>
+      </div>
+    </main>
   );
 }

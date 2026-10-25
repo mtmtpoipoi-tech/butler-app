@@ -122,6 +122,12 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
+  // 🎵 レコードプレイヤー用ステート追加
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState<boolean>(false);
+  const [isPlayingRecord, setIsPlayingRecord] = useState<boolean>(false);
+  const [currentTrack, setCurrentTrack] = useState<string | null>(null);
+  const recordAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -151,6 +157,33 @@ export default function Home() {
     setTimeout(() => {
       router.push(href);
     }, 500);
+  };
+
+  // 🎵 レコード再生・停止関数
+  const handlePlayRecord = (trackName: string, audioSrc: string) => {
+    if (recordAudioRef.current) {
+      recordAudioRef.current.pause();
+    }
+    const audio = new Audio(audioSrc);
+    audio.loop = true;
+    recordAudioRef.current = audio;
+    audio.play().then(() => {
+      setIsPlayingRecord(true);
+      setCurrentTrack(trackName);
+      setIsRecordModalOpen(false);
+    }).catch((err) => {
+      console.error('Audio play error:', err);
+      alert('音源の再生に失敗いたしました。publicフォルダに「cafe-jazz.m4a」があるかご確認くださいませ。');
+    });
+  };
+
+  const handleStopRecord = () => {
+    if (recordAudioRef.current) {
+      recordAudioRef.current.pause();
+      recordAudioRef.current = null;
+    }
+    setIsPlayingRecord(false);
+    setCurrentTrack(null);
   };
 
   useEffect(() => {
@@ -695,6 +728,14 @@ export default function Home() {
               </button>
             </div>
           </div>
+
+          {/* 🎵 再生中のレコード表示 */}
+          {isPlayingRecord && (
+            <div className="w-full max-w-xs mt-3 px-3 py-1.5 rounded-xl border flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
+              <span>🎵 再生中: {currentTrack} (Loop)</span>
+              <button onClick={handleStopRecord} className="text-[#BB8632] hover:underline cursor-pointer text-xs font-bold">停止</button>
+            </div>
+          )}
         </div>
 
         <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
@@ -719,8 +760,10 @@ export default function Home() {
             >
               <span>🌤️ 天気</span>
             </button>
+
+            {/* 🎶 レコードボタン（モーダルを開くように変更） */}
             <button
-              onClick={() => alert(`「${masterName || '主'}様、レコード室の準備はまもなく調います。」`)}
+              onClick={() => setIsRecordModalOpen(true)}
               className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
             >
               <span>🎶 レコード</span>
@@ -763,6 +806,45 @@ export default function Home() {
             </a>
           </div>
         </div>
+
+        {/* 💿 レコード選択モーダル */}
+        {isRecordModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div 
+              className="w-full max-w-md rounded-2xl p-6 shadow-2xl border relative text-[#F3ECD8]"
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.95)', borderColor: '#BB8632' }}
+            >
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#BB8632]/40">
+                <h2 className="text-lg font-bold text-[#F3ECD8]">「どのレコードを流しますか」</h2>
+                <button onClick={() => setIsRecordModalOpen(false)} className="text-xs text-[#BB8632] hover:underline cursor-pointer">
+                  閉じる ✖
+                </button>
+              </div>
+
+              <div className="space-y-3 my-4">
+                <button
+                  onClick={() => handlePlayRecord('Café Jazz', '/cafe-jazz.m4a')}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2B0C12] border border-[#BB8632]/40 hover:border-[#BB8632] transition text-left group cursor-pointer"
+                >
+                  <div>
+                    <p className="font-semibold text-[#F3ECD8] group-hover:text-[#BB8632]">Café Jazz</p>
+                    <p className="text-[10px] text-[#F3ECD8]/70">優雅で心地よいジャズの音源</p>
+                  </div>
+                  <span className="text-[#BB8632] text-xs font-bold">▶ 再生</span>
+                </button>
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setIsRecordModalOpen(false)}
+                  className="px-4 py-2 bg-[#2B0C12] text-[#F3ECD8] border border-[#BB8632]/50 rounded-lg text-xs hover:bg-[#3B1218] transition cursor-pointer"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
