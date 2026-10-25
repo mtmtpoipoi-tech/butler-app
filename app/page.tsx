@@ -128,6 +128,10 @@ export default function Home() {
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const recordAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 👑 爵位・作業時間用ステート（初期値は女性形をデフォルト、設定で変更可能）
+  const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
+  const [isFemalePeerage, setIsFemalePeerage] = useState<boolean>(true);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -150,6 +154,40 @@ export default function Home() {
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // 作業時間の読み込み（タイマー等からの蓄積時間を想定、なければローカルストレージから）
+  useEffect(() => {
+    const savedSeconds = localStorage.getItem('butler_total_work_seconds');
+    if (savedSeconds) {
+      setTotalWorkSeconds(Number(savedSeconds));
+    }
+    const savedPeerageType = localStorage.getItem('butler_is_female_peerage');
+    if (savedPeerageType !== null) {
+      setIsFemalePeerage(savedPeerageType === 'true');
+    }
+  }, []);
+
+  // 👑 爵位の計算ロジック
+  const getPeerageTitle = () => {
+    const hours = totalWorkSeconds / 3600;
+    if (hours >= 1000) {
+      return isFemalePeerage ? '女公爵' : '公爵';
+    } else if (hours >= 500) {
+      return isFemalePeerage ? '女侯爵' : '侯爵';
+    } else if (hours >= 250) {
+      return isFemalePeerage ? '女伯爵' : '伯爵';
+    } else if (hours >= 10) {
+      return isFemalePeerage ? '女子爵' : '子爵';
+    } else {
+      return isFemalePeerage ? '女男爵' : '男爵';
+    }
+  };
+
+  const handleTogglePeerageType = () => {
+    const nextVal = !isFemalePeerage;
+    setIsFemalePeerage(nextVal);
+    localStorage.setItem('butler_is_female_peerage', String(nextVal));
+  };
 
   const handleNavigate = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
@@ -568,6 +606,19 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 👑 爵位の表記形式設定（女公爵など） */}
+              <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
+                <p className="text-xs font-bold text-[#BB8632] mb-1.5">👑 爵位の表記形式</p>
+                <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
+                  <span className="text-xs text-[#F3ECD8]">
+                    {isFemalePeerage ? '女性形（女公爵・女伯爵など）' : '男性形（公爵・伯爵など）'}
+                  </span>
+                  <button onClick={handleTogglePeerageType} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">
+                    切替
+                  </button>
+                </div>
+              </div>
+
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 天気参照地域の設定（位置情報オフ時）</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
@@ -705,11 +756,16 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-lg text-center pt-4 flex flex-col items-center">
           <p className="text-[10px] tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-1">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
-          <div className="w-full max-w-[220px] my-1.5 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5" style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}>
+          {/* 👑 爵位の表示バッジ */}
+          <div className="mb-2 px-3 py-0.5 rounded-full border border-[#BB8632]/60 bg-[#3B1218]/90 text-xs text-[#BB8632] font-bold shadow-md tracking-wider">
+            称号：{getPeerageTitle()}
+          </div>
+
+          <div className="w-full max-w-[220px] my-1 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5" style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}>
             <p className="text-[11px] tracking-wider text-[#BB8632] font-bold">{dateString || '----年--月--日（-）'}</p>
             <p className="gothic-clock-time text-xl sm:text-2xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{timeString || '00:00:00'}</p>
           </div>
