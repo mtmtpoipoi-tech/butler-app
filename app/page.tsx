@@ -122,7 +122,7 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
-  // 🎵 レコードプレイヤー用ステート追加
+  // 🎵 レコードプレイヤー用ステート
   const [isRecordModalOpen, setIsRecordModalOpen] = useState<boolean>(false);
   const [isPlayingRecord, setIsPlayingRecord] = useState<boolean>(false);
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
@@ -761,7 +761,7 @@ export default function Home() {
               <span>🌤️ 天気</span>
             </button>
 
-            {/* 🎶 レコードボタン（モーダルを開くように変更） */}
+            {/* 🎶 レコードボタン（モーダルを開く） */}
             <button
               onClick={() => setIsRecordModalOpen(true)}
               className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer"
@@ -799,11 +799,14 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </a>
 
-            {/* 🌟 ティーサロン（会話機能へ確実に遷移） */}
-            <a href="/salon" onClick={(e) => handleNavigate(e, '/salon')} className="flex flex-col items-center group cursor-pointer">
+            {/* 🌟 ティーサロン（準備中アラート表示） */}
+            <button 
+              onClick={() => alert(`「${masterName || '主'}様、サロンの準備はまもなく調います。今しばらくお待ちくださいませ。」`)} 
+              className="flex flex-col items-center group cursor-pointer bg-transparent border-0 p-0"
+            >
               <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl bg-[#310F14]" style={{ borderColor: '#BB8632', color: '#F3ECD8' }}>☕</div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">サロン</span>
-            </a>
+            </button>
           </div>
         </div>
 
