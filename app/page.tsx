@@ -173,10 +173,27 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 👑 タイマーの蓄積時間を強力に同期するロジック
+  // 👑 タイマーの蓄積時間（butler_master_activity_seconds 等）を強力に同期するロジック
   useEffect(() => {
     const syncWorkSeconds = () => {
       let maxSeconds = 0;
+
+      // 1. タイマーが保存している活動別実績オブジェクトを合算
+      const activityJson = localStorage.getItem('butler_master_activity_seconds');
+      if (activityJson) {
+        try {
+          const parsed = JSON.parse(activityJson);
+          let sum = 0;
+          for (const key in parsed) {
+            if (typeof parsed[key] === 'number') {
+              sum += parsed[key];
+            }
+          }
+          if (sum > maxSeconds) maxSeconds = sum;
+        } catch (e) {}
+      }
+
+      // 2. 従来の数値キー候補もチェック
       const candidateKeys = [
         'totalWorkSeconds',
         'butler_total_work_seconds',
@@ -195,6 +212,7 @@ export default function Home() {
         }
       }
 
+      // 3. その他数値っぽいキーを走査
       if (maxSeconds === 0) {
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
