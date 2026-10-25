@@ -74,6 +74,24 @@ const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number;
   },
 };
 
+// 👑 爵位ランクの定義
+type PeerageRank = {
+  id: string;
+  nameMale: string;
+  nameFemale: string;
+  engMale: string;
+  engFemale: string;
+  hoursRequired: number;
+};
+
+const PEERAGE_RANKS: PeerageRank[] = [
+  { id: 'baron', nameMale: '男爵', nameFemale: '女男爵', engMale: 'Baron', engFemale: 'Baroness', hoursRequired: 0 },
+  { id: 'viscount', nameMale: '子爵', nameFemale: '女子爵', engMale: 'Viscount', engFemale: 'Viscountess', hoursRequired: 10 },
+  { id: 'earl', nameMale: '伯爵', nameFemale: '女伯爵', engMale: 'Earl', engFemale: 'Countess', hoursRequired: 250 },
+  { id: 'marquess', nameMale: '侯爵', nameFemale: '女侯爵', engMale: 'Marquess', engFemale: 'Marchioness', hoursRequired: 500 },
+  { id: 'duke', nameMale: '公爵', nameFemale: '女公爵', engMale: 'Duke', engFemale: 'Duchess', hoursRequired: 1000 },
+];
+
 interface WeatherData {
   condition: string;
   currentTemp: string;
@@ -128,9 +146,10 @@ export default function Home() {
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const recordAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 👑 爵位・作業時間用ステート（初期値は女性形をデフォルト、設定で変更可能）
+  // 👑 爵位・作業時間用ステート
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
   const [isFemalePeerage, setIsFemalePeerage] = useState<boolean>(true);
+  const [isPeerageModalOpen, setIsPeerageModalOpen] = useState<boolean>(false); // 全爵位一覧モーダル
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -155,33 +174,51 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 作業時間の読み込み（タイマー等からの蓄積時間を想定、なければローカルストレージから）
+  // 作業時間の読み込み
   useEffect(() => {
     const savedSeconds = localStorage.getItem('butler_total_work_seconds');
     if (savedSeconds) {
       setTotalWorkSeconds(Number(savedSeconds));
+    } else {
+      // 互換性のため既存のキーも確認
+      const legacySeconds = localStorage.getItem('totalWorkSeconds');
+      if (legacySeconds) setTotalWorkSeconds(Number(legacySeconds));
     }
+
     const savedPeerageType = localStorage.getItem('butler_is_female_peerage');
     if (savedPeerageType !== null) {
       setIsFemalePeerage(savedPeerageType === 'true');
     }
   }, []);
 
-  // 👑 爵位の計算ロジック
-  const getPeerageTitle = () => {
-    const hours = totalWorkSeconds / 3600;
-    if (hours >= 1000) {
-      return isFemalePeerage ? '女公爵' : '公爵';
-    } else if (hours >= 500) {
-      return isFemalePeerage ? '女侯爵' : '侯爵';
-    } else if (hours >= 250) {
-      return isFemalePeerage ? '女伯爵' : '伯爵';
-    } else if (hours >= 10) {
-      return isFemalePeerage ? '女子爵' : '子爵';
-    } else {
-      return isFemalePeerage ? '女男爵' : '男爵';
+  // 👑 現在のランクを計算
+  const totalHours = totalWorkSeconds / 3600;
+
+  const getCurrentRank = () => {
+    let current = PEERAGE_RANKS[0];
+    for (const rank of PEERAGE_RANKS) {
+      if (totalHours >= rank.hoursRequired) {
+        current = rank;
+      } else {
+        break;
+      }
     }
+    return current;
   };
+
+  const currentRank = getCurrentRank();
+
+  // 次のランクを計算
+  const getNextRank = () => {
+    const currentIndex = PEERAGE_RANKS.findIndex(r => r.id === currentRank.id);
+    if (currentIndex < PEERAGE_RANKS.length - 1) {
+      return PEERAGE_RANKS[currentIndex + 1];
+    }
+    return null;
+  };
+
+  const nextRank = getNextRank();
+  const hoursUntilNext = nextRank ? Math.max(0, nextRank.hoursRequired - totalHours) : 0;
 
   const handleTogglePeerageType = () => {
     const nextVal = !isFemalePeerage;
@@ -543,6 +580,27 @@ export default function Home() {
           }`}
         />
 
+        {/* ========================================== */}
+        {/* 👑 左上に配置された爵位バッジ（タップで全爵位表示・改行表示） */}
+        {/* ========================================== */}
+        <div className="absolute top-4 left-4 z-20">
+          <button
+            onClick={() => setIsPeerageModalOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer"
+            title="タップして全爵位と進捗を確認"
+          >
+            <span className="text-[10px] tracking-widest text-[#BB8632] uppercase">Peerage / 称号</span>
+            <div className="flex flex-col mt-0.5">
+              <span className="text-sm font-bold tracking-wide text-[#F3ECD8] group-hover:text-[#BB8632] transition-colors leading-tight">
+                {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale}
+              </span>
+              <span className="text-[11px] font-normal text-[#F3ECD8]/70 tracking-wider">
+                {isFemalePeerage ? currentRank.engFemale : currentRank.engMale}
+              </span>
+            </div>
+          </button>
+        </div>
+
         <div className="absolute top-4 right-4 z-20">
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -611,7 +669,7 @@ export default function Home() {
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">👑 爵位の表記形式</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
                   <span className="text-xs text-[#F3ECD8]">
-                    {isFemalePeerage ? '女性形（女公爵・女伯爵など）' : '男性形（公爵・伯爵など）'}
+                    {isFemalePeerage ? '女性形（女公爵・女男爵など）' : '男性形（公爵・男爵など）'}
                   </span>
                   <button onClick={handleTogglePeerageType} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">
                     切替
@@ -754,16 +812,11 @@ export default function Home() {
           </div>
         )}
 
-        <div className="relative z-10 w-full max-w-lg text-center pt-4 flex flex-col items-center">
+        <div className="relative z-10 w-full max-w-lg text-center pt-12 flex flex-col items-center">
           <p className="text-[10px] tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
-
-          {/* 👑 爵位の表示バッジ */}
-          <div className="mb-2 px-3 py-0.5 rounded-full border border-[#BB8632]/60 bg-[#3B1218]/90 text-xs text-[#BB8632] font-bold shadow-md tracking-wider">
-            称号：{getPeerageTitle()}
-          </div>
 
           <div className="w-full max-w-[220px] my-1 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5" style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}>
             <p className="text-[11px] tracking-wider text-[#BB8632] font-bold">{dateString || '----年--月--日（-）'}</p>
@@ -865,6 +918,101 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {/* ========================================== */}
+        {/* 📜 全爵位・自分の立ち位置確認モーダル */}
+        {/* ========================================== */}
+        {isPeerageModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-[#1B1B1E] border border-[#BB8632] rounded-2xl w-full max-w-md p-6 shadow-2xl text-[#F3ECD8] relative max-h-[90vh] overflow-y-auto">
+              
+              <div className="flex justify-between items-center border-b border-[#BB8632]/30 pb-3 mb-4">
+                <h2 className="text-lg font-bold text-[#F3ECD8] flex items-center gap-2">
+                  <span>👑</span> 爵位一覧と昇格の軌跡
+                </h2>
+                <button
+                  onClick={() => setIsPeerageModalOpen(false)}
+                  className="text-[#BB8632] hover:text-[#F3ECD8] text-sm font-bold px-2 py-1 cursor-pointer"
+                >
+                  閉じる ✕
+                </button>
+              </div>
+
+              {/* 現在の状況サマリー */}
+              <div className="mb-5 p-3 rounded-xl bg-[#2B0C12]/60 border border-[#BB8632]/40 text-center">
+                <p className="text-xs text-[#BB8632] tracking-wider mb-1">現在の累計作業時間</p>
+                <p className="text-xl font-bold text-[#F3ECD8]">{totalHours.toFixed(1)} 時間</p>
+                <p className="text-xs text-[#F3ECD8]/80 mt-1">
+                  現在の称号：<span className="text-[#BB8632] font-bold">
+                    {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale} ({isFemalePeerage ? currentRank.engFemale : currentRank.engMale})
+                  </span>
+                </p>
+                {nextRank ? (
+                  <p className="text-[11px] text-[#F3ECD8]/70 mt-1">
+                    次の「{isFemalePeerage ? nextRank.nameFemale : nextRank.nameMale}」まであと <span className="text-[#BB8632] font-bold">{hoursUntilNext.toFixed(1)}時間</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-[#BB8632] font-bold mt-1">✨ すべての爵位を極められました！お見事でございます。</p>
+                )}
+              </div>
+
+              {/* 爵位ロードマップ一覧 */}
+              <div className="space-y-3">
+                {PEERAGE_RANKS.map((rank) => {
+                  const isCurrent = currentRank.id === rank.id;
+                  const isAchieved = totalHours >= rank.hoursRequired;
+                  const rankName = isFemalePeerage ? rank.nameFemale : rank.nameMale;
+                  const rankEng = isFemalePeerage ? rank.engFemale : rank.engMale;
+
+                  return (
+                    <div
+                      key={rank.id}
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+                        isCurrent
+                          ? 'bg-[#3B1218] border-[#BB8632] shadow-md ring-1 ring-[#BB8632]'
+                          : isAchieved
+                          ? 'bg-[#1E1E22] border-[#BB8632]/40 opacity-90'
+                          : 'bg-[#151518] border-white/10 opacity-50'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-base text-[#F3ECD8]">{rankName}</span>
+                          <span className="text-xs text-[#BB8632]">({rankEng})</span>
+                          {isCurrent && (
+                            <span className="text-[10px] bg-[#BB8632] text-[#121214] px-1.5 py-0.5 rounded font-bold">
+                              現在の位
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[#F3ECD8]/60 mt-0.5">必要時間: {rank.hoursRequired}時間以上</p>
+                      </div>
+
+                      <div>
+                        {isAchieved && !isCurrent && (
+                          <span className="text-xs text-[#BB8632] font-bold">✓ 達成済</span>
+                        )}
+                        {!isAchieved && (
+                          <span className="text-xs text-[#F3ECD8]/40">未達成</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setIsPeerageModalOpen(false)}
+                  className="px-4 py-2 bg-[#2B0C12] text-[#F3ECD8] border border-[#BB8632]/50 rounded-lg text-xs hover:bg-[#3B1218] transition-all cursor-pointer"
+                >
+                  閉じる
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* 💿 レコード選択モーダル */}
         {isRecordModalOpen && (
