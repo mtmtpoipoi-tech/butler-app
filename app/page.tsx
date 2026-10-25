@@ -146,10 +146,10 @@ export default function Home() {
   const [currentTrack, setCurrentTrack] = useState<string | null>(null);
   const recordAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 👑 爵位・作業時間用ステート
+  // 👑 タイマー連携・作業時間用ステート
   const [totalWorkSeconds, setTotalWorkSeconds] = useState<number>(0);
   const [isFemalePeerage, setIsFemalePeerage] = useState<boolean>(true);
-  const [isPeerageModalOpen, setIsPeerageModalOpen] = useState<boolean>(false); // 全爵位一覧モーダル
+  const [isPeerageModalOpen, setIsPeerageModalOpen] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -174,21 +174,28 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 作業時間の読み込み
+  // 👑 タイマーの総集中時間を読み込む（localStorageの複数のキーに対応）
   useEffect(() => {
-    const savedSeconds = localStorage.getItem('butler_total_work_seconds');
-    if (savedSeconds) {
-      setTotalWorkSeconds(Number(savedSeconds));
-    } else {
-      // 互換性のため既存のキーも確認
-      const legacySeconds = localStorage.getItem('totalWorkSeconds');
-      if (legacySeconds) setTotalWorkSeconds(Number(legacySeconds));
-    }
+    const loadWorkSeconds = () => {
+      const seconds1 = localStorage.getItem('totalWorkSeconds');
+      const seconds2 = localStorage.getItem('butler_total_work_seconds');
+      const target = seconds1 ? Number(seconds1) : (seconds2 ? Number(seconds2) : 0);
+      setTotalWorkSeconds(target);
+    };
+
+    loadWorkSeconds();
+    // 画面を開いている間にタイマー側で時間が更新された時用に関数を呼べるようにする
+    const handleStorageChange = () => loadWorkSeconds();
+    window.addEventListener('storage', handleStorageChange);
 
     const savedPeerageType = localStorage.getItem('butler_is_female_peerage');
     if (savedPeerageType !== null) {
       setIsFemalePeerage(savedPeerageType === 'true');
     }
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // 👑 現在のランクを計算
@@ -581,7 +588,7 @@ export default function Home() {
         />
 
         {/* ========================================== */}
-        {/* 👑 左上に配置された爵位バッジ（タップで全爵位表示・改行表示） */}
+        {/* 👑 左上に配置されたPEERAGEバッジ（「称号」を削除・改行表示・タップで全爵位） */}
         {/* ========================================== */}
         <div className="absolute top-4 left-4 z-20">
           <button
@@ -589,7 +596,7 @@ export default function Home() {
             className="px-3 py-1.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer"
             title="タップして全爵位と進捗を確認"
           >
-            <span className="text-[10px] tracking-widest text-[#BB8632] uppercase">Peerage / 称号</span>
+            <span className="text-[10px] tracking-widest text-[#BB8632] uppercase">PEERAGE</span>
             <div className="flex flex-col mt-0.5">
               <span className="text-sm font-bold tracking-wide text-[#F3ECD8] group-hover:text-[#BB8632] transition-colors leading-tight">
                 {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale}
@@ -664,7 +671,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 👑 爵位の表記形式設定（女公爵など） */}
+              {/* 👑 爵位の表記形式設定 */}
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">👑 爵位の表記形式</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
@@ -938,9 +945,9 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* 現在の状況サマリー */}
+              {/* 現在の状況サマリー（タイマーの総集中時間を反映） */}
               <div className="mb-5 p-3 rounded-xl bg-[#2B0C12]/60 border border-[#BB8632]/40 text-center">
-                <p className="text-xs text-[#BB8632] tracking-wider mb-1">現在の累計作業時間</p>
+                <p className="text-xs text-[#BB8632] tracking-wider mb-1">現在の累計作業時間（タイマー連動）</p>
                 <p className="text-xl font-bold text-[#F3ECD8]">{totalHours.toFixed(1)} 時間</p>
                 <p className="text-xs text-[#F3ECD8]/80 mt-1">
                   現在の称号：<span className="text-[#BB8632] font-bold">
