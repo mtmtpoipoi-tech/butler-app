@@ -44,6 +44,7 @@ export default function JournalPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // 📖 選択された日付の日記データ ＆ 集中実績のロード
   useEffect(() => {
     if (!selectedDate) return;
 
@@ -51,7 +52,30 @@ export default function JournalPage() {
     const savedJournal = localStorage.getItem(`butler_journal_${selectedDate}`);
     setJournalText(savedJournal || '');
 
-    // タイマーデータのロード
+    // 📊 集中実績のロード（全日付対応ストレージ butler_all_activity_seconds から取得）
+    try {
+      const allSecsStr = localStorage.getItem('butler_all_activity_seconds');
+      if (allSecsStr) {
+        const allSecs = JSON.parse(allSecsStr);
+        const daySecs = allSecs[selectedDate];
+        if (daySecs) {
+          const entries = Object.entries(daySecs).filter(([_, secs]) => Number(secs) > 0);
+          if (entries.length > 0) {
+            const summaryText = entries.map(([act, secs]) => {
+              const totalSec = Number(secs) || 0;
+              const mins = Math.floor(totalSec / 60);
+              const sec = totalSec % 60;
+              return sec > 0 ? `${act} ${mins}分${sec}秒` : `${act} ${mins}分`;
+            }).join(' / ');
+            setActivitySummary(summaryText);
+            setButlerMessage(`「${selectedDate} のご記録と集中実績でございます。」`);
+            return;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // フォールバック（従来のデータ構造に対する互換性）
     const todayStr = getTodayLocalDateStr();
     if (selectedDate === todayStr) {
       const savedDate = localStorage.getItem('butler_master_activity_date');
@@ -66,14 +90,16 @@ export default function JournalPage() {
               return `${act} ${mins}分`;
             }).join(' / ');
             setActivitySummary(summaryText);
+            setButlerMessage(`「${selectedDate} のご記録と集中実績でございます。」`);
             return;
           }
         } catch (e) {}
       }
       setActivitySummary('本日の集中記録はまだございません。');
     } else {
-      setActivitySummary('過去の集中実績はお手元の記録よりお確かめくださいませ。');
+      setActivitySummary('選択された日付の集中記録はございません。');
     }
+    setButlerMessage(`「${selectedDate} のページでございますね。」`);
   }, [selectedDate]);
 
   const handleNavigateHome = (e: React.MouseEvent) => {
@@ -169,7 +195,7 @@ export default function JournalPage() {
 
           {/* 集中実績 */}
           <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl border" style={{ backgroundColor: '#2E1217', borderColor: '#BB8632' }}>
-            <p className="text-xs font-semibold mb-1 text-[#BB8632]">📊 集中実績</p>
+            <p className="text-xs font-semibold mb-1 text-[#BB8632]">📊 集中実績 ({selectedDate})</p>
             <p className="text-sm font-bold text-[#F3ECD8]">{activitySummary}</p>
           </div>
 
