@@ -125,7 +125,14 @@ export default function TimerPage() {
 
     if (savedDate === todayStr && savedData) {
       try {
-        setActivitySeconds(JSON.parse(savedData));
+        const parsed = JSON.parse(savedData);
+        // 安全に数値化してセット
+        const cleaned: Record<string, number> = {};
+        for (const k in parsed) {
+          const val = Number(parsed[k]);
+          cleaned[k] = isNaN(val) ? 0 : val;
+        }
+        setActivitySeconds(cleaned);
       } catch (e) {
         setActivitySeconds({});
       }
@@ -145,7 +152,7 @@ export default function TimerPage() {
     const savedImpression = localStorage.getItem('butler_schedule_impression');
     if (savedImpression) setImpressionText(savedImpression);
     const savedRating = localStorage.getItem('butler_schedule_rating');
-    if (savedRating) setRating(Number(savedRating));
+    if (savedRating) setRating(Number(savedRating) || 0);
     const savedTodos = localStorage.getItem('butler_schedule_todos');
     if (savedTodos) {
       try { setTodoList(JSON.parse(savedTodos)); } catch (e) {}
@@ -181,7 +188,6 @@ export default function TimerPage() {
     });
   };
 
-  // 🔔 3秒前カウントダウン音
   const playCountdownAudio = () => {
     try {
       const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
@@ -190,7 +196,6 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🔔 終了時ベル音（チリン）
   const playFinishAudio = () => {
     try {
       const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
@@ -199,7 +204,6 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🎵 フェードイン
   const playBgmWithFadeIn = () => {
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -219,7 +223,6 @@ export default function TimerPage() {
     }
   };
 
-  // 🎵 フェードアウト
   const stopBgmWithFadeOut = (onComplete?: () => void) => {
     if (audioRef.current && isPlayingBgm) {
       let vol = audioRef.current.volume;
@@ -264,19 +267,17 @@ export default function TimerPage() {
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
         if (!isBreak) {
-          // 永久累計時間（爵位用）
           const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
-          localStorage.setItem('butler_lifetime_seconds', String(curLifetime + 1));
+          localStorage.setItem('butler_lifetime_seconds', String((isNaN(curLifetime) ? 0 : curLifetime) + 1));
 
           setActivitySeconds((prev) => {
-            const currentVal = prev[selectedActivity] || 0;
+            const currentVal = Number(prev[selectedActivity]) || 0;
             const nextVal = currentVal + 1;
             const nextObj = { ...prev, [selectedActivity]: nextVal };
             const todayStr = getTodayLocalDateStr();
             localStorage.setItem('butler_master_activity_date', todayStr);
             localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
 
-            // スケジュール画面（作業の足跡）用ログ記録
             const now = new Date();
             const hour = now.getHours();
             const timeKey = `${hour}:00`;
@@ -287,7 +288,7 @@ export default function TimerPage() {
             if (!logs[timeKey]) {
               logs[timeKey] = {};
             }
-            const currentActSecs = logs[timeKey][selectedActivity] || 0;
+            const currentActSecs = Number(logs[timeKey][selectedActivity]) || 0;
             logs[timeKey][selectedActivity] = currentActSecs + 1;
 
             localStorage.setItem('butler_master_activity_detail_logs', JSON.stringify(logs));
@@ -299,8 +300,6 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      
-      // 🌟 終了時にベル音を鳴らしつつ、BGMをフェードアウトする
       playFinishAudio();
       stopBgmWithFadeOut();
 
@@ -362,12 +361,14 @@ export default function TimerPage() {
   };
 
   const renderActivitySummary = () => {
-    const entries = Object.entries(activitySeconds).filter(([_, secs]) => secs > 0);
+    const entries = Object.entries(activitySeconds).filter(([_, secs]) => (Number(secs) || 0) > 0);
     if (entries.length === 0) return '0分';
-    return entries.map(([act, secs]) => `${act} ${Math.floor(secs / 60)}分`).join(' ');
+    return entries.map(([act, secs]) => {
+      const safeSecs = Number(secs) || 0;
+      return `${act} ${Math.floor(safeSecs / 60)}分`;
+    }).join(' ');
   };
 
-  // スケジュールモーダル内の入力ハンドラ
   const updateMemo = (val: string) => {
     setMemoText(val);
     localStorage.setItem('butler_schedule_memo', val);
@@ -429,7 +430,6 @@ export default function TimerPage() {
             <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
               ← エントランスへ
             </a>
-            {/* 📋 本日の作業モーダルを開くボタン（タイマーは停止しません！） */}
             <button onClick={() => setIsScheduleModalOpen(true)} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
               📋 本日の作業
             </button>
@@ -539,7 +539,7 @@ export default function TimerPage() {
           </div>
         </div>
 
-        {/* 📋 「本日の作業」手帳モーダル（タイマーは裏で動き続けます！） */}
+        {/* 📋 「本日の作業」手帳モーダル */}
         {isScheduleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
@@ -627,12 +627,15 @@ export default function TimerPage() {
                   <div className="bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
                     <p className="text-xs font-bold text-[#BB8632] mb-1.5">⏱️ 本日の合計集中時間</p>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(activitySeconds).filter(([_, s]) => s > 0).length > 0 ? (
-                        Object.entries(activitySeconds).map(([act, secs]) => (
-                          <div key={act} className="bg-[#2B0C12] px-2.5 py-1 rounded border border-[#BB8632]/30 text-xs">
-                            <span className="text-[#BB8632] font-bold">{act}:</span> {Math.floor(secs / 60)}分
-                          </div>
-                        ))
+                      {Object.entries(activitySeconds).filter(([_, s]) => (Number(s) || 0) > 0).length > 0 ? (
+                        Object.entries(activitySeconds).map(([act, secs]) => {
+                          const safeSecs = Number(secs) || 0;
+                          return (
+                            <div key={act} className="bg-[#2B0C12] px-2.5 py-1 rounded border border-[#BB8632]/30 text-xs">
+                              <span className="text-[#BB8632] font-bold">{act}:</span> {Math.floor(safeSecs / 60)}分
+                            </div>
+                          );
+                        })
                       ) : (
                         <span className="text-xs text-[#F3ECD8]/50 italic">本日のタイマー記録はまだありません</span>
                       )}
@@ -656,7 +659,8 @@ export default function TimerPage() {
                           <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-3 py-1 rounded border border-[#BB8632]/20 flex items-center flex-wrap gap-1.5">
                             {hourLogs && Object.keys(hourLogs).length > 0 ? (
                               Object.entries(hourLogs).map(([act, secs]) => {
-                                const mins = Math.max(1, Math.floor(secs / 60));
+                                const safeSecs = Number(secs) || 0;
+                                const mins = Math.max(1, Math.floor(safeSecs / 60));
                                 return (
                                   <span key={act} className="bg-[#BB8632] text-[#1A070B] px-2 py-0.5 rounded text-[11px] font-bold">
                                     {act} {mins}分
