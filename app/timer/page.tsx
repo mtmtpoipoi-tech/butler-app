@@ -401,17 +401,21 @@ export default function TimerPage() {
 
       <div
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
-        style={{ backgroundImage: "url('/window-forest.jpg')" }}
+        style={{ backgroundImage: isRunning ? "url('/window-forest.jpg')" : "url('/485142.jpg')" }}
       >
-        {/* 枠や赤い塗りつぶしは完全になくし、窓の景色が綺麗に見えるように最小限の薄い影のみ配置 */}
-        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+        {/* 通常時は暗幕を置き、集中中(isRunning)は窓の景色が綺麗に見えるようにする */}
+        {isRunning ? (
+          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+        ) : (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+        )}
+        
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-300 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         {/* 🌟 【集中開始中（isRunning === true）の画面】窓の景色の上に数字が直接乗る優雅なビュー */}
         {isRunning ? (
           <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8">
             
-            {/* 上部の控えめなナビゲーション */}
             <div className="absolute top-4 left-6 flex items-center gap-3">
               <button
                 onClick={toggleTimer}
@@ -421,14 +425,12 @@ export default function TimerPage() {
               </button>
             </div>
 
-            {/* 執事からの言葉（ふんわりと配置） */}
             <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
               <p className="text-sm sm:text-base leading-relaxed text-[#F3ECD8] font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 {message}
               </p>
             </div>
 
-            {/* 窓の景色の上に直接浮かび上がる時計と残り時間 */}
             <div className="my-6">
               <p className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] mb-2">
                 {dateTimeStr || '----年--月--日 (-) --:--:--'}
@@ -443,7 +445,6 @@ export default function TimerPage() {
               </p>
             </div>
 
-            {/* BGM変更・停止コントローラー（集中画面でも操作可能） */}
             <div className="mt-12 w-full max-w-xs rounded-2xl p-3 backdrop-blur-md flex items-center justify-between gap-2 bg-black/50 border border-[#BB8632]/50 shadow-2xl">
               <select
                 value={selectedBgm}
@@ -468,32 +469,32 @@ export default function TimerPage() {
 
           </div>
         ) : (
-          /* 🌟 【通常時（設定・選択画面）】 */
+          /* 🌟 【通常時（設定・選択画面）】元の背景（485142.jpg）に戻る */
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="w-full mb-3 flex justify-between items-center">
-              <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/90 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer shadow-md">
+              <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
                 ← エントランスへ
               </a>
-              <button onClick={() => setIsScheduleModalOpen(true)} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/95 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
+              <button onClick={() => setIsScheduleModalOpen(true)} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
                 📋 本日の作業
               </button>
             </div>
 
-            <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+            <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
               <p className="text-base font-bold tracking-widest">{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
             </div>
 
-            <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+            <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
               <p className="text-xs font-semibold mb-1 tracking-wider opacity-80">執事からの言葉</p>
               <p className="text-base leading-relaxed">{message}</p>
             </div>
 
-            <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+            <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
               <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績</span>
               <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderActivitySummary() : '0分'}</span>
             </div>
 
-            <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.94)', border: '1px solid #BB8632' }}>
+            <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
               <h1 className="text-2xl font-bold mb-1 tracking-wide">{isBreak ? '休憩時間' : MODES[currentMode].name}</h1>
               <p className="text-xs mb-4 tracking-wider opacity-70">{isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}</p>
 
