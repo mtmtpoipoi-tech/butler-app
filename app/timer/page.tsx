@@ -88,7 +88,7 @@ export default function TimerPage() {
   const [impressionText, setImpressionText] = useState<string>('');
   const [rating, setRating] = useState<number>(0);
   const [todoList, setTodoList] = useState<TodoItem[]>([]);
-  const [newCategory, setNewCategory] = useState<string>('教科・カテゴリ');
+  const [newCategory, setNewCategory] = useState<string>('');
   const [newContent, setNewContent] = useState<string>('');
   const [dateInfo, setDateInfo] = useState({ month: 9, date: 23, day: '火' });
 
@@ -126,7 +126,6 @@ export default function TimerPage() {
     if (savedDate === todayStr && savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        // 安全に数値化してセット
         const cleaned: Record<string, number> = {};
         for (const k in parsed) {
           const val = Number(parsed[k]);
@@ -142,7 +141,7 @@ export default function TimerPage() {
       localStorage.setItem('butler_master_activity_seconds', JSON.stringify({}));
     }
 
-    // スケジュール用データのロード
+    // スケジュール用データのロード（永続化データ）
     const savedLogs = localStorage.getItem('butler_master_activity_detail_logs');
     if (savedLogs) {
       try { setActivityLogs(JSON.parse(savedLogs)); } catch (e) {}
@@ -381,6 +380,8 @@ export default function TimerPage() {
     setRating(val);
     localStorage.setItem('butler_schedule_rating', String(val));
   };
+  
+  // ✏️ ToDo追加（localStorageへ保存）
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newContent.trim()) return;
@@ -389,12 +390,16 @@ export default function TimerPage() {
     localStorage.setItem('butler_schedule_todos', JSON.stringify(next));
     setNewContent('');
   };
+
+  // ✏️ ToDoのOKチェック状態の切り替え（localStorageへ保存）
   const toggleTodoOk = (index: number) => {
     const next = [...todoList];
     next[index].ok = !next[index].ok;
     setTodoList(next);
     localStorage.setItem('butler_schedule_todos', JSON.stringify(next));
   };
+
+  // ✏️ ToDoの削除（localStorageへ保存）
   const deleteTodo = (index: number) => {
     const next = todoList.filter((_, i) => i !== index);
     setTodoList(next);
@@ -541,25 +546,25 @@ export default function TimerPage() {
 
         {/* 📋 「本日の作業」手帳モーダル */}
         {isScheduleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
               
-              <div className="flex justify-between items-center border-b border-[#BB8632]/40 pb-4 mb-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8]">TODAY'S SCHEDULE</h2>
-                  <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1 rounded-full border border-[#BB8632]/50 text-xs">
-                    <span className="text-base font-bold text-[#BB8632]">{dateInfo.month}</span>月
-                    <span className="text-base font-bold text-[#BB8632]">{dateInfo.date}</span>日
+              <div className="flex justify-between items-center border-b border-[#BB8632]/40 pb-3 mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <h2 className="text-lg sm:text-2xl font-bold tracking-widest text-[#F3ECD8]">TODAY'S SCHEDULE</h2>
+                  <div className="flex items-center gap-1 bg-[#3B1218] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[#BB8632]/50 text-xs">
+                    <span className="text-sm sm:text-base font-bold text-[#BB8632]">{dateInfo.month}</span>月
+                    <span className="text-sm sm:text-base font-bold text-[#BB8632]">{dateInfo.date}</span>日
                     <span className="font-bold text-[#F3ECD8] ml-1">({dateInfo.day})</span>
                   </div>
                 </div>
-                <button onClick={() => setIsScheduleModalOpen(false)} className="text-xs text-[#BB8632] hover:underline font-bold px-3 py-1.5 bg-[#3B1218] rounded-lg border border-[#BB8632]/50 cursor-pointer">
-                  手帳を閉じる ✕
+                <button onClick={() => setIsScheduleModalOpen(false)} className="text-xs text-[#BB8632] hover:underline font-bold px-2.5 py-1.5 bg-[#3B1218] rounded-lg border border-[#BB8632]/50 cursor-pointer shrink-0">
+                  閉じる ✕
                 </button>
               </div>
 
               {/* MEMO */}
-              <div className="mb-5 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
+              <div className="mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
                 <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / 本日の目標</p>
                 <input
                   type="text"
@@ -571,49 +576,50 @@ export default function TimerPage() {
               </div>
 
               {/* 2カラム */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 
-                {/* 左：ToDo */}
-                <div className="lg:col-span-6 bg-[#23090E] p-4 rounded-xl border border-[#BB8632]/30 flex flex-col justify-between">
+                {/* 左：ToDoリスト */}
+                <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between border-b border-[#BB8632]/40 pb-2 mb-3">
                       <span className="text-xs font-bold text-[#BB8632] tracking-wider">✏️ To do list</span>
                       <span className="text-[10px] text-[#F3ECD8]/60">OK!</span>
                     </div>
 
-                    <form onSubmit={handleAddTodo} className="flex gap-1.5 mb-3">
+                    {/* 📱 スマホ用に幅をスマートに短縮した入力フォーム */}
+                    <form onSubmit={handleAddTodo} className="flex gap-1.5 mb-3 items-center">
                       <input
                         type="text"
-                        placeholder="カテゴリ"
+                        placeholder="教科"
                         value={newCategory}
                         onChange={(e) => setNewCategory(e.target.value)}
-                        className="w-24 px-2 py-1 rounded bg-[#3B1218] border border-[#BB8632]/40 text-xs text-[#F3ECD8] outline-none placeholder-[#F3ECD8]/30"
+                        className="w-16 sm:w-20 px-2 py-1 rounded bg-[#3B1218] border border-[#BB8632]/40 text-xs text-[#F3ECD8] outline-none placeholder-[#F3ECD8]/30 shrink-0"
                       />
                       <input
                         type="text"
                         placeholder="内容を入力..."
                         value={newContent}
                         onChange={(e) => setNewContent(e.target.value)}
-                        className="flex-1 px-2 py-1 rounded bg-[#3B1218] border border-[#BB8632]/40 text-xs text-[#F3ECD8] outline-none placeholder-[#F3ECD8]/30"
+                        className="w-32 sm:w-44 px-2 py-1 rounded bg-[#3B1218] border border-[#BB8632]/40 text-xs text-[#F3ECD8] outline-none placeholder-[#F3ECD8]/30 shrink-0"
                       />
-                      <button type="submit" className="px-3 py-1 bg-[#BB8632] text-[#1A070B] font-bold text-xs rounded hover:bg-[#D49E4B] transition cursor-pointer">
+                      <button type="submit" className="px-2.5 py-1 bg-[#BB8632] text-[#1A070B] font-bold text-xs rounded hover:bg-[#D49E4B] transition cursor-pointer shrink-0">
                         追加
                       </button>
                     </form>
 
-                    <div className="space-y-2 mb-4 max-h-[220px] overflow-y-auto pr-1">
+                    <div className="space-y-2 mb-4 max-h-[200px] overflow-y-auto pr-1">
                       {todoList.length > 0 ? (
                         todoList.map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2 bg-[#3B1218]/60 p-2 rounded border border-[#BB8632]/20 group">
                             <span className="text-[10px] bg-[#BB8632] text-[#1A070B] px-1.5 py-0.5 rounded font-bold shrink-0">{item.category}</span>
-                            <span className={`text-xs text-[#F3ECD8] flex-1 ${item.ok ? 'line-through opacity-50' : ''}`}>{item.content}</span>
+                            <span className={`text-xs text-[#F3ECD8] flex-1 break-all ${item.ok ? 'line-through opacity-50' : ''}`}>{item.content}</span>
                             <button
                               onClick={() => toggleTodoOk(idx)}
-                              className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition cursor-pointer ${item.ok ? 'bg-[#BB8632] text-[#1A070B]' : 'bg-[#1A070B] text-[#BB8632] border border-[#BB8632]/50'}`}
+                              className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition cursor-pointer shrink-0 ${item.ok ? 'bg-[#BB8632] text-[#1A070B]' : 'bg-[#1A070B] text-[#BB8632] border border-[#BB8632]/50'}`}
                             >
                               {item.ok ? '✓' : ''}
                             </button>
-                            <button onClick={() => deleteTodo(idx)} className="text-[10px] text-red-400 hover:underline px-1 cursor-pointer opacity-60 hover:opacity-100">
+                            <button onClick={() => deleteTodo(idx)} className="text-[10px] text-red-400 hover:underline px-1 cursor-pointer opacity-60 hover:opacity-100 shrink-0">
                               ✕
                             </button>
                           </div>
@@ -643,8 +649,8 @@ export default function TimerPage() {
                   </div>
                 </div>
 
-                {/* 右：Time schedule（作業の足跡） */}
-                <div className="lg:col-span-6 bg-[#23090E] p-4 rounded-xl border border-[#BB8632]/30 max-h-[400px] overflow-y-auto">
+                {/* 右：Time schedule */}
+                <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[380px] overflow-y-auto">
                   <div className="border-b border-[#BB8632]/40 pb-2 mb-3 sticky top-0 bg-[#23090E] z-10 flex justify-between items-center">
                     <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule (作業の足跡)</span>
                     <span className="text-[10px] text-[#F3ECD8]/60">自動記録中</span>
@@ -655,8 +661,8 @@ export default function TimerPage() {
                       const hourLogs = activityLogs[h];
                       return (
                         <div key={h} className="flex items-center text-xs py-1.5 border-b border-[#BB8632]/10">
-                          <span className="w-14 font-mono text-[#BB8632] font-bold">{h}</span>
-                          <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-3 py-1 rounded border border-[#BB8632]/20 flex items-center flex-wrap gap-1.5">
+                          <span className="w-12 sm:w-14 font-mono text-[#BB8632] font-bold shrink-0">{h}</span>
+                          <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-2.5 py-1 rounded border border-[#BB8632]/20 flex items-center flex-wrap gap-1.5">
                             {hourLogs && Object.keys(hourLogs).length > 0 ? (
                               Object.entries(hourLogs).map(([act, secs]) => {
                                 const safeSecs = Number(secs) || 0;
@@ -680,7 +686,7 @@ export default function TimerPage() {
               </div>
 
               {/* 振り返り */}
-              <div className="mt-5 bg-[#23090E] p-4 rounded-xl border border-[#BB8632]/30 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="mt-4 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="w-full sm:w-3/4">
                   <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">TODAY'S IMPRESSION (本日の振り返り)</p>
                   <input
