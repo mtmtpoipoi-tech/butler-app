@@ -74,7 +74,6 @@ export default function TimerPage() {
   const [selectedActivity, setSelectedActivity] = useState<string>('勉強');
 
   const [dateTimeStr, setDateTimeStr] = useState<string>('');
-  const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const [isFadingToBlack, setIsFadingToBlack] = useState<boolean>(false);
@@ -86,16 +85,28 @@ export default function TimerPage() {
   const [isPlayingRain, setIsPlayingRain] = useState<boolean>(false);
   const [weatherText, setWeatherText] = useState<string>('お天気確認中');
 
-  // 📋 「本日の作業」モーダル用
+  // 📋 「本日の作業」＆ 過去ログ閲覧用ステート
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
-  const [activityLogs, setActivityLogs] = useState<Record<string, Record<string, number>>>({});
-  const [memoText, setMemoText] = useState<string>('');
-  const [impressionText, setImpressionText] = useState<string>('');
-  const [rating, setRating] = useState<number>(0);
-  const [todoList, setTodoList] = useState<TodoItem[]>([]);
+  const getTodayLocalDateStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const date = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}`;
+  };
+
+  const [viewDateStr, setViewDateStr] = useState<string>(getTodayLocalDateStr());
+  
+  // 各データ保存用（日付別管理）
+  const [allActivitySeconds, setAllActivitySeconds] = useState<Record<string, Record<string, number>>>({});
+  const [allActivityLogs, setAllActivityLogs] = useState<Record<string, Record<string, Record<string, number>>>>({});
+  const [allMemos, setAllMemos] = useState<Record<string, string>>({});
+  const [allImpressions, setAllImpressions] = useState<Record<string, string>>({});
+  const [allRatings, setAllRatings] = useState<Record<string, number>>({});
+  const [allTodos, setAllTodos] = useState<Record<string, TodoItem[]>>({});
+
   const [newCategory, setNewCategory] = useState<string>('');
   const [newContent, setNewContent] = useState<string>('');
-  const [dateInfo, setDateInfo] = useState({ month: 9, date: 23, day: '火' });
 
   const hours = [
     '5:00', '6:00', '7:00', '8:00', '9:00', '10:00', '11:00', '12:00',
@@ -105,14 +116,6 @@ export default function TimerPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rainAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  const getTodayLocalDateStr = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const date = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${date}`;
-  };
 
   // 🌤️ お天気自動判定（曇り・雨なら初期状態で雨音ON）
   useEffect(() => {
@@ -158,55 +161,38 @@ export default function TimerPage() {
     }
   }, []);
 
+  // 📂 ローカルストレージからのデータ読み込み（全日付対応）
   useEffect(() => {
     setIsMounted(true);
     setIsTransitioning(false);
 
-    const now = new Date();
-    setDateInfo({
-      month: now.getMonth() + 1,
-      date: now.getDate(),
-      day: ['日', '月', '火', '水', '木', '金', '土'][now.getDay()]
-    });
+    const today = getTodayLocalDateStr();
+    setViewDateStr(today);
 
-    const todayStr = getTodayLocalDateStr();
-    const savedDate = localStorage.getItem('butler_master_activity_date');
-    const savedData = localStorage.getItem('butler_master_activity_seconds');
+    try {
+      const savedSecs = localStorage.getItem('butler_all_activity_seconds');
+      if (savedSecs) setAllActivitySeconds(JSON.parse(savedSecs));
 
-    if (savedDate === todayStr && savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        const cleaned: Record<string, number> = {};
-        for (const k in parsed) {
-          const val = Number(parsed[k]);
-          cleaned[k] = isNaN(val) ? 0 : val;
-        }
-        setActivitySeconds(cleaned);
-      } catch (e) {
-        setActivitySeconds({});
-      }
-    } else {
-      setActivitySeconds({});
-      localStorage.setItem('butler_master_activity_date', todayStr);
-      localStorage.setItem('butler_master_activity_seconds', JSON.stringify({}));
-    }
+      const savedLogs = localStorage.getItem('butler_all_activity_detail_logs');
+      if (savedLogs) setAllActivityLogs(JSON.parse(savedLogs));
 
-    const savedLogs = localStorage.getItem('butler_master_activity_detail_logs');
-    if (savedLogs) {
-      try { setActivityLogs(JSON.parse(savedLogs)); } catch (e) {}
-    }
-    const savedMemo = localStorage.getItem('butler_schedule_memo');
-    if (savedMemo) setMemoText(savedMemo);
-    const savedImpression = localStorage.getItem('butler_schedule_impression');
-    if (savedImpression) setImpressionText(savedImpression);
-    const savedRating = localStorage.getItem('butler_schedule_rating');
-    if (savedRating) setRating(Number(savedRating) || 0);
-    const savedTodos = localStorage.getItem('butler_schedule_todos');
-    if (savedTodos) {
-      try { setTodoList(JSON.parse(savedTodos)); } catch (e) {}
+      const savedMemos = localStorage.getItem('butler_all_schedule_memos');
+      if (savedMemos) setAllMemos(JSON.parse(savedMemos));
+
+      const savedImps = localStorage.getItem('butler_all_schedule_impressions');
+      if (savedImps) setAllImpressions(JSON.parse(savedImps));
+
+      const savedRatings = localStorage.getItem('butler_all_schedule_ratings');
+      if (savedRatings) setAllRatings(JSON.parse(savedRatings));
+
+      const savedTodos = localStorage.getItem('butler_all_schedule_todos');
+      if (savedTodos) setAllTodos(JSON.parse(savedTodos));
+    } catch (e) {
+      console.log('Load error:', e);
     }
   }, []);
 
+  // 時計の更新
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -252,14 +238,35 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🌧️ 雨音の手動ON/OFF切り替え（DOM要素を直接操作して確実に鳴らす・止める）
+  // 🎵 BGMの手動ON/OFF（確実に同期）
+  const toggleBgmManually = () => {
+    if (audioRef.current) {
+      if (audioRef.current.paused) {
+        audioRef.current.volume = 1.0;
+        audioRef.current.play()
+          .then(() => setIsPlayingBgm(true))
+          .catch((err) => {
+            console.log('BGM play error:', err);
+            setIsPlayingBgm(false);
+          });
+      } else {
+        audioRef.current.pause();
+        setIsPlayingBgm(false);
+      }
+    }
+  };
+
+  // 🌧️ 雨音の手動ON/OFF（確実に同期）
   const toggleRainManually = () => {
     if (rainAudioRef.current) {
       if (rainAudioRef.current.paused) {
         rainAudioRef.current.volume = 0.8;
         rainAudioRef.current.play()
           .then(() => setIsPlayingRain(true))
-          .catch((err) => console.log('Rain play error:', err));
+          .catch((err) => {
+            console.log('Rain play error:', err);
+            setIsPlayingRain(false);
+          });
       } else {
         rainAudioRef.current.pause();
         setIsPlayingRain(false);
@@ -279,6 +286,7 @@ export default function TimerPage() {
     setIsPlayingBgm(false);
   }, [currentMode]);
 
+  // ⏱️ タイマー稼働中の処理（本日の日付に自動加算）
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -296,34 +304,34 @@ export default function TimerPage() {
         });
 
         if (!isBreak) {
+          const todayStr = getTodayLocalDateStr();
           const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String((isNaN(curLifetime) ? 0 : curLifetime) + 1));
 
-          setActivitySeconds((prev) => {
-            const currentVal = Number(prev[selectedActivity]) || 0;
-            const nextVal = currentVal + 1;
-            const nextObj = { ...prev, [selectedActivity]: nextVal };
-            const todayStr = getTodayLocalDateStr();
-            localStorage.setItem('butler_master_activity_date', todayStr);
-            localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
+          // 本日の実績を更新
+          setAllActivitySeconds((prevAll) => {
+            const todaySecs = prevAll[todayStr] || {};
+            const currentVal = Number(todaySecs[selectedActivity]) || 0;
+            const updatedTodaySecs = { ...todaySecs, [selectedActivity]: currentVal + 1 };
+            const nextAll = { ...prevAll, [todayStr]: updatedTodaySecs };
+            localStorage.setItem('butler_all_activity_seconds', JSON.stringify(nextAll));
+            return nextAll;
+          });
 
-            const now = new Date();
-            const hour = now.getHours();
-            const timeKey = `${hour}:00`;
+          // 本日の詳細ログを更新
+          const now = new Date();
+          const hour = now.getHours();
+          const timeKey = `${hour}:00`;
 
-            const logsStr = localStorage.getItem('butler_master_activity_detail_logs');
-            let logs = logsStr ? JSON.parse(logsStr) : {};
-            
-            if (!logs[timeKey]) {
-              logs[timeKey] = {};
-            }
-            const currentActSecs = Number(logs[timeKey][selectedActivity]) || 0;
-            logs[timeKey][selectedActivity] = currentActSecs + 1;
-
-            localStorage.setItem('butler_master_activity_detail_logs', JSON.stringify(logs));
-            setActivityLogs({ ...logs });
-
-            return nextObj;
+          setAllActivityLogs((prevLogsAll) => {
+            const todayLogs = prevLogsAll[todayStr] || {};
+            const hourLog = todayLogs[timeKey] || {};
+            const currentActSecs = Number(hourLog[selectedActivity]) || 0;
+            const updatedHourLog = { ...hourLog, [selectedActivity]: currentActSecs + 1 };
+            const updatedTodayLogs = { ...todayLogs, [timeKey]: updatedHourLog };
+            const nextLogsAll = { ...prevLogsAll, [todayStr]: updatedTodayLogs };
+            localStorage.setItem('butler_all_activity_detail_logs', JSON.stringify(nextLogsAll));
+            return nextLogsAll;
           });
         }
       }, 1000);
@@ -361,10 +369,9 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // 🎬 【超重要】クリック直後に同期して音声を再生・停止する（自動再生ブロック完全回避）
+  // 🎬 タイマー開始・停止（暗転＆音声同期）
   const toggleTimer = () => {
     if (!isRunning) {
-      // ユーザーのクリック直後に即座に音声を再生
       if (audioRef.current) {
         audioRef.current.volume = 1.0;
         audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
@@ -374,14 +381,12 @@ export default function TimerPage() {
         rainAudioRef.current.play().then(() => setIsPlayingRain(true)).catch(() => {});
       }
 
-      // 暗転フェード開始
       setIsFadingToBlack(true);
       setTimeout(() => {
         setIsRunning(true);
         setIsFadingToBlack(false);
       }, 400);
     } else {
-      // 停止時：即座に音声を停止
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -398,18 +403,6 @@ export default function TimerPage() {
         setIsRunning(false);
         setIsFadingToBlack(false);
       }, 400);
-    }
-  };
-
-  const toggleBgmManually = () => {
-    if (audioRef.current) {
-      if (audioRef.current.paused) {
-        audioRef.current.volume = 1.0;
-        audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
-      } else {
-        audioRef.current.pause();
-        setIsPlayingBgm(false);
-      }
     }
   };
 
@@ -444,8 +437,10 @@ export default function TimerPage() {
     }, 400);
   };
 
-  const renderActivitySummary = () => {
-    const entries = Object.entries(activitySeconds).filter(([_, secs]) => (Number(secs) || 0) > 0);
+  const renderActivitySummaryToday = () => {
+    const todayStr = getTodayLocalDateStr();
+    const todaySecsObj = allActivitySeconds[todayStr] || {};
+    const entries = Object.entries(todaySecsObj).filter(([_, secs]) => (Number(secs) || 0) > 0);
     if (entries.length === 0) return '0分';
     return entries.map(([act, secs]) => {
       const safeSecs = Number(secs) || 0;
@@ -453,39 +448,49 @@ export default function TimerPage() {
     }).join(' ');
   };
 
+  // 📝 各種データの更新関数（選択中の日付 viewDateStr に対して保存）
   const updateMemo = (val: string) => {
-    setMemoText(val);
-    localStorage.setItem('butler_schedule_memo', val);
+    const next = { ...allMemos, [viewDateStr]: val };
+    setAllMemos(next);
+    localStorage.setItem('butler_all_schedule_memos', JSON.stringify(next));
   };
   const updateImpression = (val: string) => {
-    setImpressionText(val);
-    localStorage.setItem('butler_schedule_impression', val);
+    const next = { ...allImpressions, [viewDateStr]: val };
+    setAllImpressions(next);
+    localStorage.setItem('butler_all_schedule_impressions', JSON.stringify(next));
   };
   const updateRating = (val: number) => {
-    setRating(val);
-    localStorage.setItem('butler_schedule_rating', String(val));
+    const next = { ...allRatings, [viewDateStr]: val };
+    setAllRatings(next);
+    localStorage.setItem('butler_all_schedule_ratings', JSON.stringify(next));
   };
   
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newContent.trim()) return;
-    const next = [...todoList, { category: newCategory.trim() || '全般', content: newContent.trim(), ok: false }];
-    setTodoList(next);
-    localStorage.setItem('butler_schedule_todos', JSON.stringify(next));
+    const currentTodos = allTodos[viewDateStr] || [];
+    const nextTodos = [...currentTodos, { category: newCategory.trim() || '全般', content: newContent.trim(), ok: false }];
+    const nextAll = { ...allTodos, [viewDateStr]: nextTodos };
+    setAllTodos(nextAll);
+    localStorage.setItem('butler_all_schedule_todos', JSON.stringify(nextAll));
     setNewContent('');
   };
 
   const toggleTodoOk = (index: number) => {
-    const next = [...todoList];
-    next[index].ok = !next[index].ok;
-    setTodoList(next);
-    localStorage.setItem('butler_schedule_todos', JSON.stringify(next));
+    const currentTodos = allTodos[viewDateStr] || [];
+    const nextTodos = [...currentTodos];
+    nextTodos[index].ok = !nextTodos[index].ok;
+    const nextAll = { ...allTodos, [viewDateStr]: nextTodos };
+    setAllTodos(nextAll);
+    localStorage.setItem('butler_all_schedule_todos', JSON.stringify(nextAll));
   };
 
   const deleteTodo = (index: number) => {
-    const next = todoList.filter((_, i) => i !== index);
-    setTodoList(next);
-    localStorage.setItem('butler_schedule_todos', JSON.stringify(next));
+    const currentTodos = allTodos[viewDateStr] || [];
+    const nextTodos = currentTodos.filter((_, i) => i !== index);
+    const nextAll = { ...allTodos, [viewDateStr]: nextTodos };
+    setAllTodos(nextAll);
+    localStorage.setItem('butler_all_schedule_todos', JSON.stringify(nextAll));
   };
 
   return (
@@ -503,7 +508,7 @@ export default function TimerPage() {
         .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
-      {/* 🎵 音声要素（ループ設定） */}
+      {/* 🎵 音声要素 */}
       <audio ref={audioRef} src={selectedBgm} loop preload="auto" />
       <audio ref={rainAudioRef} src="/source-2.mp4" loop preload="auto" />
 
@@ -598,7 +603,7 @@ export default function TimerPage() {
                 ← エントランスへ
               </a>
               <button onClick={() => setIsScheduleModalOpen(true)} type="button" className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
-                📋 本日の作業
+                📋 作業記録手帳 (過去ログ)
               </button>
             </div>
 
@@ -613,7 +618,7 @@ export default function TimerPage() {
 
             <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
               <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績</span>
-              <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderActivitySummary() : '0分'}</span>
+              <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderActivitySummaryToday() : '0分'}</span>
             </div>
 
             <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
@@ -726,20 +731,35 @@ export default function TimerPage() {
           </div>
         )}
 
-        {/* 📋 「本日の作業」手帳モーダル */}
+        {/* 📋 「作業記録手帳」モーダル（過去の集中実績・スケジュール閲覧対応） */}
         {isScheduleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
               
-              <div className="flex justify-between items-center border-b border-[#BB8632]/40 pb-3 mb-4">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <h2 className="text-lg sm:text-2xl font-bold tracking-widest text-[#F3ECD8]">TODAY'S SCHEDULE</h2>
-                  <div className="flex items-center gap-1 bg-[#3B1218] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[#BB8632]/50 text-xs">
-                    <span className="text-sm sm:text-base font-bold text-[#BB8632]">{dateInfo.month}</span>月
-                    <span className="text-sm sm:text-base font-bold text-[#BB8632]">{dateInfo.date}</span>日
-                    <span className="font-bold text-[#F3ECD8] ml-1">({dateInfo.day})</span>
+              {/* ヘッダー ＆ 日付切り替えセレクター */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[#BB8632]/40 pb-3 mb-4 gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <h2 className="text-base sm:text-xl font-bold tracking-widest text-[#F3ECD8]">WORK LOG & SCHEDULE</h2>
+                  
+                  {/* 📅 日付選択ピッカー */}
+                  <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1 rounded-lg border border-[#BB8632]/60">
+                    <span className="text-xs text-[#BB8632] font-bold">日付:</span>
+                    <input
+                      type="date"
+                      value={viewDateStr}
+                      onChange={(e) => setViewDateStr(e.target.value)}
+                      className="bg-transparent text-xs text-[#F3ECD8] outline-none cursor-pointer font-bold"
+                    />
+                    <button
+                      onClick={() => setViewDateStr(getTodayLocalDateStr())}
+                      type="button"
+                      className="text-[10px] bg-[#BB8632] text-[#1A070B] px-1.5 py-0.5 rounded font-bold hover:brightness-110 ml-1"
+                    >
+                      今日
+                    </button>
                   </div>
                 </div>
+
                 <button onClick={() => setIsScheduleModalOpen(false)} type="button" className="text-xs text-[#BB8632] hover:underline font-bold px-2.5 py-1.5 bg-[#3B1218] rounded-lg border border-[#BB8632]/50 cursor-pointer shrink-0">
                   閉じる ✕
                 </button>
@@ -747,24 +767,24 @@ export default function TimerPage() {
 
               {/* MEMO */}
               <div className="mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
-                <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / 本日の目標</p>
+                <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / この日の目標 ({viewDateStr})</p>
                 <input
                   type="text"
-                  value={memoText}
+                  value={allMemos[viewDateStr] || ''}
                   onChange={(e) => updateMemo(e.target.value)}
                   className="w-full bg-transparent text-xs text-[#F3ECD8] outline-none border-b border-[#BB8632]/30 pb-1 placeholder-[#F3ECD8]/30"
-                  placeholder="ここに本日の目標やメモを入力..."
+                  placeholder="この日の目標やメモを入力..."
                 />
               </div>
 
               {/* 2カラム */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 
-                {/* 左：ToDoリスト */}
+                {/* 左：ToDoリスト ＆ 選択日付の集中時間 */}
                 <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between border-b border-[#BB8632]/40 pb-2 mb-3">
-                      <span className="text-xs font-bold text-[#BB8632] tracking-wider">✏️ To do list</span>
+                      <span className="text-xs font-bold text-[#BB8632] tracking-wider">✏️ To do list ({viewDateStr})</span>
                       <span className="text-[10px] text-[#F3ECD8]/60">OK!</span>
                     </div>
 
@@ -788,9 +808,9 @@ export default function TimerPage() {
                       </button>
                     </form>
 
-                    <div className="space-y-2 mb-4 max-h-[200px] overflow-y-auto pr-1">
-                      {todoList.length > 0 ? (
-                        todoList.map((item, idx) => (
+                    <div className="space-y-2 mb-4 max-h-[180px] overflow-y-auto pr-1">
+                      {(allTodos[viewDateStr] || []).length > 0 ? (
+                        (allTodos[viewDateStr] || []).map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2 bg-[#3B1218]/60 p-2 rounded border border-[#BB8632]/20 group">
                             <span className="text-[10px] bg-[#BB8632] text-[#1A070B] px-1.5 py-0.5 rounded font-bold shrink-0">{item.category}</span>
                             <span className={`text-xs text-[#F3ECD8] flex-1 break-all ${item.ok ? 'line-through opacity-50' : ''}`}>{item.content}</span>
@@ -807,16 +827,16 @@ export default function TimerPage() {
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-[#F3ECD8]/40 italic py-4 text-center">To do listを追加してください</p>
+                        <p className="text-xs text-[#F3ECD8]/40 italic py-4 text-center">この日のTo do listはありません</p>
                       )}
                     </div>
                   </div>
 
                   <div className="bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
-                    <p className="text-xs font-bold text-[#BB8632] mb-1.5">⏱️ 本日の合計集中時間</p>
+                    <p className="text-xs font-bold text-[#BB8632] mb-1.5">⏱️ {viewDateStr} の総集中時間</p>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(activitySeconds).filter(([_, s]) => (Number(s) || 0) > 0).length > 0 ? (
-                        Object.entries(activitySeconds).map(([act, secs]) => {
+                      {Object.entries(allActivitySeconds[viewDateStr] || {}).filter(([_, s]) => (Number(s) || 0) > 0).length > 0 ? (
+                        Object.entries(allActivitySeconds[viewDateStr] || {}).map(([act, secs]) => {
                           const safeSecs = Number(secs) || 0;
                           return (
                             <div key={act} className="bg-[#2B0C12] px-2.5 py-1 rounded border border-[#BB8632]/30 text-xs">
@@ -825,22 +845,23 @@ export default function TimerPage() {
                           );
                         })
                       ) : (
-                        <span className="text-xs text-[#F3ECD8]/50 italic">本日のタイマー記録はまだありません</span>
+                        <span className="text-xs text-[#F3ECD8]/50 italic">この日の集中記録はありません</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* 右：Time schedule */}
-                <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[380px] overflow-y-auto">
+                {/* 右：Time schedule (選択日付の足跡) */}
+                <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[360px] overflow-y-auto">
                   <div className="border-b border-[#BB8632]/40 pb-2 mb-3 sticky top-0 bg-[#23090E] z-10 flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule (作業の足跡)</span>
-                    <span className="text-[10px] text-[#F3ECD8]/60">自動記録中</span>
+                    <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule ({viewDateStr})</span>
+                    <span className="text-[10px] text-[#F3ECD8]/60">記録データ</span>
                   </div>
 
                   <div className="space-y-1.5">
                     {hours.map((h) => {
-                      const hourLogs = activityLogs[h] || {};
+                      const dayLogs = allActivityLogs[viewDateStr] || {};
+                      const hourLogs = dayLogs[h] || {};
                       
                       const mergedLogs: Record<string, number> = {};
                       Object.entries(hourLogs).forEach(([act, secs]) => {
@@ -879,27 +900,30 @@ export default function TimerPage() {
               {/* 振り返り */}
               <div className="mt-4 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="w-full sm:w-3/4">
-                  <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">TODAY'S IMPRESSION (本日の振り返り)</p>
+                  <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">IMPRESSION / この日の振り返り ({viewDateStr})</p>
                   <input
                     type="text"
-                    value={impressionText}
+                    value={allImpressions[viewDateStr] || ''}
                     onChange={(e) => updateImpression(e.target.value)}
                     className="w-full bg-[#3B1218] px-3 py-2 rounded border border-[#BB8632]/40 text-xs text-[#F3ECD8] outline-none placeholder-[#F3ECD8]/30"
-                    placeholder="本日の感想や反省を自由に入力してください..."
+                    placeholder="この日の感想や反省を自由に入力してください..."
                   />
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => updateRating(star)}
-                      type="button"
-                      className={`text-2xl cursor-pointer transition ${star <= rating ? 'text-[#BB8632]' : 'text-white/20'}`}
-                    >
-                      ★
-                    </button>
-                  ))}
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const currentRating = allRatings[viewDateStr] || 0;
+                    return (
+                      <button
+                        key={star}
+                        onClick={() => updateRating(star)}
+                        type="button"
+                        className={`text-2xl cursor-pointer transition ${star <= currentRating ? 'text-[#BB8632]' : 'text-white/20'}`}
+                      >
+                        ★
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
