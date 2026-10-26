@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -17,31 +19,31 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: '「主様の努力の足跡は、一秒たりとも混ざり合うことなく、日付ごとに大切にお守りいたします。」',
+    butlerMessage: '👤 「主様の努力の足跡は、一秒たりとも混ざり合うことなく、日付ごとに大切にお守りいたします。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
+    butlerMessage: '👤 「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
+    butlerMessage: '👤 「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
+    butlerMessage: '👤 「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
+    butlerMessage: '👤 「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
   },
 };
 
@@ -59,7 +61,6 @@ interface TodoItem {
   ok: boolean;
 }
 
-// 🛠️ デフォルト引数をなくし、ビルド時のエラーを完全に回避する日付変換関数
 const getLocalDateStr = (d: Date) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
@@ -189,15 +190,15 @@ export default function TimerPage() {
       try { new Audio('/dragon-studio-bell-ring-390294.mp3').play().catch(() => {}); } catch (e) {}
 
       if (isBreak) {
-        setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
+        setMessage('👤 「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
         setTimeLeft(MODES[currentMode].workSeconds);
       } else if (MODES[currentMode].breakSeconds !== null) {
-        setMessage('「お疲れ様でした！素晴らしい集中力です。少し休憩になさってください。」');
+        setMessage('👤 「お疲れ様でした！素晴らしい集中力です。少し休憩になさってください。」');
         setIsBreak(true);
         setTimeLeft(MODES[currentMode].breakSeconds);
       } else {
-        setMessage('「お疲れ様でした！見事な集中力でしたね。本当によく頑張りました。」');
+        setMessage('👤 「お疲れ様でした！見事な集中力でしたね。本当によく頑張りました。」');
       }
     }
     return () => clearInterval(timer);
