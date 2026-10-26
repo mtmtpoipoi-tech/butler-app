@@ -41,7 +41,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を, 喜んでさせていただきます。」',
   },
 };
 
@@ -125,31 +125,40 @@ export default function TimerPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleNavigate = (e: React.MouseEvent, path: string) => {
+  const handleNavigateHome = (e: React.MouseEvent) => {
     e.preventDefault();
     stopBgmWithFadeOut(() => {
       setIsTransitioning(true);
       setTimeout(() => {
-        router.push(path);
+        router.push('/');
       }, 400);
     });
   };
 
-  // 🔔 3秒前カウントダウン音
+  // 📋 スケジュール画面（本日の作業）への移動用
+  const handleNavigateSchedule = (e: React.MouseEvent) => {
+    e.preventDefault();
+    stopBgmWithFadeOut(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        router.push('/schedule');
+      }, 400);
+    });
+  };
+
   const playCountdownAudio = () => {
     try {
       const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
       audio.volume = 1.0;
-      audio.play().catch((err) => console.log('Countdown audio error:', err));
+      audio.play().catch(() => {});
     } catch (e) {}
   };
 
-  // 🔔 終了時ベル音（チリン）
   const playFinishAudio = () => {
     try {
       const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
       audio.volume = 1.0;
-      audio.play().catch((err) => console.log('Finish audio error:', err));
+      audio.play().catch(() => {});
     } catch (e) {}
   };
 
@@ -168,7 +177,7 @@ export default function TimerPage() {
             if (audioRef.current) audioRef.current.volume = vol;
           }
         }, 150);
-      }).catch((err) => console.log('BGM play error:', err));
+      }).catch(() => {});
     }
   };
 
@@ -209,7 +218,6 @@ export default function TimerPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
-      // 残り3秒のときにカウントダウン音を鳴らす
       if (timeLeft === 3) {
         playCountdownAudio();
       }
@@ -228,12 +236,17 @@ export default function TimerPage() {
             localStorage.setItem('butler_master_activity_date', todayStr);
             localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
 
+            // 🕒 スケジュール画面（作業の足跡）用の詳細データを保存
             const now = new Date();
-            const timeKey = `${String(now.getHours()).padStart(2, '0')}:${String(Math.floor(now.getMinutes() / 10) * 10).padStart(2, '0')}`;
-            const logsStr = localStorage.getItem('butler_master_activity_logs');
-            let logs: Record<string, string> = logsStr ? JSON.parse(logsStr) : {};
-            logs[timeKey] = selectedActivity;
-            localStorage.setItem('butler_master_activity_logs', JSON.stringify(logs));
+            const timeKey = `${now.getHours()}:00`;
+            const logsStr = localStorage.getItem('butler_master_activity_detail_logs');
+            let logs = logsStr ? JSON.parse(logsStr) : {};
+            const currentMins = logs[timeKey]?.minutes || 0;
+            logs[timeKey] = {
+              activity: selectedActivity,
+              minutes: currentMins + 1
+            };
+            localStorage.setItem('butler_master_activity_detail_logs', JSON.stringify(logs));
 
             return nextObj;
           });
@@ -241,7 +254,6 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      // タイマー終了時にフェードアウトしつつベル音（チリン）を鳴らす
       stopBgmWithFadeOut(() => {
         playFinishAudio();
       });
@@ -321,6 +333,7 @@ export default function TimerPage() {
           transition: all 0.2s ease-in-out;
         }
         .gothic-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
       <audio ref={audioRef} src={selectedBgm} loop />
@@ -333,11 +346,12 @@ export default function TimerPage() {
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+          {/* 上部リンク（ホームへ戻る ＆ 本日の作業ボタン） */}
           <div className="w-full mb-3 flex justify-between items-center">
-            <a href="/" onClick={(e) => handleNavigate(e, '/')} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
-              ← ホームへ戻る
+            <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
+              ← エントランスへ
             </a>
-            <a href="/schedule" onClick={(e) => handleNavigate(e, '/schedule')} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
+            <a href="/schedule" onClick={handleNavigateSchedule} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
               📋 本日の作業
             </a>
           </div>
