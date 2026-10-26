@@ -13,14 +13,12 @@ export default function SchedulePage() {
   const router = useRouter();
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const [activitySeconds, setActivitySeconds] = useState<Record<string, number>>({});
-  const [activityLogs, setActivityLogs] = useState<Record<string, { activity: string; minutes: number }>>({});
+  const [activityLogs, setActivityLogs] = useState<Record<string, Record<string, number>>>({});
   
-  // ユーザーが自由に入力できるステート（初期状態は空欄）
   const [memoText, setMemoText] = useState<string>('');
   const [impressionText, setImpressionText] = useState<string>('');
   const [rating, setRating] = useState<number>(0);
 
-  // ToDoリスト（ユーザーが追加・編集・削除可能）
   const [todoList, setTodoList] = useState<TodoItem[]>([]);
   const [newCategory, setNewCategory] = useState<string>('教科・カテゴリ');
   const [newContent, setNewContent] = useState<string>('');
@@ -41,18 +39,21 @@ export default function SchedulePage() {
       day: ['日', '月', '火', '水', '木', '金', '土'][now.getDay()]
     });
 
-    // タイマーデータの取得
-    const savedSeconds = localStorage.getItem('butler_master_activity_seconds');
-    if (savedSeconds) {
-      try { setActivitySeconds(JSON.parse(savedSeconds)); } catch (e) {}
-    }
+    const loadData = () => {
+      const savedSeconds = localStorage.getItem('butler_master_activity_seconds');
+      if (savedSeconds) {
+        try { setActivitySeconds(JSON.parse(savedSeconds)); } catch (e) {}
+      }
 
-    const savedLogs = localStorage.getItem('butler_master_activity_detail_logs');
-    if (savedLogs) {
-      try { setActivityLogs(JSON.parse(savedLogs)); } catch (e) {}
-    }
+      const savedLogs = localStorage.getItem('butler_master_activity_detail_logs');
+      if (savedLogs) {
+        try { setActivityLogs(JSON.parse(savedLogs)); } catch (e) {}
+      }
+    };
 
-    // ユーザー保存入力値の取得
+    loadData();
+    const interval = setInterval(loadData, 2000); // 定期的にストレージを監視してリアルタイム反映
+
     const savedMemo = localStorage.getItem('butler_schedule_memo');
     if (savedMemo) setMemoText(savedMemo);
 
@@ -66,6 +67,8 @@ export default function SchedulePage() {
     if (savedTodos) {
       try { setTodoList(JSON.parse(savedTodos)); } catch (e) {}
     }
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleBackToTimer = (e: React.MouseEvent) => {
@@ -132,10 +135,8 @@ export default function SchedulePage() {
           <p className="text-xs text-[#BB8632] tracking-widest">STUDY PLANNER - MANOR EDITION</p>
         </div>
 
-        {/* 📋 スタディプランナー本体 */}
         <div className="w-full max-w-4xl rounded-2xl p-5 sm:p-8 shadow-2xl border bg-[#2B0C12] border-[#BB8632] relative">
           
-          {/* 上部ヘッダー */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-[#BB8632]/40 pb-5 mb-6 gap-4">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] font-serif">TODAY'S SCHEDULE</h1>
@@ -146,7 +147,6 @@ export default function SchedulePage() {
               </div>
             </div>
 
-            {/* MEMO欄（ユーザー書き込み用・初期値空欄） */}
             <div className="w-full md:w-80 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
               <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / 本日の目標</p>
               <input
@@ -159,10 +159,8 @@ export default function SchedulePage() {
             </div>
           </div>
 
-          {/* 2カラムレイアウト（左：To do list、右：Time schedule） */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            {/* 左側：To do list（ユーザー入力型） */}
             <div className="lg:col-span-6 bg-[#23090E] p-4 rounded-xl border border-[#BB8632]/30 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between border-b border-[#BB8632]/40 pb-2 mb-3">
@@ -170,11 +168,10 @@ export default function SchedulePage() {
                   <span className="text-[10px] text-[#F3ECD8]/60">OK!</span>
                 </div>
 
-                {/* タスク入力フォーム */}
                 <form onSubmit={handleAddTodo} className="flex gap-1.5 mb-3">
                   <input
                     type="text"
-                    placeholder="教科・カテゴリ"
+                    placeholder="カテゴリ"
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-24 px-2 py-1 rounded bg-[#3B1218] border border-[#BB8632]/40 text-xs text-[#F3ECD8] outline-none placeholder-[#F3ECD8]/30"
@@ -191,7 +188,6 @@ export default function SchedulePage() {
                   </button>
                 </form>
 
-                {/* ToDo一覧 */}
                 <div className="space-y-2 mb-4 max-h-[260px] overflow-y-auto pr-1">
                   {todoList.length > 0 ? (
                     todoList.map((item, idx) => (
@@ -215,7 +211,6 @@ export default function SchedulePage() {
                 </div>
               </div>
 
-              {/* 本日の活動時間サマリー */}
               <div className="bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40 mt-2">
                 <p className="text-xs font-bold text-[#BB8632] mb-1.5">⏱️ 本日の合計集中時間</p>
                 <div className="flex flex-wrap gap-2">
@@ -232,7 +227,7 @@ export default function SchedulePage() {
               </div>
             </div>
 
-            {/* 右側：Time schedule（例：「9:00 勉強 60分」の自動反映） */}
+            {/* 右側：Time schedule（作業の足跡） */}
             <div className="lg:col-span-6 bg-[#23090E] p-4 rounded-xl border border-[#BB8632]/30 max-h-[500px] overflow-y-auto">
               <div className="border-b border-[#BB8632]/40 pb-2 mb-3 sticky top-0 bg-[#23090E] z-10 flex justify-between items-center">
                 <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule (作業の足跡)</span>
@@ -241,15 +236,20 @@ export default function SchedulePage() {
 
               <div className="space-y-1.5">
                 {hours.map((h) => {
-                  const log = activityLogs[h];
+                  const hourLogs = activityLogs[h]; // 例: { 勉強: 120, 読書: 60 }
                   return (
                     <div key={h} className="flex items-center text-xs py-1.5 border-b border-[#BB8632]/10">
                       <span className="w-14 font-mono text-[#BB8632] font-bold">{h}</span>
-                      <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-3 py-1 rounded border border-[#BB8632]/20 flex items-center">
-                        {log ? (
-                          <span className="bg-[#BB8632] text-[#1A070B] px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1">
-                            {log.activity} {log.minutes}分
-                          </span>
+                      <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-3 py-1 rounded border border-[#BB8632]/20 flex items-center flex-wrap gap-1.5">
+                        {hourLogs && Object.keys(hourLogs).length > 0 ? (
+                          Object.entries(hourLogs).map(([act, secs]) => {
+                            const mins = Math.max(1, Math.floor(secs / 60));
+                            return (
+                              <span key={act} className="bg-[#BB8632] text-[#1A070B] px-2 py-0.5 rounded text-[11px] font-bold">
+                                {act} {mins}分
+                              </span>
+                            );
+                          })
                         ) : (
                           <span className="text-[#F3ECD8]/20">-</span>
                         )}
@@ -262,7 +262,6 @@ export default function SchedulePage() {
 
           </div>
 
-          {/* 下部：TODAY'S IMPRESSION（初期状態空欄） */}
           <div className="mt-6 bg-[#23090E] p-4 rounded-xl border border-[#BB8632]/30 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="w-full sm:w-3/4">
               <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">TODAY'S IMPRESSION (本日の振り返り)</p>

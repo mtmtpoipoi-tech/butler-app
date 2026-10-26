@@ -41,7 +41,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を, 喜んでさせていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
   },
 };
 
@@ -135,7 +135,6 @@ export default function TimerPage() {
     });
   };
 
-  // 📋 スケジュール画面（本日の作業）への移動用
   const handleNavigateSchedule = (e: React.MouseEvent) => {
     e.preventDefault();
     stopBgmWithFadeOut(() => {
@@ -236,16 +235,21 @@ export default function TimerPage() {
             localStorage.setItem('butler_master_activity_date', todayStr);
             localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
 
-            // 🕒 スケジュール画面（作業の足跡）用の詳細データを保存
+            // 🕒 スケジュール画面（作業の足跡）用に現在の時間帯（例: "9:00"）を記録
             const now = new Date();
-            const timeKey = `${now.getHours()}:00`;
+            const hour = now.getHours();
+            const timeKey = `${hour}:00`; // "5:00", "9:00", "14:00" など
+
             const logsStr = localStorage.getItem('butler_master_activity_detail_logs');
             let logs = logsStr ? JSON.parse(logsStr) : {};
-            const currentMins = logs[timeKey]?.minutes || 0;
-            logs[timeKey] = {
-              activity: selectedActivity,
-              minutes: currentMins + 1
-            };
+            
+            if (!logs[timeKey]) {
+              logs[timeKey] = {};
+            }
+            // 各活動ごとの秒数を蓄積
+            const currentActSecs = logs[timeKey][selectedActivity] || 0;
+            logs[timeKey][selectedActivity] = currentActSecs + 1;
+
             localStorage.setItem('butler_master_activity_detail_logs', JSON.stringify(logs));
 
             return nextObj;
@@ -346,7 +350,6 @@ export default function TimerPage() {
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-          {/* 上部リンク（ホームへ戻る ＆ 本日の作業ボタン） */}
           <div className="w-full mb-3 flex justify-between items-center">
             <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
               ← エントランスへ
