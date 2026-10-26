@@ -41,7 +41,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を, 喜んでさせていただきます。」',
   },
 };
 
@@ -81,7 +81,6 @@ export default function TimerPage() {
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   
-  // 📋 「本日の作業」モーダルの開閉状態
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   const [activityLogs, setActivityLogs] = useState<Record<string, Record<string, number>>>({});
   const [memoText, setMemoText] = useState<string>('');
@@ -655,9 +654,10 @@ export default function TimerPage() {
                     {hours.map((h) => {
                       const hourLogs = activityLogs[h] || {};
                       
-                      // 🌟 同一時間帯における各カテゴリの秒数を合算して表示する処理
+                      // 🌟 混入していた古い不正データ（"minutes"キーなど）を完全除外しつつ、正常な活動名ごとに秒数を合算
                       const mergedLogs: Record<string, number> = {};
                       Object.entries(hourLogs).forEach(([act, secs]) => {
+                        if (!act || act.includes('minutes') || act.includes('NaN')) return; // 不正なキーを排除
                         const safeSecs = Number(secs) || 0;
                         mergedLogs[act] = (mergedLogs[act] || 0) + safeSecs;
                       });
