@@ -17,31 +17,31 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: 'BGMや雨音に耳を傾けながら、まずは肩の力を抜いて25分間だけ私と一緒に集中いたしましょう。',
+    butlerMessage: '「まずは肩の力を抜いて、25分間だけ私と一緒に集中いたしましょう。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '50分の本格的な集中ですね。静かな調べの中、主様の背中を見守っております。',
+    butlerMessage: '「50分の本格的な集中ですね。主様の背中、私が見守っております。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '1時間の長丁場です。マイペースに進めてくださいね。',
+    butlerMessage: '「1時間の長丁場です。無理をなさらず、マイペースに進めてくださいね。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '1時間半ですね。途中で水分補給も忘れずにお願いいたします。',
+    butlerMessage: '「1時間半ですね。途中で水分補給も忘れないようにお願いいたします。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '3時間……！大変な覚悟ですね。喜んでお供させていただきます。',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
   },
 };
 
@@ -269,8 +269,8 @@ export default function TimerPage() {
     setIsPlayingBgm(false);
   };
 
-  // 🌧️ 雨音の再生・停止を確実に制御する関数
-  const startRainAudio = () => {
+  // 🌧️ 雨音の再生・停止を完全に同期させる関数
+  const playRain = () => {
     if (rainAudioRef.current) {
       rainAudioRef.current.volume = 0.8;
       rainAudioRef.current.play().then(() => {
@@ -281,7 +281,7 @@ export default function TimerPage() {
     }
   };
 
-  const stopRainAudio = () => {
+  const stopRain = () => {
     if (rainAudioRef.current) {
       rainAudioRef.current.pause();
       rainAudioRef.current.currentTime = 0;
@@ -289,12 +289,12 @@ export default function TimerPage() {
     setIsPlayingRain(false);
   };
 
-  // 🌧️ 手動でのON/OFF切り替え用
+  // 🌧️ ボタンによる手動ON/OFF切り替え（確実に音を鳴らす/止める）
   const toggleRainManually = () => {
     if (isPlayingRain) {
-      stopRainAudio();
+      stopRain();
     } else {
-      startRainAudio();
+      playRain();
     }
   };
 
@@ -358,7 +358,7 @@ export default function TimerPage() {
       setIsRunning(false);
       playFinishAudio();
       stopBgm();
-      stopRainAudio();
+      stopRain();
 
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
@@ -381,16 +381,16 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // 🎬 暗転フェード付きタイマー開始
+  // 🎬 暗転フェード付きタイマー開始（雨音の状態も連動）
   const toggleTimer = () => {
     if (!isRunning) {
       setIsFadingToBlack(true);
       setTimeout(() => {
         setIsRunning(true);
         playBgm();
-        // 天気が雨か曇りの場合は雨音を自動再生（手動でOFFにしていなければ）
-        if (weatherText === '雨' || weatherText === '曇り') {
-          startRainAudio();
+        // 天気が雨か曇りの場合、雨音がONに設定されていれば再生
+        if ((weatherText === '雨' || weatherText === '曇り') && isPlayingRain) {
+          playRain();
         }
         setIsFadingToBlack(false);
       }, 400);
@@ -399,6 +399,7 @@ export default function TimerPage() {
       setTimeout(() => {
         setIsRunning(false);
         stopBgm();
+        stopRain(); // 停止時は雨音も止める
         setIsFadingToBlack(false);
       }, 400);
     }
@@ -430,6 +431,7 @@ export default function TimerPage() {
       setTimeLeft(MODES[currentMode].workSeconds);
       setMessage(MODES[currentMode].butlerMessage);
       stopBgm();
+      stopRain();
       setIsFadingToBlack(false);
     }, 400);
   };
@@ -493,7 +495,7 @@ export default function TimerPage() {
         .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
-      {/* 🎵 音声要素 */}
+      {/* 🎵 音声要素（ループ設定） */}
       <audio ref={audioRef} src={selectedBgm} loop preload="auto" />
       <audio ref={rainAudioRef} src="/source-2.mp4" loop preload="auto" />
 
@@ -564,7 +566,7 @@ export default function TimerPage() {
                 </button>
               </div>
 
-              {/* 🌧️ 手動ON/OFF可能な雨音ボタン */}
+              {/* 🌧️ 確実にON/OFFできる雨音ボタン */}
               <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/30">
                 <span className="text-xs text-[#F3ECD8] tracking-wider">🌧️ 雨音 ({weatherText})</span>
                 <button
