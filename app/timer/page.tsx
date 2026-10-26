@@ -264,6 +264,18 @@ export default function TimerPage() {
     }).join(' ');
   };
 
+  // 📅 前後の日付へ移動するヘルパー
+  const handleShiftDate = (days: number) => {
+    const parts = viewDateStr.split('-');
+    if (parts.length !== 3) return;
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    d.setDate(d.getDate() + days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    setViewDateStr(`${y}-${m}-${day}`);
+  };
+
   // 📝 手帳用データ更新
   const updateMemo = (val: string) => {
     const next = { ...allMemos, [viewDateStr]: val };
@@ -349,7 +361,7 @@ export default function TimerPage() {
               <p className="text-sm sm:text-base tracking-widest text-[#BB8632] font-bold">現在取り組中：{selectedActivity}</p>
             </div>
 
-            {/* 🎵 標準オーディオコントローラー（正しい source-2.mp4 指定） */}
+            {/* 🎵 標準オーディオコントローラー */}
             <div className="mt-8 w-full max-w-sm rounded-2xl p-3.5 backdrop-blur-md flex flex-col gap-3 bg-black/70 border border-[#BB8632]/50 shadow-2xl z-20">
               <div className="flex flex-col gap-1">
                 <select
@@ -443,7 +455,7 @@ export default function TimerPage() {
                 </div>
               </div>
 
-              {/* 通常時プレイヤー（正しい source-2.mp4 指定） */}
+              {/* 通常時プレイヤー */}
               <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex flex-col gap-3 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
                 <div className="flex flex-col gap-1">
                   <select
@@ -465,7 +477,7 @@ export default function TimerPage() {
           </div>
         )}
 
-        {/* 📋 作業記録手帳モーダル */}
+        {/* 📋 作業記録手帳モーダル（「前日」「翌日」ボタンを追加して確実に日付移動可能に） */}
         {isScheduleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
@@ -474,16 +486,20 @@ export default function TimerPage() {
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <h2 className="text-base sm:text-xl font-bold tracking-widest text-[#F3ECD8]">WORK LOG & SCHEDULE</h2>
                   
+                  {/* 📅 日付操作ボタン（前日・翌日・今日） */}
                   <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1.5 rounded-lg border border-[#BB8632]">
-                    <span className="text-xs text-[#BB8632] font-bold">閲覧中の日付:</span>
-                    <input
-                      type="date"
-                      value={viewDateStr}
-                      onChange={(e) => setViewDateStr(e.target.value)}
-                      className="bg-[#2B0C12] text-xs px-2 py-1 rounded text-[#F3ECD8] outline-none cursor-pointer font-bold border border-[#BB8632]/40"
-                    />
+                    <button onClick={() => handleShiftDate(-1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer" title="前の日">
+                      ◀ 前日
+                    </button>
+                    
+                    <span className="text-xs text-[#F3ECD8] font-bold px-1">{viewDateStr}</span>
+
+                    <button onClick={() => handleShiftDate(1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer" title="次の日">
+                      翌日 ▶
+                    </button>
+
                     <button onClick={() => setViewDateStr(getTodayLocalDateStr())} type="button" className="text-[10px] bg-[#BB8632] text-[#1A070B] px-2 py-1 rounded font-bold hover:brightness-110 ml-1">
-                      今日へ
+                      今日
                     </button>
                   </div>
                 </div>
@@ -493,12 +509,14 @@ export default function TimerPage() {
                 </button>
               </div>
 
+              {/* ⚠️ 現在表示している日付を明確に表示 */}
               <div className="mb-4 bg-[#A46D37]/20 p-2.5 rounded-xl border border-[#BB8632] text-center">
                 <p className="text-xs sm:text-sm font-bold tracking-wider text-[#BB8632]">
                   現在表示している記録の日付： <span className="text-[#F3ECD8] underline text-base ml-1">{viewDateStr}</span>
                 </p>
               </div>
 
+              {/* MEMO */}
               <div className="mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
                 <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / この日の目標</p>
                 <input
