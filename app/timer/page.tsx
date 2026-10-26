@@ -145,22 +145,25 @@ export default function TimerPage() {
     });
   };
 
+  // 🔔 3秒前カウントダウン音
   const playCountdownAudio = () => {
     try {
       const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
       audio.volume = 1.0;
-      audio.play().catch(() => {});
+      audio.play().catch((err) => console.log('Countdown error:', err));
     } catch (e) {}
   };
 
+  // 🔔 終了時ベル音（チリン）
   const playFinishAudio = () => {
     try {
       const audio = new Audio('/dragon-studio-bell-ring-390294.mp3');
       audio.volume = 1.0;
-      audio.play().catch(() => {});
+      audio.play().catch((err) => console.log('Finish error:', err));
     } catch (e) {}
   };
 
+  // 🎵 フェードイン
   const playBgmWithFadeIn = () => {
     if (audioRef.current) {
       audioRef.current.volume = 0;
@@ -176,10 +179,11 @@ export default function TimerPage() {
             if (audioRef.current) audioRef.current.volume = vol;
           }
         }, 150);
-      }).catch(() => {});
+      }).catch((err) => console.log('BGM play error:', err));
     }
   };
 
+  // 🎵 フェードアウト
   const stopBgmWithFadeOut = (onComplete?: () => void) => {
     if (audioRef.current && isPlayingBgm) {
       let vol = audioRef.current.volume;
@@ -224,6 +228,7 @@ export default function TimerPage() {
       timer = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
         if (!isBreak) {
+          // 永久累計時間（爵位用）
           const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String(curLifetime + 1));
 
@@ -235,10 +240,10 @@ export default function TimerPage() {
             localStorage.setItem('butler_master_activity_date', todayStr);
             localStorage.setItem('butler_master_activity_seconds', JSON.stringify(nextObj));
 
-            // 🕒 スケジュール画面（作業の足跡）用に現在の時間帯（例: "9:00"）を記録
+            // スケジュール画面（作業の足跡）用ログ記録
             const now = new Date();
             const hour = now.getHours();
-            const timeKey = `${hour}:00`; // "5:00", "9:00", "14:00" など
+            const timeKey = `${hour}:00`;
 
             const logsStr = localStorage.getItem('butler_master_activity_detail_logs');
             let logs = logsStr ? JSON.parse(logsStr) : {};
@@ -246,7 +251,6 @@ export default function TimerPage() {
             if (!logs[timeKey]) {
               logs[timeKey] = {};
             }
-            // 各活動ごとの秒数を蓄積
             const currentActSecs = logs[timeKey][selectedActivity] || 0;
             logs[timeKey][selectedActivity] = currentActSecs + 1;
 
@@ -258,9 +262,10 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      stopBgmWithFadeOut(() => {
-        playFinishAudio();
-      });
+      
+      // 🌟 終了時にベル音を鳴らしつつ、BGMをフェードアウトする
+      playFinishAudio();
+      stopBgmWithFadeOut();
 
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
