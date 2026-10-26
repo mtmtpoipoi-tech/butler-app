@@ -79,10 +79,6 @@ export default function TimerPage() {
   const [isFadingToBlack, setIsFadingToBlack] = useState<boolean>(false);
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
-  const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
-  
-  // 🌧️ 雨音の状態 ＆ 天気状態
-  const [isPlayingRain, setIsPlayingRain] = useState<boolean>(false);
   const [weatherText, setWeatherText] = useState<string>('お天気確認中');
 
   // 📋 「本日の作業」＆ 過去ログ閲覧用ステート
@@ -97,7 +93,6 @@ export default function TimerPage() {
 
   const [viewDateStr, setViewDateStr] = useState<string>(getTodayLocalDateStr());
   
-  // 各データ保存用（日付別管理）
   const [allActivitySeconds, setAllActivitySeconds] = useState<Record<string, Record<string, number>>>({});
   const [allActivityLogs, setAllActivityLogs] = useState<Record<string, Record<string, Record<string, number>>>>({});
   const [allMemos, setAllMemos] = useState<Record<string, string>>({});
@@ -117,7 +112,7 @@ export default function TimerPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rainAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 🌤️ お天気自動判定（曇り・雨なら初期状態で雨音ON）
+  // 🌤️ お天気自動判定
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -128,40 +123,24 @@ export default function TimerPage() {
             const data = await res.json();
             const weatherCode = data.current_weather?.weathercode;
             
-            let isRainOrCloudy = false;
             let desc = '晴れ';
-
-            if (weatherCode === 0) {
-              isRainOrCloudy = false;
-              desc = '晴れ';
-            } else if (weatherCode >= 1 && weatherCode <= 3) {
-              isRainOrCloudy = true;
-              desc = '曇り';
-            } else if (weatherCode >= 51) {
-              isRainOrCloudy = true;
-              desc = '雨';
-            }
+            if (weatherCode >= 1 && weatherCode <= 3) desc = '曇り';
+            else if (weatherCode >= 51) desc = '雨';
 
             setWeatherText(desc);
-            setIsPlayingRain(isRainOrCloudy);
           } catch (e) {
             setWeatherText('晴れ');
-            setIsPlayingRain(false);
           }
         },
-        () => {
-          setWeatherText('晴れ');
-          setIsPlayingRain(false);
-        },
+        () => setWeatherText('晴れ'),
         { timeout: 5000 }
       );
     } else {
       setWeatherText('晴れ');
-      setIsPlayingRain(false);
     }
   }, []);
 
-  // 📂 ローカルストレージからのデータ読み込み（全日付対応）
+  // 📂 ローカルストレージ読み込み
   useEffect(() => {
     setIsMounted(true);
     setIsTransitioning(false);
@@ -187,12 +166,10 @@ export default function TimerPage() {
 
       const savedTodos = localStorage.getItem('butler_all_schedule_todos');
       if (savedTodos) setAllTodos(JSON.parse(savedTodos));
-    } catch (e) {
-      console.log('Load error:', e);
-    }
+    } catch (e) {}
   }, []);
 
-  // 時計の更新
+  // 時計更新
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -238,55 +215,14 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🎵 BGMの手動ON/OFF（確実に同期）
-  const toggleBgmManually = () => {
-    if (audioRef.current) {
-      if (audioRef.current.paused) {
-        audioRef.current.volume = 1.0;
-        audioRef.current.play()
-          .then(() => setIsPlayingBgm(true))
-          .catch((err) => {
-            console.log('BGM play error:', err);
-            setIsPlayingBgm(false);
-          });
-      } else {
-        audioRef.current.pause();
-        setIsPlayingBgm(false);
-      }
-    }
-  };
-
-  // 🌧️ 雨音の手動ON/OFF（確実に同期）
-  const toggleRainManually = () => {
-    if (rainAudioRef.current) {
-      if (rainAudioRef.current.paused) {
-        rainAudioRef.current.volume = 0.8;
-        rainAudioRef.current.play()
-          .then(() => setIsPlayingRain(true))
-          .catch((err) => {
-            console.log('Rain play error:', err);
-            setIsPlayingRain(false);
-          });
-      } else {
-        rainAudioRef.current.pause();
-        setIsPlayingRain(false);
-      }
-    }
-  };
-
   useEffect(() => {
     setIsRunning(false);
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsPlayingBgm(false);
   }, [currentMode]);
 
-  // ⏱️ タイマー稼働中の処理（本日の日付に自動加算）
+  // ⏱️ タイマー稼働中（本日の日付に自動加算）
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -308,7 +244,6 @@ export default function TimerPage() {
           const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String((isNaN(curLifetime) ? 0 : curLifetime) + 1));
 
-          // 本日の実績を更新
           setAllActivitySeconds((prevAll) => {
             const todaySecs = prevAll[todayStr] || {};
             const currentVal = Number(todaySecs[selectedActivity]) || 0;
@@ -318,7 +253,6 @@ export default function TimerPage() {
             return nextAll;
           });
 
-          // 本日の詳細ログを更新
           const now = new Date();
           const hour = now.getHours();
           const timeKey = `${hour}:00`;
@@ -338,15 +272,8 @@ export default function TimerPage() {
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       playFinishAudio();
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsPlayingBgm(false);
-      if (rainAudioRef.current) {
-        rainAudioRef.current.pause();
-      }
-      setIsPlayingRain(false);
+      if (audioRef.current) audioRef.current.pause();
+      if (rainAudioRef.current) rainAudioRef.current.pause();
 
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
@@ -369,35 +296,14 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // 🎬 タイマー開始・停止（暗転＆音声同期）
   const toggleTimer = () => {
     if (!isRunning) {
-      if (audioRef.current) {
-        audioRef.current.volume = 1.0;
-        audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
-      }
-      if (rainAudioRef.current && isPlayingRain) {
-        rainAudioRef.current.volume = 0.8;
-        rainAudioRef.current.play().then(() => setIsPlayingRain(true)).catch(() => {});
-      }
-
       setIsFadingToBlack(true);
       setTimeout(() => {
         setIsRunning(true);
         setIsFadingToBlack(false);
       }, 400);
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsPlayingBgm(false);
-
-      if (rainAudioRef.current) {
-        rainAudioRef.current.pause();
-      }
-      setIsPlayingRain(false);
-
       setIsFadingToBlack(true);
       setTimeout(() => {
         setIsRunning(false);
@@ -410,23 +316,10 @@ export default function TimerPage() {
     setSelectedBgm(newFile);
     if (audioRef.current) {
       audioRef.current.src = newFile;
-      if (isPlayingBgm || isRunning) {
-        audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
-      }
     }
   };
 
   const handleReset = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsPlayingBgm(false);
-    if (rainAudioRef.current) {
-      rainAudioRef.current.pause();
-    }
-    setIsPlayingRain(false);
-
     setIsFadingToBlack(true);
     setTimeout(() => {
       setIsRunning(false);
@@ -448,7 +341,7 @@ export default function TimerPage() {
     }).join(' ');
   };
 
-  // 📝 各種データの更新関数（選択中の日付 viewDateStr に対して保存）
+  // 📝 各種データの更新
   const updateMemo = (val: string) => {
     const next = { ...allMemos, [viewDateStr]: val };
     setAllMemos(next);
@@ -506,12 +399,14 @@ export default function TimerPage() {
         }
         .gothic-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
         .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
+        audio {
+          height: 32px;
+          border-radius: 8px;
+          filter: invert(0.9) hue-rotate(180deg);
+        }
       `}</style>
 
-      {/* 🎵 音声要素 */}
-      <audio ref={audioRef} src={selectedBgm} loop preload="auto" />
-      <audio ref={rainAudioRef} src="/source-2.mp4" loop preload="auto" />
-
+      {/* 背景画像 */}
       <div
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: isRunning ? "url('/window-forest.jpg')" : "url('/485142.jpg')" }}
@@ -556,42 +451,33 @@ export default function TimerPage() {
               </p>
             </div>
 
-            {/* BGM ＆ 雨音コントローラー */}
-            <div className="mt-12 w-full max-w-sm rounded-2xl p-3 backdrop-blur-md flex flex-col gap-2.5 bg-black/50 border border-[#BB8632]/50 shadow-2xl">
-              <div className="flex items-center justify-between gap-2">
-                <select
-                  value={selectedBgm}
-                  onChange={(e) => handleBgmChange(e.target.value)}
-                  className="text-xs rounded-xl px-2 py-1.5 outline-none cursor-pointer flex-1 bg-black/70 text-[#F3ECD8] border border-[#BB8632]/50"
-                >
-                  {BGM_LIST.map((bgm) => (
-                    <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#1A070B', color: '#F3ECD8' }}>
-                      {bgm.name}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  onClick={toggleBgmManually}
-                  type="button"
-                  className="w-9 h-9 rounded-xl text-xs font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer bg-[#A46D37] text-[#F3ECD8] hover:brightness-110 shadow-md z-20"
-                  title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
-                >
-                  <span className="font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
-                </button>
+            {/* 🎵 BGM ＆ 雨音プレイヤー（HTML標準のコントロールで確実に再生・停止・調整可能） */}
+            <div className="mt-8 w-full max-w-sm rounded-2xl p-3.5 backdrop-blur-md flex flex-col gap-3 bg-black/60 border border-[#BB8632]/50 shadow-2xl z-20">
+              
+              {/* BGMプレイヤー */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-xs text-[#F3ECD8]">
+                  <select
+                    value={selectedBgm}
+                    onChange={(e) => handleBgmChange(e.target.value)}
+                    className="text-xs rounded-lg px-2 py-1 outline-none cursor-pointer bg-black/80 text-[#F3ECD8] border border-[#BB8632]/50 mb-1"
+                  >
+                    {BGM_LIST.map((bgm) => (
+                      <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#1A070B', color: '#F3ECD8' }}>
+                        {bgm.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <audio ref={audioRef} src={selectedBgm} controls loop preload="auto" className="w-full" />
               </div>
 
-              {/* 🌧️ 確実にON/OFFできる雨音ボタン */}
-              <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/30">
-                <span className="text-xs text-[#F3ECD8] tracking-wider">🌧️ 雨音 ({weatherText})</span>
-                <button
-                  onClick={toggleRainManually}
-                  type="button"
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border z-20 ${isPlayingRain ? 'bg-[#A46D37] text-[#F3ECD8] border-[#BB8632]' : 'bg-black/50 text-[#F3ECD8]/60 border-[#BB8632]/40'}`}
-                >
-                  {isPlayingRain ? '再生中 (ON)' : '停止中 (OFF)'}
-                </button>
+              {/* 雨音プレイヤー */}
+              <div className="flex flex-col gap-1 border-t border-[#BB8632]/30 pt-2">
+                <span className="text-xs text-[#F3ECD8] tracking-wider mb-1">🌧️ 雨音コントローラー ({weatherText})</span>
+                <audio ref={rainAudioRef} src="/source-2.mp4" controls loop preload="auto" className="w-full" />
               </div>
+
             </div>
 
           </div>
@@ -688,13 +574,13 @@ export default function TimerPage() {
                 </div>
               </div>
 
-              <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex flex-col gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
-                <div className="flex items-center justify-between gap-2">
+              {/* 🎵 通常時用オーディオプレイヤー */}
+              <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex flex-col gap-3 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
+                <div className="flex flex-col gap-1">
                   <select
                     value={selectedBgm}
                     onChange={(e) => handleBgmChange(e.target.value)}
-                    className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
-                    style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                    className="text-xs rounded-lg px-2 py-1 outline-none cursor-pointer bg-[#3B1218] text-[#F3ECD8] border border-[#BB8632] mb-1"
                   >
                     {BGM_LIST.map((bgm) => (
                       <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
@@ -702,28 +588,12 @@ export default function TimerPage() {
                       </option>
                     ))}
                   </select>
-
-                  <button
-                    onClick={toggleBgmManually}
-                    type="button"
-                    className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
-                    style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
-                    title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
-                  >
-                    <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
-                  </button>
+                  <audio ref={audioRef} src={selectedBgm} controls loop preload="auto" className="w-full" />
                 </div>
 
-                {/* 🌧️ 通常時用 雨音ボタン */}
-                <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/20">
-                  <span className="text-xs text-[#F3ECD8]/85 tracking-wider">🌧️ 雨音 ({weatherText})</span>
-                  <button
-                    onClick={toggleRainManually}
-                    type="button"
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border z-20 ${isPlayingRain ? 'bg-[#A46D37] text-[#F3ECD8] border-[#BB8632]' : 'bg-[#3B1218] text-[#F3ECD8]/60 border-[#BB8632]/40'}`}
-                  >
-                    {isPlayingRain ? '再生中 (ON)' : '停止中 (OFF)'}
-                  </button>
+                <div className="flex flex-col gap-1 border-t border-[#BB8632]/20 pt-2">
+                  <span className="text-xs text-[#F3ECD8]/85 tracking-wider mb-1">🌧️ 雨音 ({weatherText})</span>
+                  <audio ref={rainAudioRef} src="/source-2.mp4" controls loop preload="auto" className="w-full" />
                 </div>
               </div>
 
@@ -731,31 +601,31 @@ export default function TimerPage() {
           </div>
         )}
 
-        {/* 📋 「作業記録手帳」モーダル（過去の集中実績・スケジュール閲覧対応） */}
+        {/* 📋 「作業記録手帳」モーダル（過去の集中実績を明確に確認できるデザイン） */}
         {isScheduleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
               
-              {/* ヘッダー ＆ 日付切り替えセレクター */}
+              {/* ヘッダー ＆ 日付切り替え */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[#BB8632]/40 pb-3 mb-4 gap-3">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <h2 className="text-base sm:text-xl font-bold tracking-widest text-[#F3ECD8]">WORK LOG & SCHEDULE</h2>
                   
-                  {/* 📅 日付選択ピッカー */}
-                  <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1 rounded-lg border border-[#BB8632]/60">
-                    <span className="text-xs text-[#BB8632] font-bold">日付:</span>
+                  {/* 📅 日付選択ピッカー（変更するとその日の記録が即座に切り替わります） */}
+                  <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1.5 rounded-lg border border-[#BB8632]">
+                    <span className="text-xs text-[#BB8632] font-bold">閲覧中の日付:</span>
                     <input
                       type="date"
                       value={viewDateStr}
                       onChange={(e) => setViewDateStr(e.target.value)}
-                      className="bg-transparent text-xs text-[#F3ECD8] outline-none cursor-pointer font-bold"
+                      className="bg-[#2B0C12] text-xs px-2 py-1 rounded text-[#F3ECD8] outline-none cursor-pointer font-bold border border-[#BB8632]/40"
                     />
                     <button
                       onClick={() => setViewDateStr(getTodayLocalDateStr())}
                       type="button"
-                      className="text-[10px] bg-[#BB8632] text-[#1A070B] px-1.5 py-0.5 rounded font-bold hover:brightness-110 ml-1"
+                      className="text-[10px] bg-[#BB8632] text-[#1A070B] px-2 py-1 rounded font-bold hover:brightness-110 ml-1"
                     >
-                      今日
+                      今日へ
                     </button>
                   </div>
                 </div>
@@ -765,9 +635,16 @@ export default function TimerPage() {
                 </button>
               </div>
 
+              {/* ⚠️ 現在どの日付を表示しているかを大きく明示 */}
+              <div className="mb-4 bg-[#A46D37]/20 p-2.5 rounded-xl border border-[#BB8632] text-center">
+                <p className="text-xs sm:text-sm font-bold tracking-wider text-[#BB8632]">
+                  現在表示している記録の日付： <span className="text-[#F3ECD8] underline text-base ml-1">{viewDateStr}</span>
+                </p>
+              </div>
+
               {/* MEMO */}
               <div className="mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/40">
-                <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / この日の目標 ({viewDateStr})</p>
+                <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">MEMO / この日の目標</p>
                 <input
                   type="text"
                   value={allMemos[viewDateStr] || ''}
@@ -780,12 +657,12 @@ export default function TimerPage() {
               {/* 2カラム */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 
-                {/* 左：ToDoリスト ＆ 選択日付の集中時間 */}
+                {/* 左：ToDoリスト ＆ 総集中時間 */}
                 <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between border-b border-[#BB8632]/40 pb-2 mb-3">
-                      <span className="text-xs font-bold text-[#BB8632] tracking-wider">✏️ To do list ({viewDateStr})</span>
-                      <span className="text-[10px] text-[#F3ECD8]/60">OK!</span>
+                      <span className="text-xs font-bold text-[#BB8632] tracking-wider">✏️ To do list</span>
+                      <span className="text-[10px] text-[#F3ECD8]/60">{viewDateStr}</span>
                     </div>
 
                     <form onSubmit={handleAddTodo} className="flex gap-1.5 mb-3 items-center">
@@ -808,7 +685,7 @@ export default function TimerPage() {
                       </button>
                     </form>
 
-                    <div className="space-y-2 mb-4 max-h-[180px] overflow-y-auto pr-1">
+                    <div className="space-y-2 mb-4 max-h-[160px] overflow-y-auto pr-1">
                       {(allTodos[viewDateStr] || []).length > 0 ? (
                         (allTodos[viewDateStr] || []).map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2 bg-[#3B1218]/60 p-2 rounded border border-[#BB8632]/20 group">
@@ -851,11 +728,11 @@ export default function TimerPage() {
                   </div>
                 </div>
 
-                {/* 右：Time schedule (選択日付の足跡) */}
-                <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[360px] overflow-y-auto">
+                {/* 右：Time schedule */}
+                <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[340px] overflow-y-auto">
                   <div className="border-b border-[#BB8632]/40 pb-2 mb-3 sticky top-0 bg-[#23090E] z-10 flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule ({viewDateStr})</span>
-                    <span className="text-[10px] text-[#F3ECD8]/60">記録データ</span>
+                    <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule</span>
+                    <span className="text-[10px] text-[#F3ECD8]/60">{viewDateStr}</span>
                   </div>
 
                   <div className="space-y-1.5">
@@ -900,7 +777,7 @@ export default function TimerPage() {
               {/* 振り返り */}
               <div className="mt-4 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="w-full sm:w-3/4">
-                  <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">IMPRESSION / この日の振り返り ({viewDateStr})</p>
+                  <p className="text-[10px] text-[#BB8632] tracking-widest mb-1 font-bold">IMPRESSION / この日の振り返り</p>
                   <input
                     type="text"
                     value={allImpressions[viewDateStr] || ''}
