@@ -201,7 +201,6 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🎵 BGM再生関数
   const playBgm = () => {
     if (audioRef.current) {
       audioRef.current.volume = 1.0;
@@ -303,11 +302,10 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // 🌟 集中開始・一時停止ボタン
   const toggleTimer = () => {
     if (!isRunning) {
       setIsRunning(true);
-      playBgm(); // ◀ ここで確実にBGMを再生！
+      playBgm();
     } else {
       setIsRunning(false);
       stopBgm();
@@ -403,9 +401,10 @@ export default function TimerPage() {
 
       <div
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
-        style={{ backgroundImage: "url('/485142.jpg')" }}
+        style={{ backgroundImage: "url('/window-forest.jpg')" }}
       >
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+        {/* 絵の雰囲気を引き立てるための上品な暗幕オーバーレイ */}
+        <div className="absolute inset-0 bg-black/35 backdrop-blur-[0.5px]" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-300 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
