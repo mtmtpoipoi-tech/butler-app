@@ -141,7 +141,6 @@ export default function TimerPage() {
       localStorage.setItem('butler_master_activity_seconds', JSON.stringify({}));
     }
 
-    // スケジュール用データのロード（永続化データ）
     const savedLogs = localStorage.getItem('butler_master_activity_detail_logs');
     if (savedLogs) {
       try { setActivityLogs(JSON.parse(savedLogs)); } catch (e) {}
@@ -381,7 +380,6 @@ export default function TimerPage() {
     localStorage.setItem('butler_schedule_rating', String(val));
   };
   
-  // ✏️ ToDo追加（localStorageへ保存）
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newContent.trim()) return;
@@ -391,7 +389,6 @@ export default function TimerPage() {
     setNewContent('');
   };
 
-  // ✏️ ToDoのOKチェック状態の切り替え（localStorageへ保存）
   const toggleTodoOk = (index: number) => {
     const next = [...todoList];
     next[index].ok = !next[index].ok;
@@ -399,7 +396,6 @@ export default function TimerPage() {
     localStorage.setItem('butler_schedule_todos', JSON.stringify(next));
   };
 
-  // ✏️ ToDoの削除（localStorageへ保存）
   const deleteTodo = (index: number) => {
     const next = todoList.filter((_, i) => i !== index);
     setTodoList(next);
@@ -586,7 +582,6 @@ export default function TimerPage() {
                       <span className="text-[10px] text-[#F3ECD8]/60">OK!</span>
                     </div>
 
-                    {/* 📱 スマホ用に幅をスマートに短縮した入力フォーム */}
                     <form onSubmit={handleAddTodo} className="flex gap-1.5 mb-3 items-center">
                       <input
                         type="text"
@@ -649,7 +644,7 @@ export default function TimerPage() {
                   </div>
                 </div>
 
-                {/* 右：Time schedule */}
+                {/* 右：Time schedule（作業の足跡） */}
                 <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[380px] overflow-y-auto">
                   <div className="border-b border-[#BB8632]/40 pb-2 mb-3 sticky top-0 bg-[#23090E] z-10 flex justify-between items-center">
                     <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule (作業の足跡)</span>
@@ -658,15 +653,24 @@ export default function TimerPage() {
 
                   <div className="space-y-1.5">
                     {hours.map((h) => {
-                      const hourLogs = activityLogs[h];
+                      const hourLogs = activityLogs[h] || {};
+                      
+                      // 🌟 同一時間帯における各カテゴリの秒数を合算して表示する処理
+                      const mergedLogs: Record<string, number> = {};
+                      Object.entries(hourLogs).forEach(([act, secs]) => {
+                        const safeSecs = Number(secs) || 0;
+                        mergedLogs[act] = (mergedLogs[act] || 0) + safeSecs;
+                      });
+
+                      const logEntries = Object.entries(mergedLogs).filter(([_, secs]) => secs > 0);
+
                       return (
                         <div key={h} className="flex items-center text-xs py-1.5 border-b border-[#BB8632]/10">
                           <span className="w-12 sm:w-14 font-mono text-[#BB8632] font-bold shrink-0">{h}</span>
                           <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-2.5 py-1 rounded border border-[#BB8632]/20 flex items-center flex-wrap gap-1.5">
-                            {hourLogs && Object.keys(hourLogs).length > 0 ? (
-                              Object.entries(hourLogs).map(([act, secs]) => {
-                                const safeSecs = Number(secs) || 0;
-                                const mins = Math.max(1, Math.floor(safeSecs / 60));
+                            {logEntries.length > 0 ? (
+                              logEntries.map(([act, secs]) => {
+                                const mins = Math.max(1, Math.floor(secs / 60));
                                 return (
                                   <span key={act} className="bg-[#BB8632] text-[#1A070B] px-2 py-0.5 rounded text-[11px] font-bold">
                                     {act} {mins}分
