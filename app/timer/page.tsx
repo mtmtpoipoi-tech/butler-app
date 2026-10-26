@@ -17,31 +17,31 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: '「まずは肩の力を抜いて、25分間だけ私と一緒に集中いたしましょう。」',
+    butlerMessage: '「主様の努力の足跡は、一秒たりとも無駄にはさせません。私にお任せください。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '「50分の本格的な集中ですね。主様の背中、私が見守っております。」',
+    butlerMessage: '「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間の長丁場です。無理をなさらず、マイペースに進めてくださいね。」',
+    butlerMessage: '「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間半ですね。途中で水分補給も忘れないようにお願いいたします。」',
+    butlerMessage: '「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
   },
 };
 
@@ -173,7 +173,7 @@ export default function TimerPage() {
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
 
-  // タイマー進行と記録保存
+  // ⏱️ タイマー進行と勉強時間の確実な保存
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -255,8 +255,13 @@ export default function TimerPage() {
     const todayStr = getTodayLocalDateStr();
     const obj = allActivitySeconds[todayStr] || {};
     const entries = Object.entries(obj).filter(([_, s]) => (Number(s) || 0) > 0);
-    if (entries.length === 0) return '0分';
-    return entries.map(([act, s]) => `${act} ${Math.floor(Number(s) / 60)}分`).join(' ');
+    if (entries.length === 0) return '0分 (0秒)';
+    return entries.map(([act, s]) => {
+      const totalSec = Number(s) || 0;
+      const m = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      return `${act} ${m}分(${sec}秒)`;
+    }).join(' ');
   };
 
   // 📝 手帳用データ更新
@@ -344,7 +349,7 @@ export default function TimerPage() {
               <p className="text-sm sm:text-base tracking-widest text-[#BB8632] font-bold">現在取り組中：{selectedActivity}</p>
             </div>
 
-            {/* 🎵 標準オーディオコントローラー */}
+            {/* 🎵 標準オーディオコントローラー（正しい source-2.mp4 指定） */}
             <div className="mt-8 w-full max-w-sm rounded-2xl p-3.5 backdrop-blur-md flex flex-col gap-3 bg-black/70 border border-[#BB8632]/50 shadow-2xl z-20">
               <div className="flex flex-col gap-1">
                 <select
@@ -385,8 +390,8 @@ export default function TimerPage() {
             </div>
 
             <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-              <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績</span>
-              <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderTodaySummary() : '0分'}</span>
+              <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績 (秒単位で保存中)</span>
+              <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderTodaySummary() : '0分 (0秒)'}</span>
             </div>
 
             <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
@@ -438,7 +443,7 @@ export default function TimerPage() {
                 </div>
               </div>
 
-              {/* 通常時プレイヤー */}
+              {/* 通常時プレイヤー（正しい source-2.mp4 指定） */}
               <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex flex-col gap-3 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
                 <div className="flex flex-col gap-1">
                   <select
@@ -539,11 +544,16 @@ export default function TimerPage() {
                     <p className="text-xs font-bold text-[#BB8632] mb-1.5">⏱️ {viewDateStr} の総集中時間</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(allActivitySeconds[viewDateStr] || {}).filter(([_, s]) => (Number(s) || 0) > 0).length > 0 ? (
-                        Object.entries(allActivitySeconds[viewDateStr] || {}).map(([act, s]) => (
-                          <div key={act} className="bg-[#2B0C12] px-2.5 py-1 rounded border border-[#BB8632]/30 text-xs">
-                            <span className="text-[#BB8632] font-bold">{act}:</span> {Math.floor(Number(s) / 60)}分
-                          </div>
-                        ))
+                        Object.entries(allActivitySeconds[viewDateStr] || {}).map(([act, s]) => {
+                          const totalSec = Number(s) || 0;
+                          const m = Math.floor(totalSec / 60);
+                          const sec = totalSec % 60;
+                          return (
+                            <div key={act} className="bg-[#2B0C12] px-2.5 py-1 rounded border border-[#BB8632]/30 text-xs">
+                              <span className="text-[#BB8632] font-bold">{act}:</span> {m}分({sec}秒)
+                            </div>
+                          );
+                        })
                       ) : (
                         <span className="text-xs text-[#F3ECD8]/50 italic">この日の集中記録はありません</span>
                       )}
@@ -568,11 +578,16 @@ export default function TimerPage() {
                           <span className="w-12 sm:w-14 font-mono text-[#BB8632] font-bold shrink-0">{h}</span>
                           <div className="flex-1 min-h-[26px] bg-[#3B1218]/40 px-2.5 py-1 rounded border border-[#BB8632]/20 flex items-center flex-wrap gap-1.5">
                             {entries.length > 0 ? (
-                              entries.map(([act, s]) => (
-                                <span key={act} className="bg-[#BB8632] text-[#1A070B] px-2 py-0.5 rounded text-[11px] font-bold">
-                                  {act} {Math.max(1, Math.floor(Number(s) / 60))}分
-                                </span>
-                              ))
+                              entries.map(([act, s]) => {
+                                const totalSec = Number(s) || 0;
+                                const m = Math.floor(totalSec / 60);
+                                const sec = totalSec % 60;
+                                return (
+                                  <span key={act} className="bg-[#BB8632] text-[#1A070B] px-2 py-0.5 rounded text-[11px] font-bold">
+                                    {act} {m}分({sec}秒)
+                                  </span>
+                                );
+                              })
                             ) : (
                               <span className="text-[#F3ECD8]/20">-</span>
                             )}
