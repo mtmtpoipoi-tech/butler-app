@@ -83,7 +83,8 @@ export default function TimerPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  const [viewDateStr, setViewDateStr] = useState<string>(getLocalDateStr());
+  // 初期値は空文字にし、ビルド時のエラーを確実に回避
+  const [viewDateStr, setViewDateStr] = useState<string>('');
   
   const [allActivitySeconds, setAllActivitySeconds] = useState<Record<string, Record<string, number>>>({});
   const [allActivityLogs, setAllActivityLogs] = useState<Record<string, Record<string, Record<string, number>>>>({});
@@ -105,7 +106,8 @@ export default function TimerPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    setViewDateStr(getLocalDateStr());
+    const today = getLocalDateStr();
+    setViewDateStr(today);
 
     try {
       const sSecs = localStorage.getItem('butler_all_activity_seconds');
@@ -245,23 +247,26 @@ export default function TimerPage() {
   };
 
   const updateMemo = (val: string) => {
+    if (!viewDateStr) return;
     const next = { ...allMemos, [viewDateStr]: val };
     setAllMemos(next);
     localStorage.setItem('butler_all_schedule_memos', JSON.stringify(next));
   };
   const updateImpression = (val: string) => {
+    if (!viewDateStr) return;
     const next = { ...allImpressions, [viewDateStr]: val };
     setAllImpressions(next);
     localStorage.setItem('butler_all_schedule_impressions', JSON.stringify(next));
   };
   const updateRating = (val: number) => {
+    if (!viewDateStr) return;
     const next = { ...allRatings, [viewDateStr]: val };
     setAllRatings(next);
     localStorage.setItem('butler_all_schedule_ratings', JSON.stringify(next));
   };
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newContent.trim()) return;
+    if (!viewDateStr || !newContent.trim()) return;
     const cur = allTodos[viewDateStr] || [];
     const nextTodos = [...cur, { category: newCategory.trim() || '全般', content: newContent.trim(), ok: false }];
     const nextAll = { ...allTodos, [viewDateStr]: nextTodos };
@@ -270,6 +275,7 @@ export default function TimerPage() {
     setNewContent('');
   };
   const toggleTodoOk = (idx: number) => {
+    if (!viewDateStr) return;
     const cur = [...(allTodos[viewDateStr] || [])];
     cur[idx].ok = !cur[idx].ok;
     const nextAll = { ...allTodos, [viewDateStr]: cur };
@@ -277,6 +283,7 @@ export default function TimerPage() {
     localStorage.setItem('butler_all_schedule_todos', JSON.stringify(nextAll));
   };
   const deleteTodo = (idx: number) => {
+    if (!viewDateStr) return;
     const cur = (allTodos[viewDateStr] || []).filter((_, i) => i !== idx);
     const nextAll = { ...allTodos, [viewDateStr]: cur };
     setAllTodos(nextAll);
@@ -392,7 +399,7 @@ export default function TimerPage() {
                 <button onClick={toggleTimer} type="button" className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}>
                   {isBreak ? '休憩開始' : `${selectedActivity}開始`}
                 </button>
-                <button onClick={handleReset} type="button" className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}>
+                <button onClick={handleReset} type="button" className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}>
                   リセット
                 </button>
               </div>
