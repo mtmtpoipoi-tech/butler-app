@@ -17,31 +17,31 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: '「まずは肩の力を抜いて、25分間だけ私と一緒に集中いたしましょう。」',
+    butlerMessage: '「雨音を聞きながら、まずは肩の力を抜いて25分間だけ私と一緒に集中いたしましょう。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '「50分の本格的な集中ですね。主様の背中、私が見守っております。」',
+    butlerMessage: '「50分の本格的な集中ですね。静かな雨の調べの中、主様の背中を見守っております。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間の長丁場です。無理をなさらず、マイペースに進めてくださいね。」',
+    butlerMessage: '「1時間の長丁場です。雨音をBGMに、マイペースに進めてくださいね。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間半ですね。途中で水分補給も忘れないようにお願いいたします。」',
+    butlerMessage: '「1時間半ですね。雨の潤いを感じながら、水分補給も忘れずにどうぞ。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。雨の静寂の中、喜んでお供させていただきます。」',
   },
 };
 
@@ -81,6 +81,9 @@ export default function TimerPage() {
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   
+  // 🌧️ 雨音の状態管理
+  const [isPlayingRain, setIsPlayingRain] = useState<boolean>(true);
+
   // 📋 「本日の作業」モーダル用
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   const [activityLogs, setActivityLogs] = useState<Record<string, Record<string, number>>>({});
@@ -99,6 +102,7 @@ export default function TimerPage() {
   ];
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const rainAudioRef = useRef<HTMLAudioElement | null>(null); // 🌧️ 雨音用ref
 
   const getTodayLocalDateStr = () => {
     const now = new Date();
@@ -179,6 +183,7 @@ export default function TimerPage() {
   const handleNavigateHome = (e: React.MouseEvent) => {
     e.preventDefault();
     if (audioRef.current) audioRef.current.pause();
+    if (rainAudioRef.current) rainAudioRef.current.pause();
     setIsTransitioning(true);
     setTimeout(() => {
       router.push('/');
@@ -201,6 +206,7 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
+  // 🎵 BGM再生
   const playBgm = () => {
     if (audioRef.current) {
       audioRef.current.volume = 1.0;
@@ -220,12 +226,41 @@ export default function TimerPage() {
     setIsPlayingBgm(false);
   };
 
+  // 🌧️ 雨音再生
+  const playRain = () => {
+    if (rainAudioRef.current) {
+      rainAudioRef.current.volume = 0.8; // 好みに応じて音量調整可能
+      rainAudioRef.current.play().then(() => {
+        setIsPlayingRain(true);
+      }).catch((err) => {
+        console.log('Rain play blocked or error:', err);
+      });
+    }
+  };
+
+  const stopRain = () => {
+    if (rainAudioRef.current) {
+      rainAudioRef.current.pause();
+      rainAudioRef.current.currentTime = 0;
+    }
+    setIsPlayingRain(false);
+  };
+
+  const toggleRainManually = () => {
+    if (isPlayingRain) {
+      stopRain();
+    } else {
+      playRain();
+    }
+  };
+
   useEffect(() => {
     setIsRunning(false);
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
     stopBgm();
+    stopRain();
   }, [currentMode]);
 
   useEffect(() => {
@@ -280,6 +315,7 @@ export default function TimerPage() {
       setIsRunning(false);
       playFinishAudio();
       stopBgm();
+      stopRain();
 
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
@@ -306,9 +342,11 @@ export default function TimerPage() {
     if (!isRunning) {
       setIsRunning(true);
       playBgm();
+      playRain(); // 🌧️ タイマー開始とともに雨音も自動再生
     } else {
       setIsRunning(false);
       stopBgm();
+      stopRain();
     }
   };
 
@@ -336,6 +374,7 @@ export default function TimerPage() {
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
     stopBgm();
+    stopRain();
   };
 
   const renderActivitySummary = () => {
@@ -397,19 +436,19 @@ export default function TimerPage() {
         .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
+      {/* 🎵 BGMと雨音のオーディオ要素 */}
       <audio ref={audioRef} src={selectedBgm} loop preload="auto" />
+      <audio ref={rainAudioRef} src="/source-2.mp4" loop preload="auto" />
 
-      {/* 🌟 背景やコンテンツ全体を「transition-all duration-700 ease-in-out」でフワッと切り替え */}
       <div
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-all duration-700 ease-in-out"
         style={{ backgroundImage: isRunning ? "url('/window-forest.jpg')" : "url('/485142.jpg')" }}
       >
-        {/* 通常時は暗幕を置き、集中中(isRunning)は窓の景色が綺麗に映えるようにフワッと馴染ませる */}
         <div className={`absolute inset-0 pointer-events-none transition-all duration-700 ease-in-out ${isRunning ? 'bg-black/10' : 'bg-black/40 backdrop-blur-[1px]'}`} />
         
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
-        {/* 🌟 【集中開始中（isRunning === true）の画面】フワッと現れる優雅な集中ビュー */}
+        {/* 🌟 【集中開始中（isRunning === true）の画面】 */}
         {isRunning ? (
           <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8 animate-[fadeIn_0.8s_ease-in-out]">
             
@@ -442,31 +481,45 @@ export default function TimerPage() {
               </p>
             </div>
 
-            <div className="mt-12 w-full max-w-xs rounded-2xl p-3 backdrop-blur-md flex items-center justify-between gap-2 bg-black/50 border border-[#BB8632]/50 shadow-2xl">
-              <select
-                value={selectedBgm}
-                onChange={(e) => handleBgmChange(e.target.value)}
-                className="text-xs rounded-xl px-2 py-1.5 outline-none cursor-pointer flex-1 bg-black/70 text-[#F3ECD8] border border-[#BB8632]/50"
-              >
-                {BGM_LIST.map((bgm) => (
-                  <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#1A070B', color: '#F3ECD8' }}>
-                    {bgm.name}
-                  </option>
-                ))}
-              </select>
+            {/* BGM ＆ 雨音コントローラー */}
+            <div className="mt-12 w-full max-w-sm rounded-2xl p-3 backdrop-blur-md flex flex-col gap-2.5 bg-black/50 border border-[#BB8632]/50 shadow-2xl">
+              <div className="flex items-center justify-between gap-2">
+                <select
+                  value={selectedBgm}
+                  onChange={(e) => handleBgmChange(e.target.value)}
+                  className="text-xs rounded-xl px-2 py-1.5 outline-none cursor-pointer flex-1 bg-black/70 text-[#F3ECD8] border border-[#BB8632]/50"
+                >
+                  {BGM_LIST.map((bgm) => (
+                    <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#1A070B', color: '#F3ECD8' }}>
+                      {bgm.name}
+                    </option>
+                  ))}
+                </select>
 
-              <button
-                onClick={toggleBgmManually}
-                className="w-9 h-9 rounded-xl text-xs font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer bg-[#A46D37] text-[#F3ECD8] hover:brightness-110 shadow-md"
-                title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
-              >
-                <span className="font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
-              </button>
+                <button
+                  onClick={toggleBgmManually}
+                  className="w-9 h-9 rounded-xl text-xs font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer bg-[#A46D37] text-[#F3ECD8] hover:brightness-110 shadow-md"
+                  title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
+                >
+                  <span className="font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
+                </button>
+              </div>
+
+              {/* 🌧️ 雨音専用のON/OFFボタン */}
+              <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/30">
+                <span className="text-xs text-[#F3ECD8] tracking-wider">🌧️ 雨音 (環境音)</span>
+                <button
+                  onClick={toggleRainManually}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${isPlayingRain ? 'bg-[#A46D37] text-[#F3ECD8] border-[#BB8632]' : 'bg-black/50 text-[#F3ECD8]/60 border-[#BB8632]/40'}`}
+                >
+                  {isPlayingRain ? '再生中 (ON)' : '停止中 (OFF)'}
+                </button>
+              </div>
             </div>
 
           </div>
         ) : (
-          /* 🌟 【通常時（設定・選択画面）】フワッと戻る通常のビュー */
+          /* 🌟 【通常時（設定・選択画面）】 */
           <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-[fadeIn_0.8s_ease-in-out]">
             <div className="w-full mb-3 flex justify-between items-center">
               <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
@@ -554,28 +607,41 @@ export default function TimerPage() {
                 </div>
               </div>
 
-              <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
-                <select
-                  value={selectedBgm}
-                  onChange={(e) => handleBgmChange(e.target.value)}
-                  className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
-                  style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
-                >
-                  {BGM_LIST.map((bgm) => (
-                    <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
-                      {bgm.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex flex-col gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
+                <div className="flex items-center justify-between gap-2">
+                  <select
+                    value={selectedBgm}
+                    onChange={(e) => handleBgmChange(e.target.value)}
+                    className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
+                    style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                  >
+                    {BGM_LIST.map((bgm) => (
+                      <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
+                        {bgm.name}
+                      </option>
+                    ))}
+                  </select>
 
-                <button
-                  onClick={toggleBgmManually}
-                  className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
-                  style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
-                  title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
-                >
-                  <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
-                </button>
+                  <button
+                    onClick={toggleBgmManually}
+                    className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
+                    style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                    title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
+                  >
+                    <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
+                  </button>
+                </div>
+
+                {/* 🌧️ 通常時用 雨音ボタン */}
+                <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/20">
+                  <span className="text-xs text-[#F3ECD8]/85 tracking-wider">🌧️ 雨音 (環境音)</span>
+                  <button
+                    onClick={toggleRainManually}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${isPlayingRain ? 'bg-[#A46D37] text-[#F3ECD8] border-[#BB8632]' : 'bg-[#3B1218] text-[#F3ECD8]/60 border-[#BB8632]/40'}`}
+                  >
+                    {isPlayingRain ? '再生中 (ON)' : '停止中 (OFF)'}
+                  </button>
+                </div>
               </div>
 
             </div>
