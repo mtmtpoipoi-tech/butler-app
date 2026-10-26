@@ -17,31 +17,31 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: '「雨音を聞きながら、まずは肩の力を抜いて25分間だけ私と一緒に集中いたしましょう。」',
+    butlerMessage: '「まずは肩の力を抜いて、25分間だけ私と一緒に集中いたしましょう。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '「50分の本格的な集中ですね。静かな雨の調べの中、主様の背中を見守っております。」',
+    butlerMessage: '「50分の本格的な集中ですね。主様の背中、私が見守っております。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間の長丁場です。雨音をBGMに、マイペースに進めてくださいね。」',
+    butlerMessage: '「1時間の長丁場です。無理をなさらず、マイペースに進めてくださいね。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間半ですね。雨の潤いを感じながら、水分補給も忘れずにどうぞ。」',
+    butlerMessage: '「1時間半ですね。途中で水分補給も忘れないようにお願いいたします。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。雨の静寂の中、喜んでお供させていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
   },
 };
 
@@ -78,11 +78,15 @@ export default function TimerPage() {
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
+  // 🎬 画面切替用の暗転フェードアニメーション用ステート
+  const [isFadingToBlack, setIsFadingToBlack] = useState<boolean>(false);
+
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   
-  // 🌧️ 雨音の状態管理
-  const [isPlayingRain, setIsPlayingRain] = useState<boolean>(true);
+  // 🌧️ 雨音の状態 ＆ 天気状態
+  const [isPlayingRain, setIsPlayingRain] = useState<boolean>(false);
+  const [weatherText, setWeatherText] = useState<string>('お天気確認中...');
 
   // 📋 「本日の作業」モーダル用
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
@@ -102,7 +106,7 @@ export default function TimerPage() {
   ];
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const rainAudioRef = useRef<HTMLAudioElement | null>(null); // 🌧️ 雨音用ref
+  const rainAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const getTodayLocalDateStr = () => {
     const now = new Date();
@@ -111,6 +115,53 @@ export default function TimerPage() {
     const date = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${date}`;
   };
+
+  // 🌤️ お天気（Open-Meteo API等を使用し、位置情報から自動判定）
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+            const data = await res.json();
+            const weatherCode = data.current_weather?.weathercode;
+            
+            // WMO Weather interpretation codes
+            // 0: 晴れ, 1,2,3: 曇り, 51-99: 雨・雪など
+            let isRainOrCloudy = false;
+            let desc = '晴れ';
+
+            if (weatherCode === 0) {
+              isRainOrCloudy = false;
+              desc = '晴れ';
+            } else if (weatherCode >= 1 && weatherCode <= 3) {
+              isRainOrCloudy = true; // 曇りも雨音ON対象
+              desc = '曇り';
+            } else if (weatherCode >= 51) {
+              isRainOrCloudy = true; // 雨
+              desc = '雨';
+            } else {
+              isRainOrCloudy = false;
+              desc = '晴れ/不明';
+            }
+
+            setWeatherText(desc);
+            setIsPlayingRain(isRainOrCloudy); // ☁️雨・曇りは自動ON、☀️晴れは自動OFF
+          } catch (e) {
+            setWeatherText('晴れ (デフォルト)');
+            setIsPlayingRain(false);
+          }
+        },
+        () => {
+          setWeatherText('晴れ (位置情報オフ)');
+          setIsPlayingRain(false); // 位置情報不可の場合は晴れ（OFF）をデフォルトに
+        }
+      );
+    } else {
+      setIsPlayingRain(false);
+    }
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);
@@ -206,7 +257,6 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🎵 BGM再生
   const playBgm = () => {
     if (audioRef.current) {
       audioRef.current.volume = 1.0;
@@ -226,10 +276,9 @@ export default function TimerPage() {
     setIsPlayingBgm(false);
   };
 
-  // 🌧️ 雨音再生
   const playRain = () => {
     if (rainAudioRef.current) {
-      rainAudioRef.current.volume = 0.8; // 好みに応じて音量調整可能
+      rainAudioRef.current.volume = 0.8;
       rainAudioRef.current.play().then(() => {
         setIsPlayingRain(true);
       }).catch((err) => {
@@ -260,7 +309,6 @@ export default function TimerPage() {
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
     stopBgm();
-    stopRain();
   }, [currentMode]);
 
   useEffect(() => {
@@ -338,15 +386,31 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // 🎬 暗転フェードを伴う集中開始・停止の切り替え
   const toggleTimer = () => {
     if (!isRunning) {
-      setIsRunning(true);
-      playBgm();
-      playRain(); // 🌧️ タイマー開始とともに雨音も自動再生
+      // 1. 暗転フェード開始（黒くする）
+      setIsFadingToBlack(true);
+      setTimeout(() => {
+        setIsRunning(true);
+        playBgm();
+        // 天気が曇りか雨の場合のみ、自動で雨音も再生開始
+        if (weatherText.includes('雨') || weatherText.includes('曇り')) {
+          playRain();
+        }
+        // 2. 画面が黒から新しい景色へフェードイン
+        setIsFadingToBlack(false);
+      }, 400); // 0.4秒の暗転時間
     } else {
-      setIsRunning(false);
-      stopBgm();
-      stopRain();
+      // 1. 暗転フェード開始
+      setIsFadingToBlack(true);
+      setTimeout(() => {
+        setIsRunning(false);
+        stopBgm();
+        stopRain();
+        // 2. 元の通常画面へフェードイン
+        setIsFadingToBlack(false);
+      }, 400);
     }
   };
 
@@ -369,12 +433,16 @@ export default function TimerPage() {
   };
 
   const handleReset = () => {
-    setIsRunning(false);
-    setIsBreak(false);
-    setTimeLeft(MODES[currentMode].workSeconds);
-    setMessage(MODES[currentMode].butlerMessage);
-    stopBgm();
-    stopRain();
+    setIsFadingToBlack(true);
+    setTimeout(() => {
+      setIsRunning(false);
+      setIsBreak(false);
+      setTimeLeft(MODES[currentMode].workSeconds);
+      setMessage(MODES[currentMode].butlerMessage);
+      stopBgm();
+      stopRain();
+      setIsFadingToBlack(false);
+    }, 400);
   };
 
   const renderActivitySummary = () => {
@@ -441,16 +509,18 @@ export default function TimerPage() {
       <audio ref={rainAudioRef} src="/source-2.mp4" loop preload="auto" />
 
       <div
-        className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-all duration-700 ease-in-out"
+        className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: isRunning ? "url('/window-forest.jpg')" : "url('/485142.jpg')" }}
       >
         <div className={`absolute inset-0 pointer-events-none transition-all duration-700 ease-in-out ${isRunning ? 'bg-black/10' : 'bg-black/40 backdrop-blur-[1px]'}`} />
         
-        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
+        {/* 🎬 一度画面が黒くなってから切り替わる暗転フェードオーバーレイ */}
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-400 ease-in-out ${isFadingToBlack ? 'opacity-100' : 'opacity-0'}`} />
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-400 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         {/* 🌟 【集中開始中（isRunning === true）の画面】 */}
         {isRunning ? (
-          <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8 animate-[fadeIn_0.8s_ease-in-out]">
+          <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8">
             
             <div className="absolute top-4 left-6 flex items-center gap-3">
               <button
@@ -461,7 +531,7 @@ export default function TimerPage() {
               </button>
             </div>
 
-            <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl transition-all duration-500">
+            <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
               <p className="text-sm sm:text-base leading-relaxed text-[#F3ECD8] font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 {message}
               </p>
@@ -505,9 +575,9 @@ export default function TimerPage() {
                 </button>
               </div>
 
-              {/* 🌧️ 雨音専用のON/OFFボタン */}
+              {/* 🌧️ 天気連動・手動切替可能な雨音ボタン */}
               <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/30">
-                <span className="text-xs text-[#F3ECD8] tracking-wider">🌧️ 雨音 (環境音)</span>
+                <span className="text-xs text-[#F3ECD8] tracking-wider">🌧️ 雨音 ({weatherText})</span>
                 <button
                   onClick={toggleRainManually}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${isPlayingRain ? 'bg-[#A46D37] text-[#F3ECD8] border-[#BB8632]' : 'bg-black/50 text-[#F3ECD8]/60 border-[#BB8632]/40'}`}
@@ -520,7 +590,7 @@ export default function TimerPage() {
           </div>
         ) : (
           /* 🌟 【通常時（設定・選択画面）】 */
-          <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-[fadeIn_0.8s_ease-in-out]">
+          <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="w-full mb-3 flex justify-between items-center">
               <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
                 ← エントランスへ
@@ -634,7 +704,7 @@ export default function TimerPage() {
 
                 {/* 🌧️ 通常時用 雨音ボタン */}
                 <div className="flex items-center justify-between px-2 pt-1 border-t border-[#BB8632]/20">
-                  <span className="text-xs text-[#F3ECD8]/85 tracking-wider">🌧️ 雨音 (環境音)</span>
+                  <span className="text-xs text-[#F3ECD8]/85 tracking-wider">🌧️ 雨音 ({weatherText})</span>
                   <button
                     onClick={toggleRainManually}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${isPlayingRain ? 'bg-[#A46D37] text-[#F3ECD8] border-[#BB8632]' : 'bg-[#3B1218] text-[#F3ECD8]/60 border-[#BB8632]/40'}`}
@@ -650,7 +720,7 @@ export default function TimerPage() {
 
         {/* 📋 「本日の作業」手帳モーダル */}
         {isScheduleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-[fadeIn_0.3s_ease-in-out]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
               
               <div className="flex justify-between items-center border-b border-[#BB8632]/40 pb-3 mb-4">
