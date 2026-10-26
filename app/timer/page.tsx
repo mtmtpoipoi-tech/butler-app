@@ -201,7 +201,7 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  // 🎵 確実かつスムーズなBGM再生（フェードイン・アウト対応）
+  // 🎵 BGM再生関数
   const playBgm = () => {
     if (audioRef.current) {
       audioRef.current.volume = 1.0;
@@ -303,10 +303,11 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // 🌟 集中開始・一時停止ボタン
   const toggleTimer = () => {
     if (!isRunning) {
       setIsRunning(true);
-      playBgm();
+      playBgm(); // ◀ ここで確実にBGMを再生！
     } else {
       setIsRunning(false);
       stopBgm();
