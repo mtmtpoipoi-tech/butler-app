@@ -41,7 +41,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を, 喜んでさせていただきます。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様のお供を、喜んでさせていただきます。」',
   },
 };
 
@@ -81,6 +81,7 @@ export default function TimerPage() {
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
   const [isPlayingBgm, setIsPlayingBgm] = useState<boolean>(false);
   
+  // 📋 「本日の作業」モーダル用
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   const [activityLogs, setActivityLogs] = useState<Record<string, Record<string, number>>>({});
   const [memoText, setMemoText] = useState<string>('');
@@ -177,12 +178,11 @@ export default function TimerPage() {
 
   const handleNavigateHome = (e: React.MouseEvent) => {
     e.preventDefault();
-    stopBgmWithFadeOut(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        router.push('/');
-      }, 400);
-    });
+    if (audioRef.current) audioRef.current.pause();
+    setIsTransitioning(true);
+    setTimeout(() => {
+      router.push('/');
+    }, 300);
   };
 
   const playCountdownAudio = () => {
@@ -201,49 +201,24 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  const playBgmWithFadeIn = () => {
+  // 🎵 確実かつスムーズなBGM再生（フェードイン・アウト対応）
+  const playBgm = () => {
     if (audioRef.current) {
-      audioRef.current.volume = 0;
+      audioRef.current.volume = 1.0;
       audioRef.current.play().then(() => {
         setIsPlayingBgm(true);
-        let vol = 0;
-        const fadeInInterval = setInterval(() => {
-          vol += 0.05;
-          if (vol >= 1) {
-            if (audioRef.current) audioRef.current.volume = 1;
-            clearInterval(fadeInInterval);
-          } else {
-            if (audioRef.current) audioRef.current.volume = vol;
-          }
-        }, 150);
-      }).catch(() => {});
+      }).catch((err) => {
+        console.log('BGM play blocked or error:', err);
+      });
     }
   };
 
-  const stopBgmWithFadeOut = (onComplete?: () => void) => {
-    if (audioRef.current && isPlayingBgm) {
-      let vol = audioRef.current.volume;
-      const fadeOutInterval = setInterval(() => {
-        vol -= 0.05;
-        if (vol <= 0) {
-          if (audioRef.current) {
-            audioRef.current.volume = 0;
-            audioRef.current.pause();
-          }
-          setIsPlayingBgm(false);
-          clearInterval(fadeOutInterval);
-          if (onComplete) onComplete();
-        } else {
-          if (audioRef.current) audioRef.current.volume = vol;
-        }
-      }, 150);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      setIsPlayingBgm(false);
-      if (onComplete) onComplete();
+  const stopBgm = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
+    setIsPlayingBgm(false);
   };
 
   useEffect(() => {
@@ -251,7 +226,7 @@ export default function TimerPage() {
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
-    stopBgmWithFadeOut();
+    stopBgm();
   }, [currentMode]);
 
   useEffect(() => {
@@ -262,7 +237,14 @@ export default function TimerPage() {
       }
 
       timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+
         if (!isBreak) {
           const curLifetime = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String((isNaN(curLifetime) ? 0 : curLifetime) + 1));
@@ -298,7 +280,7 @@ export default function TimerPage() {
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       playFinishAudio();
-      stopBgmWithFadeOut();
+      stopBgm();
 
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
@@ -313,7 +295,7 @@ export default function TimerPage() {
       }
     }
     return () => clearInterval(timer);
-  }, [isRunning, timeLeft, isBreak, currentMode, isPlayingBgm, selectedActivity]);
+  }, [isRunning, timeLeft, isBreak, currentMode, selectedActivity]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -324,18 +306,18 @@ export default function TimerPage() {
   const toggleTimer = () => {
     if (!isRunning) {
       setIsRunning(true);
-      playBgmWithFadeIn();
+      playBgm();
     } else {
       setIsRunning(false);
-      stopBgmWithFadeOut();
+      stopBgm();
     }
   };
 
   const toggleBgmManually = () => {
     if (isPlayingBgm) {
-      stopBgmWithFadeOut();
+      stopBgm();
     } else {
-      playBgmWithFadeIn();
+      playBgm();
     }
   };
 
@@ -344,7 +326,7 @@ export default function TimerPage() {
     if (audioRef.current) {
       audioRef.current.src = newFile;
       if (isPlayingBgm || isRunning) {
-        playBgmWithFadeIn();
+        playBgm();
       }
     }
   };
@@ -354,7 +336,7 @@ export default function TimerPage() {
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
-    stopBgmWithFadeOut();
+    stopBgm();
   };
 
   const renderActivitySummary = () => {
@@ -416,14 +398,14 @@ export default function TimerPage() {
         .gothic-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4); }
       `}</style>
 
-      <audio ref={audioRef} src={selectedBgm} loop />
+      <audio ref={audioRef} src={selectedBgm} loop preload="auto" />
 
       <div
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: "url('/485142.jpg')" }}
       >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-300 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           <div className="w-full mb-3 flex justify-between items-center">
@@ -643,7 +625,7 @@ export default function TimerPage() {
                   </div>
                 </div>
 
-                {/* 右：Time schedule（作業の足跡） */}
+                {/* 右：Time schedule */}
                 <div className="lg:col-span-6 bg-[#23090E] p-3.5 rounded-xl border border-[#BB8632]/30 max-h-[380px] overflow-y-auto">
                   <div className="border-b border-[#BB8632]/40 pb-2 mb-3 sticky top-0 bg-[#23090E] z-10 flex justify-between items-center">
                     <span className="text-xs font-bold text-[#BB8632] tracking-wider">🕒 Time schedule (作業の足跡)</span>
@@ -654,10 +636,9 @@ export default function TimerPage() {
                     {hours.map((h) => {
                       const hourLogs = activityLogs[h] || {};
                       
-                      // 🌟 混入していた古い不正データ（"minutes"キーなど）を完全除外しつつ、正常な活動名ごとに秒数を合算
                       const mergedLogs: Record<string, number> = {};
                       Object.entries(hourLogs).forEach(([act, secs]) => {
-                        if (!act || act.includes('minutes') || act.includes('NaN')) return; // 不正なキーを排除
+                        if (!act || act.includes('minutes') || act.includes('NaN')) return;
                         const safeSecs = Number(secs) || 0;
                         mergedLogs[act] = (mergedLogs[act] || 0) + safeSecs;
                       });
