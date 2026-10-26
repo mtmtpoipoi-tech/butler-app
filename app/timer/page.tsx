@@ -1,8 +1,6 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 
 type TimerMode = 'pomodoro25' | 'deep50' | 'min60' | 'min90' | 'min180';
@@ -61,6 +59,10 @@ interface TodoItem {
   ok: boolean;
 }
 
+const getLocalDateStr = (d: Date = new Date()) => {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export default function TimerPage() {
   const router = useRouter();
   const [currentMode, setCurrentMode] = useState<TimerMode>('pomodoro25');
@@ -76,14 +78,8 @@ export default function TimerPage() {
   const [isFadingToBlack, setIsFadingToBlack] = useState<boolean>(false);
 
   const [selectedBgm, setSelectedBgm] = useState<string>(BGM_LIST[0].file);
-
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   
-  const getLocalDateStr = (d: Date = new Date()) => {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
-
-  // 初期値は空文字にし、ビルド時のエラーを確実に回避
   const [viewDateStr, setViewDateStr] = useState<string>('');
   
   const [allActivitySeconds, setAllActivitySeconds] = useState<Record<string, Record<string, number>>>({});
