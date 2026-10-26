@@ -403,106 +403,55 @@ export default function TimerPage() {
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: "url('/window-forest.jpg')" }}
       >
-        {/* 絵の雰囲気を引き立てるための上品な暗幕オーバーレイ */}
-        <div className="absolute inset-0 bg-black/35 backdrop-blur-[0.5px]" />
+        {/* 枠や赤い塗りつぶしは完全になくし、窓の景色が綺麗に見えるように最小限の薄い影のみ配置 */}
+        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-300 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
-        <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-          <div className="w-full mb-3 flex justify-between items-center">
-            <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
-              ← エントランスへ
-            </a>
-            <button onClick={() => setIsScheduleModalOpen(true)} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
-              📋 本日の作業
-            </button>
-          </div>
-
-          <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-            <p className="text-base font-bold tracking-widest">{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
-          </div>
-
-          <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-            <p className="text-xs font-semibold mb-1 tracking-wider opacity-80">執事からの言葉</p>
-            <p className="text-base leading-relaxed">{message}</p>
-          </div>
-
-          <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.9)', border: '1px solid #BB8632' }}>
-            <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績</span>
-            <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderActivitySummary() : '0分'}</span>
-          </div>
-
-          <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
-            <h1 className="text-2xl font-bold mb-1 tracking-wide">{isBreak ? '休憩時間' : MODES[currentMode].name}</h1>
-            <p className="text-xs mb-4 tracking-wider opacity-70">{isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}</p>
-
-            {!isBreak && (
-              <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
-                <span className="text-xs text-[#BB8632] mr-1">内容:</span>
-                {ACTIVITY_LIST.map((activity) => {
-                  const isSelected = selectedActivity === activity;
-                  return (
-                    <button
-                      key={activity}
-                      onClick={() => setSelectedActivity(activity)}
-                      className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
-                      style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}
-                    >
-                      {activity}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-              {formatTime(timeLeft)}
-            </div>
-
-            <div className="flex justify-center space-x-4 mb-8">
+        {/* 🌟 【集中開始中（isRunning === true）の画面】窓の景色の上に数字が直接乗る優雅なビュー */}
+        {isRunning ? (
+          <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8">
+            
+            {/* 上部の控えめなナビゲーション */}
+            <div className="absolute top-4 left-6 flex items-center gap-3">
               <button
                 onClick={toggleTimer}
-                className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
-                style={{ background: isRunning ? 'linear-gradient(180deg, #6B212B 0%, #4A171F 100%)' : 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                className="px-4 py-1.5 rounded-lg text-xs font-bold text-[#F3ECD8] bg-black/50 hover:bg-black/70 border border-[#BB8632]/60 backdrop-blur-md cursor-pointer shadow-lg transition"
               >
-                {isRunning ? '一時停止' : (isBreak ? '休憩開始' : `${selectedActivity}開始`)}
-              </button>
-              <button
-                onClick={handleReset}
-                className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
-                style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}
-              >
-                リセット
+                ⏸ 一時停止して設定へ戻る
               </button>
             </div>
 
-            <div className="border-t pt-6 mb-6" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
-              <p className="text-xs mb-3 text-left tracking-wider opacity-70">モード選択</p>
-              <div className="grid grid-cols-1 gap-2.5">
-                {(Object.keys(MODES) as TimerMode[]).map((modeKey) => {
-                  const isSelected = currentMode === modeKey && !isBreak;
-                  return (
-                    <button
-                      key={modeKey}
-                      onClick={() => setCurrentMode(modeKey)}
-                      className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
-                      style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}
-                    >
-                      {MODES[modeKey].name}
-                    </button>
-                  );
-                })}
+            {/* 執事からの言葉（ふんわりと配置） */}
+            <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
+              <p className="text-sm sm:text-base leading-relaxed text-[#F3ECD8] font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                {message}
+              </p>
+            </div>
+
+            {/* 窓の景色の上に直接浮かび上がる時計と残り時間 */}
+            <div className="my-6">
+              <p className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] mb-2">
+                {dateTimeStr || '----年--月--日 (-) --:--:--'}
+              </p>
+              
+              <div className="text-7xl sm:text-9xl font-extrabold tracking-widest text-[#F3ECD8] drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] my-4 font-serif">
+                {formatTime(timeLeft)}
               </div>
+              
+              <p className="text-sm sm:text-base tracking-widest text-[#BB8632] font-bold drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+                現在取り組中：{selectedActivity}
+              </p>
             </div>
 
-            <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
+            {/* BGM変更・停止コントローラー（集中画面でも操作可能） */}
+            <div className="mt-12 w-full max-w-xs rounded-2xl p-3 backdrop-blur-md flex items-center justify-between gap-2 bg-black/50 border border-[#BB8632]/50 shadow-2xl">
               <select
                 value={selectedBgm}
                 onChange={(e) => handleBgmChange(e.target.value)}
-                className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
-                style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                className="text-xs rounded-xl px-2 py-1.5 outline-none cursor-pointer flex-1 bg-black/70 text-[#F3ECD8] border border-[#BB8632]/50"
               >
                 {BGM_LIST.map((bgm) => (
-                  <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
+                  <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#1A070B', color: '#F3ECD8' }}>
                     {bgm.name}
                   </option>
                 ))}
@@ -510,16 +459,130 @@ export default function TimerPage() {
 
               <button
                 onClick={toggleBgmManually}
-                className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
-                style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                className="w-9 h-9 rounded-xl text-xs font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer bg-[#A46D37] text-[#F3ECD8] hover:brightness-110 shadow-md"
                 title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
               >
-                <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
+                <span className="font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
               </button>
             </div>
 
           </div>
-        </div>
+        ) : (
+          /* 🌟 【通常時（設定・選択画面）】 */
+          <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+            <div className="w-full mb-3 flex justify-between items-center">
+              <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/90 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer shadow-md">
+                ← エントランスへ
+              </a>
+              <button onClick={() => setIsScheduleModalOpen(true)} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/95 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
+                📋 本日の作業
+              </button>
+            </div>
+
+            <div className="w-full rounded-2xl px-5 py-3 mb-4 shadow-2xl backdrop-blur-md text-center" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+              <p className="text-base font-bold tracking-widest">{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
+            </div>
+
+            <div className="w-full rounded-2xl p-4 mb-4 shadow-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+              <p className="text-xs font-semibold mb-1 tracking-wider opacity-80">執事からの言葉</p>
+              <p className="text-base leading-relaxed">{message}</p>
+            </div>
+
+            <div className="w-full rounded-2xl px-5 py-3 mb-6 shadow-2xl backdrop-blur-md flex flex-col gap-1.5" style={{ backgroundColor: 'rgba(86, 27, 36, 0.92)', border: '1px solid #BB8632' }}>
+              <span className="text-xs font-semibold tracking-wider opacity-80">本日の集中実績</span>
+              <span className="text-sm font-bold tracking-wide text-[#BB8632]">{isMounted ? renderActivitySummary() : '0分'}</span>
+            </div>
+
+            <div className="w-full rounded-3xl p-8 shadow-2xl text-center backdrop-blur-md" style={{ backgroundColor: 'rgba(86, 27, 36, 0.94)', border: '1px solid #BB8632' }}>
+              <h1 className="text-2xl font-bold mb-1 tracking-wide">{isBreak ? '休憩時間' : MODES[currentMode].name}</h1>
+              <p className="text-xs mb-4 tracking-wider opacity-70">{isBreak ? '次のセッションに向けてリラックスしてください' : '主様の集中をサポートいたします'}</p>
+
+              {!isBreak && (
+                <div className="mb-6 flex justify-center items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-[#BB8632] mr-1">内容:</span>
+                  {ACTIVITY_LIST.map((activity) => {
+                    const isSelected = selectedActivity === activity;
+                    return (
+                      <button
+                        key={activity}
+                        onClick={() => setSelectedActivity(activity)}
+                        className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
+                        style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}
+                      >
+                        {activity}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="text-5xl font-extrabold tracking-widest mb-8 drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+                {formatTime(timeLeft)}
+              </div>
+
+              <div className="flex justify-center space-x-4 mb-8">
+                <button
+                  onClick={toggleTimer}
+                  className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
+                  style={{ background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                >
+                  {isBreak ? '休憩開始' : `${selectedActivity}開始`}
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
+                  style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}
+                >
+                  リセット
+                </button>
+              </div>
+
+              <div className="border-t pt-6 mb-6" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
+                <p className="text-xs mb-3 text-left tracking-wider opacity-70">モード選択</p>
+                <div className="grid grid-cols-1 gap-2.5">
+                  {(Object.keys(MODES) as TimerMode[]).map((modeKey) => {
+                    const isSelected = currentMode === modeKey && !isBreak;
+                    return (
+                      <button
+                        key={modeKey}
+                        onClick={() => setCurrentMode(modeKey)}
+                        className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
+                        style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}
+                      >
+                        {MODES[modeKey].name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="w-full rounded-2xl p-3 shadow-inner backdrop-blur-md flex items-center justify-between gap-2 border-t pt-4" style={{ borderColor: 'rgba(187, 134, 50, 0.3)' }}>
+                <select
+                  value={selectedBgm}
+                  onChange={(e) => handleBgmChange(e.target.value)}
+                  className="text-sm rounded-xl px-3 py-2 outline-none cursor-pointer flex-1"
+                  style={{ backgroundColor: '#3B1218', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                >
+                  {BGM_LIST.map((bgm) => (
+                    <option key={bgm.id} value={bgm.file} style={{ backgroundColor: '#3B1218', color: '#F3ECD8' }}>
+                      {bgm.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={toggleBgmManually}
+                  className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
+                  style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
+                  title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
+                >
+                  <span className="text-base font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* 📋 「本日の作業」手帳モーダル */}
         {isScheduleModalOpen && (
