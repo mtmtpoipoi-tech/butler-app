@@ -182,7 +182,7 @@ export default function TimerPage() {
     setIsTransitioning(true);
     setTimeout(() => {
       router.push('/');
-    }, 300);
+    }, 400);
   };
 
   const playCountdownAudio = () => {
@@ -399,22 +399,19 @@ export default function TimerPage() {
 
       <audio ref={audioRef} src={selectedBgm} loop preload="auto" />
 
+      {/* 🌟 背景やコンテンツ全体を「transition-all duration-700 ease-in-out」でフワッと切り替え */}
       <div
-        className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
+        className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8] transition-all duration-700 ease-in-out"
         style={{ backgroundImage: isRunning ? "url('/window-forest.jpg')" : "url('/485142.jpg')" }}
       >
-        {/* 通常時は暗幕を置き、集中中(isRunning)は窓の景色が綺麗に見えるようにする */}
-        {isRunning ? (
-          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-        ) : (
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-        )}
+        {/* 通常時は暗幕を置き、集中中(isRunning)は窓の景色が綺麗に映えるようにフワッと馴染ませる */}
+        <div className={`absolute inset-0 pointer-events-none transition-all duration-700 ease-in-out ${isRunning ? 'bg-black/10' : 'bg-black/40 backdrop-blur-[1px]'}`} />
         
-        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-300 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
+        <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
-        {/* 🌟 【集中開始中（isRunning === true）の画面】窓の景色の上に数字が直接乗る優雅なビュー */}
+        {/* 🌟 【集中開始中（isRunning === true）の画面】フワッと現れる優雅な集中ビュー */}
         {isRunning ? (
-          <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8">
+          <div className="relative z-10 w-full max-w-lg flex flex-col items-center text-center px-4 py-8 animate-[fadeIn_0.8s_ease-in-out]">
             
             <div className="absolute top-4 left-6 flex items-center gap-3">
               <button
@@ -425,7 +422,7 @@ export default function TimerPage() {
               </button>
             </div>
 
-            <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
+            <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl transition-all duration-500">
               <p className="text-sm sm:text-base leading-relaxed text-[#F3ECD8] font-serif drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 {message}
               </p>
@@ -469,8 +466,8 @@ export default function TimerPage() {
 
           </div>
         ) : (
-          /* 🌟 【通常時（設定・選択画面）】元の背景（485142.jpg）に戻る */
-          <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+          /* 🌟 【通常時（設定・選択画面）】フワッと戻る通常のビュー */
+          <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-[fadeIn_0.8s_ease-in-out]">
             <div className="w-full mb-3 flex justify-between items-center">
               <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
                 ← エントランスへ
@@ -587,7 +584,7 @@ export default function TimerPage() {
 
         {/* 📋 「本日の作業」手帳モーダル */}
         {isScheduleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-[fadeIn_0.3s_ease-in-out]">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6 shadow-2xl border bg-[#2B0C12] border-[#BB8632] text-[#F3ECD8] relative">
               
               <div className="flex justify-between items-center border-b border-[#BB8632]/40 pb-3 mb-4">
