@@ -114,7 +114,7 @@ export default function TimerPage() {
     return `${year}-${month}-${date}`;
   };
 
-  // 🌤️ お天気自動判定
+  // 🌤️ お天気自動判定（曇り・雨なら初期状態で雨音ON）
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -252,49 +252,18 @@ export default function TimerPage() {
     } catch (e) {}
   };
 
-  const playBgm = () => {
-    if (audioRef.current) {
-      audioRef.current.volume = 1.0;
-      audioRef.current.play().then(() => {
-        setIsPlayingBgm(true);
-      }).catch((err) => {});
-    }
-  };
-
-  const stopBgm = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    setIsPlayingBgm(false);
-  };
-
-  // 🌧️ 雨音の再生・停止を完全に同期させる関数
-  const playRain = () => {
-    if (rainAudioRef.current) {
-      rainAudioRef.current.volume = 0.8;
-      rainAudioRef.current.play().then(() => {
-        setIsPlayingRain(true);
-      }).catch((err) => {
-        console.log('Rain play restricted:', err);
-      });
-    }
-  };
-
-  const stopRain = () => {
-    if (rainAudioRef.current) {
-      rainAudioRef.current.pause();
-      rainAudioRef.current.currentTime = 0;
-    }
-    setIsPlayingRain(false);
-  };
-
-  // 🌧️ ボタンによる手動ON/OFF切り替え（確実に音を鳴らす/止める）
+  // 🌧️ 雨音の手動ON/OFF切り替え（DOM要素を直接操作して確実に鳴らす・止める）
   const toggleRainManually = () => {
-    if (isPlayingRain) {
-      stopRain();
-    } else {
-      playRain();
+    if (rainAudioRef.current) {
+      if (rainAudioRef.current.paused) {
+        rainAudioRef.current.volume = 0.8;
+        rainAudioRef.current.play()
+          .then(() => setIsPlayingRain(true))
+          .catch((err) => console.log('Rain play error:', err));
+      } else {
+        rainAudioRef.current.pause();
+        setIsPlayingRain(false);
+      }
     }
   };
 
@@ -303,7 +272,11 @@ export default function TimerPage() {
     setIsBreak(false);
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
-    stopBgm();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlayingBgm(false);
   }, [currentMode]);
 
   useEffect(() => {
@@ -357,8 +330,15 @@ export default function TimerPage() {
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       playFinishAudio();
-      stopBgm();
-      stopRain();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlayingBgm(false);
+      if (rainAudioRef.current) {
+        rainAudioRef.current.pause();
+      }
+      setIsPlayingRain(false);
 
       if (isBreak) {
         setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
@@ -381,35 +361,55 @@ export default function TimerPage() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // 🎬 暗転フェード付きタイマー開始（雨音の状態も連動）
+  // 🎬 【超重要】クリック直後に同期して音声を再生・停止する（自動再生ブロック完全回避）
   const toggleTimer = () => {
     if (!isRunning) {
+      // ユーザーのクリック直後に即座に音声を再生
+      if (audioRef.current) {
+        audioRef.current.volume = 1.0;
+        audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
+      }
+      if (rainAudioRef.current && isPlayingRain) {
+        rainAudioRef.current.volume = 0.8;
+        rainAudioRef.current.play().then(() => setIsPlayingRain(true)).catch(() => {});
+      }
+
+      // 暗転フェード開始
       setIsFadingToBlack(true);
       setTimeout(() => {
         setIsRunning(true);
-        playBgm();
-        // 天気が雨か曇りの場合、雨音がONに設定されていれば再生
-        if ((weatherText === '雨' || weatherText === '曇り') && isPlayingRain) {
-          playRain();
-        }
         setIsFadingToBlack(false);
       }, 400);
     } else {
+      // 停止時：即座に音声を停止
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlayingBgm(false);
+
+      if (rainAudioRef.current) {
+        rainAudioRef.current.pause();
+      }
+      setIsPlayingRain(false);
+
       setIsFadingToBlack(true);
       setTimeout(() => {
         setIsRunning(false);
-        stopBgm();
-        stopRain(); // 停止時は雨音も止める
         setIsFadingToBlack(false);
       }, 400);
     }
   };
 
   const toggleBgmManually = () => {
-    if (isPlayingBgm) {
-      stopBgm();
-    } else {
-      playBgm();
+    if (audioRef.current) {
+      if (audioRef.current.paused) {
+        audioRef.current.volume = 1.0;
+        audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
+      } else {
+        audioRef.current.pause();
+        setIsPlayingBgm(false);
+      }
     }
   };
 
@@ -418,20 +418,28 @@ export default function TimerPage() {
     if (audioRef.current) {
       audioRef.current.src = newFile;
       if (isPlayingBgm || isRunning) {
-        playBgm();
+        audioRef.current.play().then(() => setIsPlayingBgm(true)).catch(() => {});
       }
     }
   };
 
   const handleReset = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlayingBgm(false);
+    if (rainAudioRef.current) {
+      rainAudioRef.current.pause();
+    }
+    setIsPlayingRain(false);
+
     setIsFadingToBlack(true);
     setTimeout(() => {
       setIsRunning(false);
       setIsBreak(false);
       setTimeLeft(MODES[currentMode].workSeconds);
       setMessage(MODES[currentMode].butlerMessage);
-      stopBgm();
-      stopRain();
       setIsFadingToBlack(false);
     }, 400);
   };
@@ -516,7 +524,8 @@ export default function TimerPage() {
             <div className="absolute top-4 left-6 flex items-center gap-3">
               <button
                 onClick={toggleTimer}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold text-[#F3ECD8] bg-black/50 hover:bg-black/70 border border-[#BB8632]/60 backdrop-blur-md cursor-pointer shadow-lg transition"
+                type="button"
+                className="px-4 py-1.5 rounded-lg text-xs font-bold text-[#F3ECD8] bg-black/50 hover:bg-black/70 border border-[#BB8632]/60 backdrop-blur-md cursor-pointer shadow-lg transition z-20"
               >
                 ⏸ 一時停止して設定へ戻る
               </button>
@@ -559,7 +568,8 @@ export default function TimerPage() {
 
                 <button
                   onClick={toggleBgmManually}
-                  className="w-9 h-9 rounded-xl text-xs font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer bg-[#A46D37] text-[#F3ECD8] hover:brightness-110 shadow-md"
+                  type="button"
+                  className="w-9 h-9 rounded-xl text-xs font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer bg-[#A46D37] text-[#F3ECD8] hover:brightness-110 shadow-md z-20"
                   title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
                 >
                   <span className="font-bold">{isPlayingBgm ? '❚❚' : '▶'}</span>
@@ -587,7 +597,7 @@ export default function TimerPage() {
               <a href="/" onClick={handleNavigateHome} className="text-xs text-[#BB8632] hover:underline flex items-center gap-1 bg-[#561B24]/80 px-3 py-1.5 rounded-lg border border-[#BB8632]/50 cursor-pointer">
                 ← エントランスへ
               </a>
-              <button onClick={() => setIsScheduleModalOpen(true)} className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
+              <button onClick={() => setIsScheduleModalOpen(true)} type="button" className="text-xs text-[#F3ECD8] font-bold hover:brightness-110 flex items-center gap-1 bg-[#A46D37]/90 px-3 py-1.5 rounded-lg border border-[#BB8632] shadow-lg cursor-pointer">
                 📋 本日の作業
               </button>
             </div>
@@ -619,6 +629,7 @@ export default function TimerPage() {
                       <button
                         key={activity}
                         onClick={() => setSelectedActivity(activity)}
+                        type="button"
                         className="px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
                         style={{ backgroundColor: isSelected ? '#BB8632' : '#3B1218', color: isSelected ? '#240A0E' : '#F3ECD8', border: '1px solid #BB8632', opacity: isSelected ? 1 : 0.8 }}
                       >
@@ -636,6 +647,7 @@ export default function TimerPage() {
               <div className="flex justify-center space-x-4 mb-8">
                 <button
                   onClick={toggleTimer}
+                  type="button"
                   className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
                   style={{ background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
                 >
@@ -643,6 +655,7 @@ export default function TimerPage() {
                 </button>
                 <button
                   onClick={handleReset}
+                  type="button"
                   className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer"
                   style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}
                 >
@@ -659,6 +672,7 @@ export default function TimerPage() {
                       <button
                         key={modeKey}
                         onClick={() => setCurrentMode(modeKey)}
+                        type="button"
                         className="gothic-btn w-full py-3 px-4 rounded-xl text-base font-medium text-left transition cursor-pointer"
                         style={{ background: isSelected ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', opacity: isSelected ? 1 : 0.8, border: isSelected ? '1px solid #BB8632' : '1px solid rgba(187, 134, 50, 0.3)' }}
                       >
@@ -686,6 +700,7 @@ export default function TimerPage() {
 
                   <button
                     onClick={toggleBgmManually}
+                    type="button"
                     className="gothic-btn w-11 h-11 rounded-xl text-sm font-semibold transition flex items-center justify-center flex-shrink-0 cursor-pointer"
                     style={{ background: isPlayingBgm ? 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)' : 'linear-gradient(180deg, #4A171F 100%, #351016 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}
                     title={isPlayingBgm ? 'BGMを停止' : 'BGMを再生'}
@@ -725,7 +740,7 @@ export default function TimerPage() {
                     <span className="font-bold text-[#F3ECD8] ml-1">({dateInfo.day})</span>
                   </div>
                 </div>
-                <button onClick={() => setIsScheduleModalOpen(false)} className="text-xs text-[#BB8632] hover:underline font-bold px-2.5 py-1.5 bg-[#3B1218] rounded-lg border border-[#BB8632]/50 cursor-pointer shrink-0">
+                <button onClick={() => setIsScheduleModalOpen(false)} type="button" className="text-xs text-[#BB8632] hover:underline font-bold px-2.5 py-1.5 bg-[#3B1218] rounded-lg border border-[#BB8632]/50 cursor-pointer shrink-0">
                   閉じる ✕
                 </button>
               </div>
@@ -781,11 +796,12 @@ export default function TimerPage() {
                             <span className={`text-xs text-[#F3ECD8] flex-1 break-all ${item.ok ? 'line-through opacity-50' : ''}`}>{item.content}</span>
                             <button
                               onClick={() => toggleTodoOk(idx)}
+                              type="button"
                               className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition cursor-pointer shrink-0 ${item.ok ? 'bg-[#BB8632] text-[#1A070B]' : 'bg-[#1A070B] text-[#BB8632] border border-[#BB8632]/50'}`}
                             >
                               {item.ok ? '✓' : ''}
                             </button>
-                            <button onClick={() => deleteTodo(idx)} className="text-[10px] text-red-400 hover:underline px-1 cursor-pointer opacity-60 hover:opacity-100 shrink-0">
+                            <button onClick={() => deleteTodo(idx)} type="button" className="text-[10px] text-red-400 hover:underline px-1 cursor-pointer opacity-60 hover:opacity-100 shrink-0">
                               ✕
                             </button>
                           </div>
@@ -878,6 +894,7 @@ export default function TimerPage() {
                     <button
                       key={star}
                       onClick={() => updateRating(star)}
+                      type="button"
                       className={`text-2xl cursor-pointer transition ${star <= rating ? 'text-[#BB8632]' : 'text-white/20'}`}
                     >
                       ★
