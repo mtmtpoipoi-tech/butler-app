@@ -48,7 +48,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
 const BGM_LIST = [
   { id: 'nyarupaka', name: '🌙 深い夜に浮かぶLoop (オルゴール)', file: '/nyarupaka.wav' },
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
-  { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
+  { id: 'departure', name: 'Departure / 메インBGM', file: '/Departure_7651.mp3' },
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
@@ -189,6 +189,9 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       try { new Audio('/dragon-studio-bell-ring-390294.mp3').play().catch(() => {}); } catch (e) {}
 
       if (isBreak) {
@@ -208,11 +211,21 @@ export default function TimerPage() {
 
   const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
+  // 🎵 タイマー開始時にBGM自動再生、停止時に一時停止する連動処理
   const toggleTimer = () => {
     setIsFadingToBlack(true);
     setTimeout(() => {
-      setIsRunning(!isRunning);
+      const nextRunning = !isRunning;
+      setIsRunning(nextRunning);
       setIsFadingToBlack(false);
+
+      if (audioRef.current) {
+        if (nextRunning) {
+          audioRef.current.play().catch(() => {});
+        } else {
+          audioRef.current.pause();
+        }
+      }
     }, 400);
   };
 
@@ -224,6 +237,10 @@ export default function TimerPage() {
       setTimeLeft(MODES[currentMode].workSeconds);
       setMessage(MODES[currentMode].butlerMessage);
       setIsFadingToBlack(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }, 400);
   };
 
