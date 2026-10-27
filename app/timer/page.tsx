@@ -61,12 +61,6 @@ interface TodoItem {
   ok: boolean;
 }
 
-// 🛠️ 安全な日付文字列生成関数
-const getSafeLocalDateStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
 export default function TimerPage() {
   const router = useRouter();
   const [currentMode, setCurrentMode] = useState<TimerMode>('pomodoro25');
@@ -104,9 +98,15 @@ export default function TimerPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // 🛠️ 完全に安全な日付文字列生成関数（コンポーネント内）
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     setIsMounted(true);
-    setViewDateStr(getSafeLocalDateStr());
+    setViewDateStr(getTodayStr());
 
     try {
       const sSecs = localStorage.getItem('butler_all_activity_seconds');
@@ -162,7 +162,7 @@ export default function TimerPage() {
         });
 
         if (!isBreak) {
-          const curTodayStr = getSafeLocalDateStr();
+          const curTodayStr = getTodayStr();
           const curLife = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String(curLife + 1));
 
@@ -227,7 +227,7 @@ export default function TimerPage() {
   };
 
   const renderTodaySummary = () => {
-    const curTodayStr = getSafeLocalDateStr();
+    const curTodayStr = getTodayStr();
     const obj = allActivitySeconds[curTodayStr] || {};
     const entries = Object.entries(obj).filter(([_, s]) => (Number(s) || 0) > 0);
     if (entries.length === 0) return '0分 (0秒)';
@@ -398,7 +398,7 @@ export default function TimerPage() {
                 <button onClick={toggleTimer} type="button" className="gothic-btn px-8 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #A46D37 0%, #8A5A2D 100%)', color: '#F3ECD8', border: '1px solid #BB8632' }}>
                   {isBreak ? '休憩開始' : `${selectedActivity}開始`}
                 </button>
-                <button onClick={handleReset} type="button" className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #3B1218 0%, #240A0E 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}>
+                <button onClick={handleReset} type="button" className="gothic-btn px-6 py-3 rounded-xl text-lg font-bold tracking-wider cursor-pointer" style={{ background: 'linear-gradient(180deg, #3B1218 0%, #2A0C11 100%)', color: '#F3ECD8', border: '1px solid rgba(187, 134, 50, 0.5)' }}>
                   リセット
                 </button>
               </div>
@@ -446,7 +446,7 @@ export default function TimerPage() {
                   <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1.5 rounded-lg border border-[#BB8632]">
                     <button onClick={() => handleShiftDateByDays(-2)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">一昨日</button>
                     <button onClick={() => handleShiftDateByDays(-1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">昨日</button>
-                    <button onClick={() => setViewDateStr(getSafeLocalDateStr())} type="button" className="text-xs bg-[#BB8632] text-[#1A070B] px-2.5 py-0.5 rounded font-bold hover:brightness-110 transition cursor-pointer">今日</button>
+                    <button onClick={() => setViewDateStr(getTodayStr())} type="button" className="text-xs bg-[#BB8632] text-[#1A070B] px-2.5 py-0.5 rounded font-bold hover:brightness-110 transition cursor-pointer">今日</button>
                   </div>
                 </div>
 
