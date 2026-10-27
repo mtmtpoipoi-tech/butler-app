@@ -150,6 +150,18 @@ export default function TimerPage() {
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
 
+  // 🎵 タイマーの開始（isRunning）やBGM変更とオーディオ再生を確実に同期させる
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (isRunning) {
+      audioRef.current.play().catch((err) => {
+        console.log("Autoplay was prevented:", err);
+      });
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isRunning, selectedBgm]);
+
   // タイマー稼働中の秒数カウント＆即時保存処理
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -190,9 +202,6 @@ export default function TimerPage() {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
       try { new Audio('/dragon-studio-bell-ring-390294.mp3').play().catch(() => {}); } catch (e) {}
 
       if (isBreak) {
@@ -212,21 +221,11 @@ export default function TimerPage() {
 
   const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
-  // タイマー開始時にBGM自動再生、停止時に一時停止する連動処理
   const toggleTimer = () => {
     setIsFadingToBlack(true);
     setTimeout(() => {
-      const nextRunning = !isRunning;
-      setIsRunning(nextRunning);
+      setIsRunning(!isRunning);
       setIsFadingToBlack(false);
-
-      if (audioRef.current) {
-        if (nextRunning) {
-          audioRef.current.play().catch(() => {});
-        } else {
-          audioRef.current.pause();
-        }
-      }
     }, 400);
   };
 
@@ -330,6 +329,9 @@ export default function TimerPage() {
         audio { height: 32px; border-radius: 8px; filter: invert(0.9) hue-rotate(180deg); width: 100%; }
       `}</style>
 
+      {/* 🎵 画面全体で常に音声を保持する共通の隠し/常駐オーディオ要素 */}
+      <audio ref={audioRef} src={selectedBgm} loop preload="auto" style={{ display: 'none' }} />
+
       <div
         className="min-h-screen flex flex-col items-center justify-center p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]"
         style={{ backgroundImage: isRunning ? "url('/window-forest.jpg')" : "url('/485142.jpg')" }}
@@ -367,7 +369,8 @@ export default function TimerPage() {
                 >
                   {BGM_LIST.map((b) => <option key={b.id} value={b.file}>{b.name}</option>)}
                 </select>
-                <audio ref={audioRef} src={selectedBgm} controls loop preload="auto" />
+                {/* 稼働中のコントロールバー */}
+                <audio src={selectedBgm} controls loop preload="auto" />
               </div>
             </div>
           </div>
@@ -454,7 +457,8 @@ export default function TimerPage() {
                 >
                   {BGM_LIST.map((b) => <option key={b.id} value={b.file}>{b.name}</option>)}
                 </select>
-                <audio ref={audioRef} src={selectedBgm} controls loop preload="auto" />
+                {/* 停止中のコントロールバー */}
+                <audio src={selectedBgm} controls loop preload="auto" />
               </div>
             </div>
           </div>
