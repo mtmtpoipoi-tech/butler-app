@@ -17,31 +17,31 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: '👤 「主様の努力の足跡は、一秒たりとも混ざり合うことなく、日付ごとに大切にお守りいたします。」',
+    butlerMessage: '「主様の努力の足跡は、一秒たりとも混ざり合うことなく、日付ごとに大切にお守りいたします。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '👤 「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
+    butlerMessage: '「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '👤 「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
+    butlerMessage: '「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '👤 「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
+    butlerMessage: '「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '👤 「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
+    butlerMessage: '「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
   },
 };
 
@@ -202,15 +202,15 @@ export default function TimerPage() {
       try { new Audio('/dragon-studio-bell-ring-390294.mp3').play().catch(() => {}); } catch (e) {}
 
       if (isBreak) {
-        setMessage('👤 「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
+        setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
         setTimeLeft(MODES[currentMode].workSeconds);
       } else if (MODES[currentMode].breakSeconds !== null) {
-        setMessage('👤 「お疲れ様でした！素晴らしい集中力です。少し休憩になさってください。」');
+        setMessage('「お疲れ様でした！素晴らしい集中力です。少し休憩になさってください。」');
         setIsBreak(true);
         setTimeLeft(MODES[currentMode].breakSeconds);
       } else {
-        setMessage('👤 「お疲れ様でした！見事な集中力でしたね。本当によく頑張りました。」');
+        setMessage('「お疲れ様でした！見事な集中力でしたね。本当によく頑張りました。」');
       }
     }
     return () => clearInterval(timer);
@@ -284,7 +284,7 @@ export default function TimerPage() {
       a.download = `butler_backup_${getTodayStr()}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      alert('👤 「主様の尊い記録のバックアップをダウンロードいたしました。これでいつでも安心です。」');
+      alert('「主様の尊い記録のバックアップをダウンロードいたしました。これでいつでも安心です。」');
     } catch (e) {
       alert('バックアップの作成に失敗しました。');
     }
@@ -312,7 +312,7 @@ export default function TimerPage() {
         setAllRatings(data.ratings ? JSON.parse(data.ratings) : {});
         setAllTodos(data.todos ? JSON.parse(data.todos) : {});
 
-        alert('👤 「主様の記録が完璧に復元されました！」');
+        alert('「主様の記録が完璧に復元されました！」');
       } catch (err) {
         alert('ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。');
       }
@@ -399,14 +399,14 @@ export default function TimerPage() {
               </button>
             </div>
 
-            <div className="mb-8 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
+            {/* 💬 ボタンと重ならないよう、上部に余白(mt-12など)を持たせて位置を下げました */}
+            <div className="mt-12 mb-6 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
               <p className="text-sm sm:text-base leading-relaxed text-[#F3ECD8] font-serif">{message}</p>
             </div>
 
             <div className="my-6">
               <p className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] mb-2">{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
               <div className="text-7xl sm:text-9xl font-extrabold tracking-widest text-[#F3ECD8] my-4 font-serif">{formatTime(timeLeft)}</div>
-              {/* 🎵 現在取り組中の文字色をタイマーと同じ #F3ECD8 に統一して見やすく改善 */}
               <p className="text-sm sm:text-base tracking-widest text-[#F3ECD8] font-bold">現在取り組中：{selectedActivity}</p>
             </div>
 
