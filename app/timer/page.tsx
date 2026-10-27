@@ -266,7 +266,6 @@ export default function TimerPage() {
     setViewDateStr(getTodayStr());
   };
 
-  // 🛡️ データのバックアップ（ファイルとしてダウンロード）
   const handleExportData = () => {
     try {
       const backupData = {
@@ -291,7 +290,6 @@ export default function TimerPage() {
     }
   };
 
-  // 🛡️ バックアップファイルからの復元
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -408,7 +406,8 @@ export default function TimerPage() {
             <div className="my-6">
               <p className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] mb-2">{dateTimeStr || '----年--月--日 (-) --:--:--'}</p>
               <div className="text-7xl sm:text-9xl font-extrabold tracking-widest text-[#F3ECD8] my-4 font-serif">{formatTime(timeLeft)}</div>
-              <p className="text-sm sm:text-base tracking-widest text-[#BB8632] font-bold">現在取り組中：{selectedActivity}</p>
+              {/* 🎵 現在取り組中の文字色をタイマーと同じ #F3ECD8 に統一して見やすく改善 */}
+              <p className="text-sm sm:text-base tracking-widest text-[#F3ECD8] font-bold">現在取り組中：{selectedActivity}</p>
             </div>
 
             <div className="mt-8 w-full max-w-sm rounded-2xl p-3.5 backdrop-blur-md flex flex-col gap-3 bg-black/70 border border-[#BB8632]/50 shadow-2xl z-20">
@@ -534,7 +533,6 @@ export default function TimerPage() {
                 </button>
               </div>
 
-              {/* 🛡️ バックアップ＆復元コントロールエリア */}
               <div className="mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/60 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div>
                   <p className="text-xs font-bold text-[#BB8632] mb-0.5">💾 データのバックアップと復元</p>
