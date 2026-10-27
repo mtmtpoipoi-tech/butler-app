@@ -17,38 +17,38 @@ const MODES: Record<TimerMode, ModeConfig> = {
     name: 'ポモドーロ (25分/5分)',
     workSeconds: 25 * 60,
     breakSeconds: 5 * 60,
-    butlerMessage: '「主様の努力の足跡は、一秒たりとも混ざり合うことなく、日付ごとに大切にお守りいたします。」',
+    butlerMessage: '👤 「主様の努力の足跡は、一秒たりとも混ざり合うことなく、日付ごとに大切にお守りいたします。」',
   },
   deep50: {
     name: 'ディープワーク (50分/10分)',
     workSeconds: 50 * 60,
     breakSeconds: 10 * 60,
-    butlerMessage: '「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
+    butlerMessage: '👤 「50分の本格的な集中ですね。主様の勉強時間、責任を持ってお守りいたします。」',
   },
   min60: {
     name: '60分 集中',
     workSeconds: 60 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
+    butlerMessage: '👤 「1時間の長丁場です。マイペースに、確実に積み上げていきましょう。」',
   },
   min90: {
     name: '90分 集中',
     workSeconds: 90 * 60,
     breakSeconds: null,
-    butlerMessage: '「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
+    butlerMessage: '👤 「1時間半ですね。途中の水分補給も忘れずになさってくださいね。」',
   },
   min180: {
     name: '180分 超集中',
     workSeconds: 180 * 60,
     breakSeconds: null,
-    butlerMessage: '「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
+    butlerMessage: '👤 「3時間……！大変な覚悟ですね。主様の歩みを全力でサポートいたします。」',
   },
 };
 
 const BGM_LIST = [
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
-  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/bell.mp3' }, // 安全な音声に変更
+  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/bell.mp3' },
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
@@ -101,24 +101,35 @@ export default function TimerPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  // 🛠️ 起動時にすべてのストレージキーからデータを安全に復元（旧キーの互換性も保持）
   useEffect(() => {
     setIsMounted(true);
-    setViewDateStr(getTodayStr());
+    const today = getTodayStr();
+    setViewDateStr(today);
 
     try {
-      const sSecs = localStorage.getItem('butler_all_activity_seconds');
-      if (sSecs) setAllActivitySeconds(JSON.parse(sSecs));
-      const sLogs = localStorage.getItem('butler_all_activity_detail_logs');
-      if (sLogs) setAllActivityLogs(JSON.parse(sLogs));
-      const sMemos = localStorage.getItem('butler_all_schedule_memos');
-      if (sMemos) setAllMemos(JSON.parse(sMemos));
-      const sImps = localStorage.getItem('butler_all_schedule_impressions');
-      if (sImps) setAllImpressions(JSON.parse(sImps));
-      const sRates = localStorage.getItem('butler_all_schedule_ratings');
-      if (sRates) setAllRatings(JSON.parse(sRates));
-      const sTodos = localStorage.getItem('butler_all_schedule_todos');
-      if (sTodos) setAllTodos(JSON.parse(sTodos));
-    } catch (e) {}
+      const loadSafe = (key: string) => {
+        const val = localStorage.getItem(key);
+        return val ? JSON.parse(val) : {};
+      };
+
+      // 各種データを徹底的にロード
+      const sSecs = loadSafe('butler_all_activity_seconds');
+      const sLogs = loadSafe('butler_all_activity_detail_logs');
+      const sMemos = loadSafe('butler_all_schedule_memos');
+      const sImps = loadSafe('butler_all_schedule_impressions');
+      const sRates = loadSafe('butler_all_schedule_ratings');
+      const sTodos = loadSafe('butler_all_schedule_todos');
+
+      setAllActivitySeconds(sSecs);
+      setAllActivityLogs(sLogs);
+      setAllMemos(sMemos);
+      setAllImpressions(sImps);
+      setAllRatings(sRates);
+      setAllTodos(sTodos);
+    } catch (e) {
+      console.error('データ復元エラー:', e);
+    }
   }, []);
 
   useEffect(() => {
@@ -146,6 +157,7 @@ export default function TimerPage() {
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
 
+  // 🛠️ タイマー稼働中の秒数カウント＆即時保存処理（データ保護強化）
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -188,15 +200,15 @@ export default function TimerPage() {
       try { new Audio('/dragon-studio-bell-ring-390294.mp3').play().catch(() => {}); } catch (e) {}
 
       if (isBreak) {
-        setMessage('「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
+        setMessage('👤 「休憩時間が終了しました。また一緒に頑張りましょう、主様。」');
         setIsBreak(false);
         setTimeLeft(MODES[currentMode].workSeconds);
       } else if (MODES[currentMode].breakSeconds !== null) {
-        setMessage('「お疲れ様でした！素晴らしい集中力です。少し休憩になさってください。」');
+        setMessage('👤 「お疲れ様でした！素晴らしい集中力です。少し休憩になさってください。」');
         setIsBreak(true);
         setTimeLeft(MODES[currentMode].breakSeconds);
       } else {
-        setMessage('「お疲れ様でした！見事な集中力でしたね。本当によく頑張りました。」');
+        setMessage('👤 「お疲れ様でした！見事な集中力でしたね。本当によく頑張りました。」');
       }
     }
     return () => clearInterval(timer);
@@ -236,7 +248,6 @@ export default function TimerPage() {
     }).join(' ');
   };
 
-  // 日付を移動する関数（基準日から加算・減算）
   const handleShiftDate = (daysOffset: number) => {
     if (!viewDateStr) return;
     const parts = viewDateStr.split('-').map(Number);
@@ -245,7 +256,6 @@ export default function TimerPage() {
     setViewDateStr(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
   };
 
-  // 今日へジャンプ
   const handleResetToToday = () => {
     setViewDateStr(getTodayStr());
   };
@@ -448,7 +458,6 @@ export default function TimerPage() {
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <h2 className="text-base sm:text-xl font-bold tracking-widest text-[#F3ECD8]">WORK LOG & SCHEDULE</h2>
                   
-                  {/* 日付切り替えボタン群（前日・翌日・今日） */}
                   <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1.5 rounded-lg border border-[#BB8632]">
                     <button onClick={() => handleShiftDate(-1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">◀ 前日</button>
                     <button onClick={handleResetToToday} type="button" className="text-xs bg-[#BB8632] text-[#1A070B] px-2.5 py-0.5 rounded font-bold hover:brightness-110 transition cursor-pointer">今日</button>
