@@ -98,15 +98,12 @@ export default function TimerPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 🛠️ 完全に安全な日付文字列生成関数（コンポーネント内）
-  const getTodayStr = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
-
+  // 初回レンダリング後（クライアント側）のみで安全に日付文字列を作成
   useEffect(() => {
     setIsMounted(true);
-    setViewDateStr(getTodayStr());
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    setViewDateStr(todayStr);
 
     try {
       const sSecs = localStorage.getItem('butler_all_activity_seconds');
@@ -162,7 +159,8 @@ export default function TimerPage() {
         });
 
         if (!isBreak) {
-          const curTodayStr = getTodayStr();
+          const now = new Date();
+          const curTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
           const curLife = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String(curLife + 1));
 
@@ -174,7 +172,7 @@ export default function TimerPage() {
             return nextAll;
           });
 
-          const hourKey = `${new Date().getHours()}:00`;
+          const hourKey = `${now.getHours()}:00`;
           setAllActivityLogs((prev) => {
             const dayLogs = prev[curTodayStr] || {};
             const hLog = dayLogs[hourKey] || {};
@@ -227,7 +225,8 @@ export default function TimerPage() {
   };
 
   const renderTodaySummary = () => {
-    const curTodayStr = getTodayStr();
+    const now = new Date();
+    const curTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const obj = allActivitySeconds[curTodayStr] || {};
     const entries = Object.entries(obj).filter(([_, s]) => (Number(s) || 0) > 0);
     if (entries.length === 0) return '0分 (0秒)';
@@ -242,6 +241,11 @@ export default function TimerPage() {
   const handleShiftDateByDays = (offsetDays: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
+    setViewDateStr(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  };
+
+  const handleResetToToday = () => {
+    const d = new Date();
     setViewDateStr(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
   };
 
@@ -446,7 +450,7 @@ export default function TimerPage() {
                   <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1.5 rounded-lg border border-[#BB8632]">
                     <button onClick={() => handleShiftDateByDays(-2)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">一昨日</button>
                     <button onClick={() => handleShiftDateByDays(-1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">昨日</button>
-                    <button onClick={() => setViewDateStr(getTodayStr())} type="button" className="text-xs bg-[#BB8632] text-[#1A070B] px-2.5 py-0.5 rounded font-bold hover:brightness-110 transition cursor-pointer">今日</button>
+                    <button onClick={handleResetToToday} type="button" className="text-xs bg-[#BB8632] text-[#1A070B] px-2.5 py-0.5 rounded font-bold hover:brightness-110 transition cursor-pointer">今日</button>
                   </div>
                 </div>
 
