@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -98,7 +96,6 @@ export default function TimerPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 初回レンダリング後（クライアント側）のみで安全に日付文字列を作成
   useEffect(() => {
     setIsMounted(true);
     const d = new Date();
