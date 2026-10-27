@@ -48,7 +48,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
 const BGM_LIST = [
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
-  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/bell.mp3' },
+  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/source-2.mp4' }, // 🎵 正しい雨音ファイルに修復
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
@@ -101,7 +101,6 @@ export default function TimerPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  // 🛠️ 起動時にすべてのストレージキーからデータを安全に復元（旧キーの互換性も保持）
   useEffect(() => {
     setIsMounted(true);
     const today = getTodayStr();
@@ -113,20 +112,12 @@ export default function TimerPage() {
         return val ? JSON.parse(val) : {};
       };
 
-      // 各種データを徹底的にロード
-      const sSecs = loadSafe('butler_all_activity_seconds');
-      const sLogs = loadSafe('butler_all_activity_detail_logs');
-      const sMemos = loadSafe('butler_all_schedule_memos');
-      const sImps = loadSafe('butler_all_schedule_impressions');
-      const sRates = loadSafe('butler_all_schedule_ratings');
-      const sTodos = loadSafe('butler_all_schedule_todos');
-
-      setAllActivitySeconds(sSecs);
-      setAllActivityLogs(sLogs);
-      setAllMemos(sMemos);
-      setAllImpressions(sImps);
-      setAllRatings(sRates);
-      setAllTodos(sTodos);
+      setAllActivitySeconds(loadSafe('butler_all_activity_seconds'));
+      setAllActivityLogs(loadSafe('butler_all_activity_detail_logs'));
+      setAllMemos(loadSafe('butler_all_schedule_memos'));
+      setAllImpressions(loadSafe('butler_all_schedule_impressions'));
+      setAllRatings(loadSafe('butler_all_schedule_ratings'));
+      setAllTodos(loadSafe('butler_all_schedule_todos'));
     } catch (e) {
       console.error('データ復元エラー:', e);
     }
@@ -157,7 +148,6 @@ export default function TimerPage() {
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
 
-  // 🛠️ タイマー稼働中の秒数カウント＆即時保存処理（データ保護強化）
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
