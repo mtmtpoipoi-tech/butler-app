@@ -96,6 +96,8 @@ export default function TimerPage() {
   ];
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // 💡 スリープ防止（Wake Lock）のセッションを保持する参照
+  const wakeLockRef = useRef<any>(null);
 
   const getTodayStr = () => {
     const d = new Date();
@@ -148,6 +150,36 @@ export default function TimerPage() {
     setTimeLeft(MODES[currentMode].workSeconds);
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
+
+  // 💡 タイマー稼働中（isRunning）に画面スリープを防止し、停止時に解除する処理
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      if (isRunning && 'wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.log('Wake Lock error:', err);
+        }
+      }
+    };
+
+    if (isRunning) {
+      requestWakeLock();
+    } else {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    }
+
+    // ページを離れたり最小化されたりしたときのエラー防止用クリーンアップ
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    };
+  }, [isRunning]);
 
   useEffect(() => {
     if (!audioRef.current) return;
@@ -399,7 +431,6 @@ export default function TimerPage() {
               </button>
             </div>
 
-            {/* 💬 ボタンと重ならないよう、上部に余白(mt-12など)を持たせて位置を下げました */}
             <div className="mt-12 mb-6 max-w-md bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-[#BB8632]/40 shadow-2xl">
               <p className="text-sm sm:text-base leading-relaxed text-[#F3ECD8] font-serif">{message}</p>
             </div>
@@ -624,7 +655,7 @@ export default function TimerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    {hours.map((h) => {
+                    hours.map((h) => {
                       const dayLogs = allActivityLogs[viewDateStr] || {};
                       const hLog = dayLogs[h] || {};
                       const entries = Object.entries(hLog).filter(([_, s]) => Number(s) > 0);
@@ -650,7 +681,7 @@ export default function TimerPage() {
                           </div>
                         </div>
                       );
-                    })}
+                    })
                   </div>
                 </div>
               </div>
