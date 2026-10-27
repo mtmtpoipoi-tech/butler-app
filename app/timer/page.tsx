@@ -48,7 +48,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
 const BGM_LIST = [
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
-  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/source-2.mp4' }, // 🎵 正しい雨音ファイルに修復
+  { id: 'cafejazz', name: '🎵 カフェジャズ (検証用BGM)', file: '/cafe-jazz.m4a' }, // 👈 今回送っていただいた音源
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
