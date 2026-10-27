@@ -46,9 +46,9 @@ const MODES: Record<TimerMode, ModeConfig> = {
 };
 
 const BGM_LIST = [
+  { id: 'nyarupaka', name: '🌙 深い夜に浮かぶLoop (オルゴール)', file: '/nyarupaka.wav' },
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
-  { id: 'cafejazz', name: '🎵 カフェジャズ (検証用BGM)', file: '/cafe-jazz.m4a' }, // 👈 今回送っていただいた音源
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
@@ -101,6 +101,7 @@ export default function TimerPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  // 起動時にデータを安全に復元
   useEffect(() => {
     setIsMounted(true);
     const today = getTodayStr();
@@ -148,6 +149,7 @@ export default function TimerPage() {
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
 
+  // タイマー稼働中の秒数カウント＆即時保存処理
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
