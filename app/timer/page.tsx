@@ -102,7 +102,6 @@ export default function TimerPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  // 起動時にデータを安全に復元
   useEffect(() => {
     setIsMounted(true);
     const today = getTodayStr();
@@ -150,7 +149,6 @@ export default function TimerPage() {
     setMessage(MODES[currentMode].butlerMessage);
   }, [currentMode]);
 
-  // 🎵 タイマーの開始（isRunning）やBGM変更とオーディオ再生を確実に同期させる
   useEffect(() => {
     if (!audioRef.current) return;
     if (isRunning) {
@@ -162,7 +160,6 @@ export default function TimerPage() {
     }
   }, [isRunning, selectedBgm]);
 
-  // タイマー稼働中の秒数カウント＆即時保存処理
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -269,6 +266,62 @@ export default function TimerPage() {
     setViewDateStr(getTodayStr());
   };
 
+  // 🛡️ データのバックアップ（ファイルとしてダウンロード）
+  const handleExportData = () => {
+    try {
+      const backupData = {
+        seconds: localStorage.getItem('butler_all_activity_seconds'),
+        logs: localStorage.getItem('butler_all_activity_detail_logs'),
+        memos: localStorage.getItem('butler_all_schedule_memos'),
+        impressions: localStorage.getItem('butler_all_schedule_impressions'),
+        ratings: localStorage.getItem('butler_all_schedule_ratings'),
+        todos: localStorage.getItem('butler_all_schedule_todos'),
+        lifetime: localStorage.getItem('butler_lifetime_seconds'),
+      };
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `butler_backup_${getTodayStr()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert('👤 「主様の尊い記録のバックアップをダウンロードいたしました。これでいつでも安心です。」');
+    } catch (e) {
+      alert('バックアップの作成に失敗しました。');
+    }
+  };
+
+  // 🛡️ バックアップファイルからの復元
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        if (data.seconds) localStorage.setItem('butler_all_activity_seconds', data.seconds);
+        if (data.logs) localStorage.setItem('butler_all_activity_detail_logs', data.logs);
+        if (data.memos) localStorage.setItem('butler_all_schedule_memos', data.memos);
+        if (data.impressions) localStorage.setItem('butler_all_schedule_impressions', data.impressions);
+        if (data.ratings) localStorage.setItem('butler_all_schedule_ratings', data.ratings);
+        if (data.todos) localStorage.setItem('butler_all_schedule_todos', data.todos);
+        if (data.lifetime) localStorage.setItem('butler_lifetime_seconds', data.lifetime);
+
+        setAllActivitySeconds(data.seconds ? JSON.parse(data.seconds) : {});
+        setAllActivityLogs(data.logs ? JSON.parse(data.logs) : {});
+        setAllMemos(data.memos ? JSON.parse(data.memos) : {});
+        setAllImpressions(data.impressions ? JSON.parse(data.impressions) : {});
+        setAllRatings(data.ratings ? JSON.parse(data.ratings) : {});
+        setAllTodos(data.todos ? JSON.parse(data.todos) : {});
+
+        alert('👤 「主様の記録が完璧に復元されました！」');
+      } catch (err) {
+        alert('ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const updateMemo = (val: string) => {
     if (!viewDateStr) return;
     const next = { ...allMemos, [viewDateStr]: val };
@@ -329,7 +382,6 @@ export default function TimerPage() {
         audio { height: 32px; border-radius: 8px; filter: invert(0.9) hue-rotate(180deg); width: 100%; }
       `}</style>
 
-      {/* 🎵 画面全体で常に音声を保持する共通の隠し/常駐オーディオ要素 */}
       <audio ref={audioRef} src={selectedBgm} loop preload="auto" style={{ display: 'none' }} />
 
       <div
@@ -369,7 +421,6 @@ export default function TimerPage() {
                 >
                   {BGM_LIST.map((b) => <option key={b.id} value={b.file}>{b.name}</option>)}
                 </select>
-                {/* 稼働中のコントロールバー */}
                 <audio src={selectedBgm} controls loop preload="auto" />
               </div>
             </div>
@@ -457,7 +508,6 @@ export default function TimerPage() {
                 >
                   {BGM_LIST.map((b) => <option key={b.id} value={b.file}>{b.name}</option>)}
                 </select>
-                {/* 停止中のコントロールバー */}
                 <audio src={selectedBgm} controls loop preload="auto" />
               </div>
             </div>
@@ -482,6 +532,23 @@ export default function TimerPage() {
                 <button onClick={() => setIsScheduleModalOpen(false)} type="button" className="text-xs text-[#BB8632] hover:underline font-bold px-2.5 py-1.5 bg-[#3B1218] rounded-lg border border-[#BB8632]/50 cursor-pointer shrink-0">
                   閉じる ✕
                 </button>
+              </div>
+
+              {/* 🛡️ バックアップ＆復元コントロールエリア */}
+              <div className="mb-4 bg-[#3B1218] p-3 rounded-xl border border-[#BB8632]/60 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div>
+                  <p className="text-xs font-bold text-[#BB8632] mb-0.5">💾 データのバックアップと復元</p>
+                  <p className="text-[10px] text-[#F3ECD8]/70">機種変更やアイコン再登録に備え、データをファイルとして保存できます。</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleExportData} type="button" className="px-3 py-1.5 bg-[#BB8632] text-[#1A070B] font-bold text-xs rounded hover:brightness-110 transition cursor-pointer">
+                    📥 データを保存
+                  </button>
+                  <label className="px-3 py-1.5 bg-[#2B0C12] text-[#BB8632] border border-[#BB8632] font-bold text-xs rounded hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">
+                    📤 データを復元
+                    <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
+                  </label>
+                </div>
               </div>
 
               <div className="mb-4 bg-[#A46D37]/20 p-2.5 rounded-xl border border-[#BB8632] text-center">
