@@ -48,7 +48,7 @@ const MODES: Record<TimerMode, ModeConfig> = {
 const BGM_LIST = [
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
   { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
-  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/source-2.mp4' },
+  { id: 'rain', name: '🌧️ 雨音 (Lofi Rain)', file: '/bell.mp3' }, // 安全な音声に変更
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
@@ -96,11 +96,14 @@ export default function TimerPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     setIsMounted(true);
-    const d = new Date();
-    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    setViewDateStr(todayStr);
+    setViewDateStr(getTodayStr());
 
     try {
       const sSecs = localStorage.getItem('butler_all_activity_seconds');
@@ -156,8 +159,7 @@ export default function TimerPage() {
         });
 
         if (!isBreak) {
-          const now = new Date();
-          const curTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const curTodayStr = getTodayStr();
           const curLife = Number(localStorage.getItem('butler_lifetime_seconds') || '0');
           localStorage.setItem('butler_lifetime_seconds', String(curLife + 1));
 
@@ -169,7 +171,7 @@ export default function TimerPage() {
             return nextAll;
           });
 
-          const hourKey = `${now.getHours()}:00`;
+          const hourKey = `${new Date().getHours()}:00`;
           setAllActivityLogs((prev) => {
             const dayLogs = prev[curTodayStr] || {};
             const hLog = dayLogs[hourKey] || {};
@@ -222,8 +224,7 @@ export default function TimerPage() {
   };
 
   const renderTodaySummary = () => {
-    const now = new Date();
-    const curTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const curTodayStr = getTodayStr();
     const obj = allActivitySeconds[curTodayStr] || {};
     const entries = Object.entries(obj).filter(([_, s]) => (Number(s) || 0) > 0);
     if (entries.length === 0) return '0分 (0秒)';
@@ -235,15 +236,18 @@ export default function TimerPage() {
     }).join(' ');
   };
 
-  const handleShiftDateByDays = (offsetDays: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
+  // 日付を移動する関数（基準日から加算・減算）
+  const handleShiftDate = (daysOffset: number) => {
+    if (!viewDateStr) return;
+    const parts = viewDateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setDate(d.getDate() + daysOffset);
     setViewDateStr(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
   };
 
+  // 今日へジャンプ
   const handleResetToToday = () => {
-    const d = new Date();
-    setViewDateStr(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    setViewDateStr(getTodayStr());
   };
 
   const updateMemo = (val: string) => {
@@ -444,10 +448,11 @@ export default function TimerPage() {
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <h2 className="text-base sm:text-xl font-bold tracking-widest text-[#F3ECD8]">WORK LOG & SCHEDULE</h2>
                   
+                  {/* 日付切り替えボタン群（前日・翌日・今日） */}
                   <div className="flex items-center gap-1.5 bg-[#3B1218] px-3 py-1.5 rounded-lg border border-[#BB8632]">
-                    <button onClick={() => handleShiftDateByDays(-2)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">一昨日</button>
-                    <button onClick={() => handleShiftDateByDays(-1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">昨日</button>
+                    <button onClick={() => handleShiftDate(-1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">◀ 前日</button>
                     <button onClick={handleResetToToday} type="button" className="text-xs bg-[#BB8632] text-[#1A070B] px-2.5 py-0.5 rounded font-bold hover:brightness-110 transition cursor-pointer">今日</button>
+                    <button onClick={() => handleShiftDate(1)} type="button" className="text-xs bg-[#2B0C12] text-[#BB8632] px-2 py-0.5 rounded font-bold hover:bg-[#BB8632] hover:text-[#1A070B] transition cursor-pointer">翌日 ▶</button>
                   </div>
                 </div>
 
