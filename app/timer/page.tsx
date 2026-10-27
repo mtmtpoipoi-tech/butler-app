@@ -46,9 +46,10 @@ const MODES: Record<TimerMode, ModeConfig> = {
 };
 
 const BGM_LIST = [
+  { id: 'cafejazz', name: '☕ カフェジャズ (cafe-jazz.m4a)', file: '/cafe-jazz.m4a' },
   { id: 'nyarupaka', name: '🌙 深い夜に浮かぶLoop (オルゴール)', file: '/nyarupaka.wav' },
   { id: 'yukidoke', name: '雪解けの頃 / ruha', file: '/yukidoke.mp4' },
-  { id: 'departure', name: 'Departure / 메インBGM', file: '/Departure_7651.mp3' },
+  { id: 'departure', name: 'Departure / メインBGM', file: '/Departure_7651.mp3' },
 ];
 
 const ACTIVITY_LIST = ['勉強', '仕事', '作業', '読書', '創作'];
@@ -211,7 +212,7 @@ export default function TimerPage() {
 
   const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
-  // 🎵 タイマー開始時にBGM自動再生、停止時に一時停止する連動処理
+  // タイマー開始時にBGM自動再生、停止時に一時停止する連動処理
   const toggleTimer = () => {
     setIsFadingToBlack(true);
     setTimeout(() => {
