@@ -27,6 +27,7 @@ export default function LibraryPage() {
   
   const [books, setBooks] = useState<Book[]>([]);
   
+  // 例示を一切排除した空の入力欄
   const [title, setTitle] = useState<string>('');
   const [author, setAuthor] = useState<string>('');
   const [category, setCategory] = useState<'novel' | 'essay' | 'encyclopedia'>('novel');
@@ -48,18 +49,9 @@ export default function LibraryPage() {
         console.error('蔵書データの読み込みエラー:', e);
       }
     } else {
-      const initialBooks: Book[] = [
-        {
-          id: '1',
-          title: '深夜の医学生録',
-          author: '伯爵 万柚子',
-          category: 'essay',
-          content: '静まり返った自習室、ルイボスティーの香りと共に記憶の定着を図る夜。医学への扉は、日々の地道な積み重ねの先にある。',
-          status: 'approved',
-        },
-      ];
-      setBooks(initialBooks);
-      localStorage.setItem('butler_library_books', JSON.stringify(initialBooks));
+      // 最初はサンプルを置かず、完全に空の状態で開始
+      setBooks([]);
+      localStorage.setItem('butler_library_books', JSON.stringify([]));
     }
   }, []);
 
@@ -83,11 +75,13 @@ export default function LibraryPage() {
 
     saveBooks([...books, newBook]);
     setTitle('');
+    setAuthor('');
     setContent('');
     alert('👤 「出版の申請を受け付けました。主様（検閲官）による審査ののち、本棚に並びます。」');
     setActiveTab('shelf');
   };
 
+  // 主様だけが行える検閲操作
   const handleApprove = (id: string) => {
     const next = books.map((b) => (b.id === id ? { ...b, status: 'approved' as const } : b));
     saveBooks(next);
@@ -144,7 +138,7 @@ export default function LibraryPage() {
               ✒️ 本を執筆する
             </button>
             <button onClick={() => setActiveTab('censor')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${activeTab === 'censor' ? 'bg-[#BB8632] text-[#1A070B]' : 'bg-[#3B1218] text-[#F3ECD8] border border-[#BB8632]/50'}`}>
-              ⚖️ 検閲官ルーム ({books.filter(b => b.status === 'pending').length})
+              ⚖️ 主様の検閲官ルーム ({books.filter(b => b.status === 'pending').length})
             </button>
           </div>
         </div>
@@ -197,12 +191,12 @@ export default function LibraryPage() {
               <form onSubmit={handlePublish} className="space-y-4">
                 <div>
                   <label className="text-xs font-bold text-[#BB8632] block mb-1">書名（タイトル）</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-[#3B1218] border border-[#BB8632]/50 rounded-xl px-3 py-2 text-xs text-[#F3ECD8] outline-none" placeholder="例: 月夜の化学考察" required />
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-[#3B1218] border border-[#BB8632]/50 rounded-xl px-3 py-2 text-xs text-[#F3ECD8] outline-none" placeholder="" required />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-[#BB8632] block mb-1">著者名（または爵位名）</label>
-                    <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full bg-[#3B1218] border border-[#BB8632]/50 rounded-xl px-3 py-2 text-xs text-[#F3ECD8] outline-none" placeholder="例: 伯爵 万柚子" required />
+                    <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} className="w-full bg-[#3B1218] border border-[#BB8632]/50 rounded-xl px-3 py-2 text-xs text-[#F3ECD8] outline-none" placeholder="" required />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-[#BB8632] block mb-1">棚（カテゴリー）</label>
@@ -215,7 +209,7 @@ export default function LibraryPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-[#BB8632] block mb-1">本文</label>
-                  <textarea rows={6} value={content} onChange={(e) => setContent(e.target.value)} className="w-full bg-[#3B1218] border border-[#BB8632]/50 rounded-xl px-3 py-2 text-xs text-[#F3ECD8] outline-none resize-none" placeholder="書物の内容をここに綴ってください..." required />
+                  <textarea rows={6} value={content} onChange={(e) => setContent(e.target.value)} className="w-full bg-[#3B1218] border border-[#BB8632]/50 rounded-xl px-3 py-2 text-xs text-[#F3ECD8] outline-none resize-none" placeholder="" required />
                 </div>
                 <button type="submit" className="gothic-btn w-full py-3 bg-gradient-to-b from-[#A46D37] to-[#8A5A2D] text-[#F3ECD8] font-bold text-sm rounded-xl border border-[#BB8632] cursor-pointer">
                   主様へ出版を上覧する（申請）
@@ -226,8 +220,8 @@ export default function LibraryPage() {
 
           {activeTab === 'censor' && (
             <div>
-              <h1 className="text-2xl font-bold tracking-widest mb-2 text-center text-[#BB8632]">CENSOR'S OFFICE</h1>
-              <p className="text-xs text-center text-[#F3ECD8]/70 mb-6">主様（検閲官）専用室。申請された書物を審査・管理いたします。</p>
+              <h1 className="text-2xl font-bold tracking-widest mb-2 text-center text-[#BB8632]">CENSOR'S OFFICE (ADMIN ONLY)</h1>
+              <p className="text-xs text-center text-[#F3ECD8]/70 mb-6">主様（製作者・検閲官）専用室。すべての生殺与奪の権限は主様にのみ帰属します。</p>
 
               <div className="space-y-4">
                 <h2 className="text-sm font-bold text-[#BB8632] border-b border-[#BB8632]/40 pb-1">⏳ 審査待ちの書物</h2>
@@ -249,7 +243,7 @@ export default function LibraryPage() {
                         <div className="flex flex-col gap-2 mt-2">
                           <input
                             type="text"
-                            placeholder="却下理由を入力してください（例：表現に不適切な箇所があります）"
+                            placeholder="却下理由を入力してください..."
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
                             className="bg-[#2B0C12] border border-red-400/50 rounded-lg px-3 py-1.5 text-xs text-[#F3ECD8] outline-none"

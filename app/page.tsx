@@ -170,18 +170,15 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 👑 日付が変わっても絶対消えない累計時間（butler_lifetime_seconds）を同期
   useEffect(() => {
     const syncWorkSeconds = () => {
       let maxSeconds = 0;
 
-      // 1. 永久保存用の累計キーを最優先で取得
       const lifetime = localStorage.getItem('butler_lifetime_seconds');
       if (lifetime && !isNaN(Number(lifetime))) {
         maxSeconds = Number(lifetime);
       }
 
-      // 2. 当日実績も含めて大きい方を採用
       const activityJson = localStorage.getItem('butler_master_activity_seconds');
       if (activityJson) {
         try {
@@ -409,7 +406,7 @@ export default function Home() {
         comment: 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。',
         locationName: defaultLocName || '埼玉県南部',
       });
-    } finally {
+    } fontally {
       setIsLoadingWeather(false);
     }
   };
@@ -560,7 +557,7 @@ export default function Home() {
         .gothic-clock-time { font-family: 'Cinzel', 'Shippori Mincho', serif; letter-spacing: 0.08em; }
         .gothic-dock-item { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); }
         .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
-        .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); }
+        .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
       `}</style>
 
@@ -753,6 +750,7 @@ export default function Home() {
           )}
         </div>
 
+        {/* 🏛️ 修正された単一のゴシック・ドック（すべての機能アイコンを美しく配置） */}
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           <div className="flex gap-2">
             <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2">
@@ -763,10 +761,10 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2">
+          <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-1 sm:gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
             {/* ⏱️ タイマー */}
             <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center border-[#BB8632]">
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
@@ -774,7 +772,7 @@ export default function Home() {
 
             {/* ⏰ アラーム */}
             <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center border-[#BB8632]">
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
@@ -782,44 +780,33 @@ export default function Home() {
 
             {/* 🏛️ 大図書館 */}
             <a href="/library" onClick={(e) => handleNavigate(e, '/library')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#3B1218] border-[#BB8632] shadow-lg">
-                <span className="text-xl">🏛️</span>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12] text-lg sm:text-xl" style={{ borderColor: '#BB8632', color: '#F3ECD8' }}>
+                🏛️
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">大図書館</span>
             </a>
-          </div>
 
-          <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
-            <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
-                <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
-              </div>
-              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
-            </a>
-
-            <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
-                <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
-              </div>
-              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
-            </a>
-
+            {/* 📖 日記帳 */}
             <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </a>
 
+            {/* 📅 予定帳 */}
             <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </a>
 
+            {/* ☕ サロン */}
             <button onClick={() => alert(`「${masterName || '主'}様、サロンの準備はまもなく調います。今しばらくお待ちくださいませ。」`)} className="flex flex-col items-center group cursor-pointer bg-transparent border-0 p-0">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center text-xl bg-[#310F14]" style={{ borderColor: '#BB8632', color: '#F3ECD8' }}>☕</div>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center text-lg sm:text-xl bg-[#310F14]" style={{ borderColor: '#BB8632', color: '#F3ECD8' }}>
+                ☕
+              </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">サロン</span>
             </button>
           </div>
