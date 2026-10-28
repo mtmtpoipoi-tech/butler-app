@@ -406,7 +406,7 @@ export default function Home() {
         comment: 'お出かけの際は、どうぞ傘をお忘れなきようお気を付けくださいませ。',
         locationName: defaultLocName || '埼玉県南部',
       });
-    } fontally {
+    } finally {
       setIsLoadingWeather(false);
     }
   };
