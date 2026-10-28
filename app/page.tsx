@@ -755,12 +755,38 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
           <div className="flex gap-2">
-            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer">
+            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2">
               <span>🌤️ 天気</span>
             </button>
-            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] flex items-center justify-center gap-2 font-bold tracking-wider cursor-pointer">
-              <span>🎶 レコード</span>
+            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2">
+              <span>🎵 レコード</span>
             </button>
+          </div>
+
+          <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2">
+            {/* ⏱️ タイマー */}
+            <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center border-[#BB8632]">
+                <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
+            </a>
+
+            {/* ⏰ アラーム */}
+            <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center border-[#BB8632]">
+                <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
+            </a>
+
+            {/* 🏛️ 大図書館 */}
+            <a href="/library" onClick={(e) => handleNavigate(e, '/library')} className="flex flex-col items-center group cursor-pointer">
+              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#3B1218] border-[#BB8632] shadow-lg">
+                <span className="text-xl">🏛️</span>
+              </div>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">大図書館</span>
+            </a>
           </div>
 
           <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
