@@ -118,7 +118,7 @@ export default function Home() {
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
-  // 💬 単語・文節表示対話用ステータス
+  // 💬 対話用ステータス（滑らかテキスト・コンパクト表示）
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
@@ -471,24 +471,20 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 🌹 単語・文節区切りアニメーションの実装（読点・句点・スペースで分割）
+  // 🌹 極めて滑らかなテキスト流入アニメーション（流れるように1文字ずつ表示）
   useEffect(() => {
     if (!fullSpeech) return;
     setDisplayedSpeech('');
 
-    // 文章を読点・句点や適切な区切り文字で単語/文節ごとに分割
-    const words = fullSpeech.match(/[^、。「」……!?]+[、。「」……!?]?/g) || [fullSpeech];
-    let wordIndex = 0;
-
+    let index = 0;
     const timer = setInterval(() => {
-      if (wordIndex < words.length) {
-        const nextChunk = words[wordIndex];
-        setDisplayedSpeech((prev) => prev + nextChunk);
-        wordIndex++;
+      if (index < fullSpeech.length) {
+        setDisplayedSpeech((prev) => prev + fullSpeech.charAt(index));
+        index++;
       } else {
         clearInterval(timer);
       }
-    }, 180); // 単語・文節ごとの表示間隔（ミリ秒）
+    }, 22); // 非常に高速で滑らかなアニメーション間隔
 
     return () => clearInterval(timer);
   }, [fullSpeech]);
@@ -499,7 +495,7 @@ export default function Home() {
       setIsChatActive(true);
       setFullSpeech(getButlerGreeting());
       setIsChatVisible(true);
-    }, 400);
+    }, 300);
   };
 
   const handleUserSubmit = (e: React.FormEvent) => {
@@ -582,12 +578,12 @@ export default function Home() {
         .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
         .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
-        .smooth-fade { transition: opacity 0.4s ease-in-out; }
+        .smooth-fade { transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out; }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      <div className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
+      <div className="min-h-screen flex flex-col items-center justify-between p-3 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
@@ -737,71 +733,72 @@ export default function Home() {
           </div>
         )}
 
-        <div className="relative z-10 w-full max-w-lg text-center pt-12 flex flex-col items-center">
-          <p className="text-[10px] tracking-[0.3em] text-[#BB8632] mb-1">THE BUTLER'S MANOR</p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-2">
+        {/* 🏰 ヘッダー＆時計エリア（上部にコンパクトに配置） */}
+        <div className="relative z-10 w-full max-w-lg text-center pt-8 flex flex-col items-center">
+          <p className="text-[9px] tracking-[0.3em] text-[#BB8632] mb-0.5">THE BUTLER'S MANOR</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-1">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
-          <div className="w-full max-w-[220px] my-1 py-2 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0.5" style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}>
-            <p className="text-[11px] tracking-wider text-[#BB8632] font-bold">{dateString || '----年--月--日（-）'}</p>
-            <p className="gothic-clock-time text-xl sm:text-2xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{timeString || '00:00:00'}</p>
+          <div className="w-full max-w-[200px] my-0.5 py-1.5 px-3 rounded-xl border shadow-xl backdrop-blur-md flex flex-col items-center justify-center gap-0" style={{ backgroundColor: 'rgba(43, 12, 18, 0.75)', borderColor: '#BB8632' }}>
+            <p className="text-[10px] tracking-wider text-[#BB8632] font-bold">{dateString || '----年--月--日（-）'}</p>
+            <p className="gothic-clock-time text-lg sm:text-xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{timeString || '00:00:00'}</p>
           </div>
 
-          <div className="flex items-center gap-2 mt-1">
-            <div className="px-4 py-1 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-3">
-              <span className="text-xs text-[#F3ECD8]">暖炉の火</span>
-              <button type="button" onClick={toggleFireSound} className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'}`} role="switch" aria-checked={isPlayingFire}>
-                <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-[#F3ECD8] shadow transition duration-200 ease-in-out ${isPlayingFire ? 'translate-x-4' : 'translate-x-0'}`} />
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="px-3 py-0.5 rounded-full border border-[#BB8632]/60 bg-[#561B24]/80 shadow-md flex items-center gap-2.5">
+              <span className="text-[11px] text-[#F3ECD8]">暖炉の火</span>
+              <button type="button" onClick={toggleFireSound} className={`relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'}`} role="switch" aria-checked={isPlayingFire}>
+                <span className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-[#F3ECD8] shadow transition duration-200 ease-in-out ${isPlayingFire ? 'translate-x-3.5' : 'translate-x-0'}`} />
               </button>
             </div>
           </div>
 
           {isPlayingRecord && (
-            <div className="w-full max-w-xs mt-3 px-3 py-1.5 rounded-xl border flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
+            <div className="w-full max-w-xs mt-2 px-3 py-1 rounded-xl border flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
               <span>🎵 再生中: {currentTrack} (Loop)</span>
               <button onClick={handleStopRecord} className="text-[#BB8632] hover:underline cursor-pointer text-xs font-bold">停止</button>
             </div>
           )}
         </div>
 
-        {/* 🌹 ホーム画面の背景に直接乗る 挨拶・単語区切り会話エリア */}
-        <div className="relative z-10 w-full max-w-sm sm:max-w-md my-auto flex flex-col items-center justify-center px-2">
+        {/* 🌹 会話エリア（時計のすぐ下に配置・画面縦長化を解消） */}
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md mt-3 mb-auto flex flex-col items-center justify-center px-2">
           {/* ① タップ前の初期挨拶カード */}
           <div
             onClick={handleStartChat}
-            className={`w-full rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade ${
-              isGreetingVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            className={`w-full rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade ${
+              isGreetingVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none hidden'
             }`}
-            style={{ backgroundColor: 'rgba(25, 8, 12, 0.78)', borderColor: '#BB8632' }}
+            style={{ backgroundColor: 'rgba(25, 8, 12, 0.82)', borderColor: '#BB8632' }}
             title="タップして会話を始める"
           >
-            <p className="text-[11px] font-semibold mb-2 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
-            <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
+            <p className="text-[10px] font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
+            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話吹き出し（単語・文節ごとにテンポよく表示） */}
+          {/* ② タップ後に現れる会話吹き出し（上部にコンパクト配置 ＆ 超滑らかテキストアニメーション） */}
           {isChatActive && (
             <div
-              className={`w-full rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-4 ${
+              className={`w-full rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-3 ${
                 isChatVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}
-              style={{ backgroundColor: 'rgba(25, 8, 12, 0.85)', borderColor: '#BB8632' }}
+              style={{ backgroundColor: 'rgba(25, 8, 12, 0.88)', borderColor: '#BB8632' }}
             >
-              <div className="border-b border-[#BB8632]/30 pb-2 flex justify-between items-center">
-                <span className="text-[11px] font-semibold tracking-widest text-[#BB8632]">執事との対話</span>
-                <span className="text-[10px] text-[#F3ECD8]/60">会話形式</span>
+              <div className="border-b border-[#BB8632]/30 pb-1.5 flex justify-between items-center">
+                <span className="text-[10px] font-semibold tracking-widest text-[#BB8632]">執事との対話</span>
+                <span className="text-[9px] text-[#F3ECD8]/60">会話形式</span>
               </div>
 
-              {/* 単語・文節単位でポンッと順番に表示されるエリア */}
-              <div className="py-2 px-1 min-h-[70px] flex items-center justify-center">
-                <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              {/* 滑らかに1文字ずつスルスルと流れるテキスト表示エリア */}
+              <div className="py-1 px-1 min-h-[55px] flex items-center justify-center">
+                <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                   {displayedSpeech}
                 </p>
               </div>
 
-              {/* 主用入力欄（スマホでもはみ出さない幅） */}
-              <form onSubmit={handleUserSubmit} className="flex gap-2 pt-2 border-t border-[#BB8632]/30">
+              {/* 主用入力欄（スマホでも画面内にすっきり納まるコンパクト設計） */}
+              <form onSubmit={handleUserSubmit} className="flex gap-2 pt-1.5 border-t border-[#BB8632]/30">
                 <input
                   type="text"
                   value={userInputValue}
@@ -822,20 +819,20 @@ export default function Home() {
         </div>
 
         {/* 🏛️ 実用的な執事業務（タイマー・アラーム・日記帳・予定帳）のドック */}
-        <div className="relative z-10 w-full max-w-md pb-4 flex flex-col gap-2">
+        <div className="relative z-10 w-full max-w-md pb-2 mt-2 flex flex-col gap-2">
           <div className="flex gap-2">
-            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2">
+            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs">
               <span>🌤️ 天気</span>
             </button>
-            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2">
+            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs">
               <span>🎵 レコード</span>
             </button>
           </div>
 
-          <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
+          <div className="rounded-2xl p-2.5 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
             {/* ⏱️ タイマー */}
             <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
@@ -843,7 +840,7 @@ export default function Home() {
 
             {/* ⏰ アラーム */}
             <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
@@ -851,7 +848,7 @@ export default function Home() {
 
             {/* 📖 日記帳 */}
             <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
@@ -859,7 +856,7 @@ export default function Home() {
 
             {/* 📅 予定帳 */}
             <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
