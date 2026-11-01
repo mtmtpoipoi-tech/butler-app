@@ -118,7 +118,7 @@ export default function Home() {
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
-  // 💬 タイプライター会話用ステータス
+  // 💬 単語・文節表示対話用ステータス
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
@@ -471,19 +471,24 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 🌹 タイプライター風テキストエフェクトの実装
+  // 🌹 単語・文節区切りアニメーションの実装（読点・句点・スペースで分割）
   useEffect(() => {
     if (!fullSpeech) return;
     setDisplayedSpeech('');
-    let currentIndex = 0;
+
+    // 文章を読点・句点や適切な区切り文字で単語/文節ごとに分割
+    const words = fullSpeech.match(/[^、。「」……!?]+[、。「」……!?]?/g) || [fullSpeech];
+    let wordIndex = 0;
+
     const timer = setInterval(() => {
-      if (currentIndex < fullSpeech.length) {
-        setDisplayedSpeech((prev) => prev + fullSpeech.charAt(currentIndex));
-        currentIndex++;
+      if (wordIndex < words.length) {
+        const nextChunk = words[wordIndex];
+        setDisplayedSpeech((prev) => prev + nextChunk);
+        wordIndex++;
       } else {
         clearInterval(timer);
       }
-    }, 35); // 1文字ずつの速度（ミリ秒）
+    }, 180); // 単語・文節ごとの表示間隔（ミリ秒）
 
     return () => clearInterval(timer);
   }, [fullSpeech]);
@@ -760,7 +765,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 ホーム画面の背景に直接乗る 挨拶・タイプライター風会話エリア */}
+        {/* 🌹 ホーム画面の背景に直接乗る 挨拶・単語区切り会話エリア */}
         <div className="relative z-10 w-full max-w-sm sm:max-w-md my-auto flex flex-col items-center justify-center px-2">
           {/* ① タップ前の初期挨拶カード */}
           <div
@@ -775,7 +780,7 @@ export default function Home() {
             <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話吹き出し（タイプライター風表示 ＆ スマホでもはみ出さない幅） */}
+          {/* ② タップ後に現れる会話吹き出し（単語・文節ごとにテンポよく表示） */}
           {isChatActive && (
             <div
               className={`w-full rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-4 ${
@@ -788,14 +793,14 @@ export default function Home() {
                 <span className="text-[10px] text-[#F3ECD8]/60">会話形式</span>
               </div>
 
-              {/* 1文字ずつ浮かび上がるタイプライター風セリフ */}
+              {/* 単語・文節単位でポンッと順番に表示されるエリア */}
               <div className="py-2 px-1 min-h-[70px] flex items-center justify-center">
                 <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                   {displayedSpeech}
                 </p>
               </div>
 
-              {/* 主用入力欄（スマホでもはみ出さないコンパクトな幅に調整） */}
+              {/* 主用入力欄（スマホでもはみ出さない幅） */}
               <form onSubmit={handleUserSubmit} className="flex gap-2 pt-2 border-t border-[#BB8632]/30">
                 <input
                   type="text"
