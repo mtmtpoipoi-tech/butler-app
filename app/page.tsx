@@ -100,6 +100,12 @@ interface WeatherData {
   locationName: string;
 }
 
+type ChatMessage = {
+  id: string;
+  sender: 'butler';
+  text: string;
+};
+
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 export default function Home() {
@@ -118,13 +124,13 @@ export default function Home() {
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
-  // 💬 対話・フェード用ステータス
+  // 💬 対話・ログ用ステータス
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
-  const [butlerSpeech, setButlerSpeech] = useState<string>('');
-  const [isFadeAnim, setIsFadeAnim] = useState<boolean>(true);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
@@ -471,17 +477,24 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 🌹 挨拶カードをタップ：挨拶をフェードアウトさせてから会話画面をフェードイン
+  // 🌹 挨拶カードをタップ：挨拶をフェードアウトさせてから会話画面をポップイン起動
   const handleStartChat = () => {
     setIsGreetingVisible(false);
     setTimeout(() => {
       setIsChatActive(true);
-      setButlerSpeech(getButlerGreeting());
+      setChatMessages([{ id: Date.now().toString(), sender: 'butler', text: getButlerGreeting() }]);
       setIsChatVisible(true);
     }, 400);
   };
 
-  // 💬 主用入力欄からの送信・キーワード解析 ＆ 裏面ステータス記録 ＆ フェードエフェクト
+  // 自動で最新のメッセージにスクロールするエフェクト
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  // 💬 主用入力欄からの送信・キーワード解析 ＆ ポンッと浮き上がるメッセージ追加 ＆ 裏面記録
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = userInputValue.trim();
@@ -489,62 +502,59 @@ export default function Home() {
 
     const name = masterName || '主';
 
-    // 執事の返答部分だけフェードアウト開始
-    setIsFadeAnim(false);
+    let newSpeech = '';
+    let internalStatusRecord = '';
 
-    setTimeout(() => {
-      let newSpeech = '';
-      let internalStatusRecord = '';
-
-      if (text.includes('ただいま') || text.includes('帰ってきた') || text.includes('疲れた')) {
-        if (text.includes('お風呂') || text.includes('シャワー') || text.includes('バス')) {
-          newSpeech = `「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_BATH_TIME / 疲労度: Mid / 状態: 夜のルーティン実施中';
-        } else if (text.includes('ご飯') || text.includes('お腹') || text.includes('夕食') || text.includes('腹ペコ')) {
-          newSpeech = `「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MEAL_TIME / 空腹度: High / 状態: 生理적欲求・食事検討';
-        } else if (text.includes('限界') || text.includes('ベッド') || text.includes('倒れる') || text.includes('寝る')) {
-          newSpeech = `「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_SLEEP_IMMEDIATE / 疲労度: Max / 状態: 限界疲労・就寝モード';
-        } else if (text.includes('嫌なこと') || text.includes('愚痴') || text.includes('聞いて')) {
-          newSpeech = `「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MENTAL_CARE / ストレス度: High / 状態: メンタルケア要求';
-        } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと')) {
-          newSpeech = `「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_RELAX_TALK / ストレス度: Low / 状態: リラックス状態';
-        } else {
-          newSpeech = `「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`;
-          internalStatusRecord = '【裏面記録】ステータス: 帰宅・お迎え完了';
-        }
-      } else if (text.includes('おはよう') || text.includes('眠い') || text.includes('起きた') || text.includes('朝')) {
-        if (text.includes('起きる') || text.includes('頑張る') || text.includes('気合')) {
-          newSpeech = `「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_AWAKE_SUCCESS / 覚醒度: High / 状態: 意思表明';
-        } else if (text.includes('5分') || text.includes('二度寝') || text.includes('あと少し')) {
-          newSpeech = `「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。次のアラームでは頑張って起きてくださいね。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_SNOOZE_REQUEST / 覚醒度: Low / 状態: 二度寝要求';
-        } else if (text.includes('白湯') || text.includes('コーヒー') || text.includes('飲み物')) {
-          newSpeech = `「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MORNING_ROUTINE / 状態: 水分・白湯補給';
-        } else if (text.includes('憂鬱') || text.includes('行きたくない') || text.includes('だるい')) {
-          newSpeech = `「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当てて進められるよう私がしっかりサポートいたします。」`;
-          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MORNING_ANXIETY / 不安感: High / 状態: メンタルサポート';
-        } else {
-          newSpeech = `「おはようございます、${name}様。まだまだまぶたが重いご様子ですね。」`;
-          internalStatusRecord = '【裏面記録】ステータス: 朝の起床サポート';
-        }
+    if (text.includes('ただいま') || text.includes('帰ってきた') || text.includes('疲れた')) {
+      if (text.includes('お風呂') || text.includes('シャワー') || text.includes('バス')) {
+        newSpeech = `「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_BATH_TIME / 疲労度: Mid / 状態: 夜のルーティン実施中';
+      } else if (text.includes('ご飯') || text.includes('お腹') || text.includes('夕食') || text.includes('腹ペコ')) {
+        newSpeech = `「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MEAL_TIME / 空腹度: High / 状態: 生理的欲求・食事検討';
+      } else if (text.includes('限界') || text.includes('ベッド') || text.includes('倒れる') || text.includes('寝る')) {
+        newSpeech = `「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_SLEEP_IMMEDIATE / 疲労度: Max / 状態: 限界疲労・就寝モード';
+      } else if (text.includes('嫌なこと') || text.includes('愚痴') || text.includes('聞いて')) {
+        newSpeech = `「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MENTAL_CARE / ストレス度: High / 状態: メンタルケア要求';
+      } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと')) {
+        newSpeech = `「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_RELAX_TALK / ストレス度: Low / 状態: リラックス状態';
       } else {
-        newSpeech = `「${name}様のお言葉、しっかりと承りました。どのようなご要望でも、私にお任せくださいませ。」`;
-        internalStatusRecord = '【裏面記録】ステータス: 自由対話モード';
+        newSpeech = `「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`;
+        internalStatusRecord = '【裏面記録】ステータス: 帰宅・お迎え完了';
       }
+    } else if (text.includes('おはよう') || text.includes('眠い') || text.includes('起きた') || text.includes('朝')) {
+      if (text.includes('起きる') || text.includes('頑張る') || text.includes('気合')) {
+        newSpeech = `「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_AWAKE_SUCCESS / 覚醒度: High / 状態: 意思表明';
+      } else if (text.includes('5分') || text.includes('二度寝') || text.includes('あと少し')) {
+        newSpeech = `「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。次のアラームでは頑張って起きてくださいね。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_SNOOZE_REQUEST / 覚醒度: Low / 状態: 二度寝要求';
+      } else if (text.includes('白湯') || text.includes('コーヒー') || text.includes('飲み物')) {
+        newSpeech = `「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MORNING_ROUTINE / 状態: 水分・白湯補給';
+      } else if (text.includes('憂鬱') || text.includes('行きたくない') || text.includes('だるい')) {
+        newSpeech = `「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当てて進められるよう私がしっかりサポートいたします。」`;
+        internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MORNING_ANXIETY / 不安感: High / 状態: メンタルサポート';
+      } else {
+        newSpeech = `「おはようございます、${name}様。まだまだまぶたが重いご様子ですね。」`;
+        internalStatusRecord = '【裏面記録】ステータス: 朝の起床サポート';
+      }
+    } else {
+      newSpeech = `「${name}様のお言葉、しっかりと承りました。どのようなご要望でも、私にお任せくださいませ。」`;
+      internalStatusRecord = '【裏面記録】ステータス: 自由対話モード';
+    }
 
-      // 裏面記録としてコンソールに出力（裏で記録）
-      console.log(internalStatusRecord);
+    console.log(internalStatusRecord);
 
-      setButlerSpeech(newSpeech);
-      setUserInputValue('');
-      setIsFadeAnim(true); // フェードイン
-    }, 250);
+    // ポンッと浮き上がるエフェクト付きで新しいメッセージを追加
+    setChatMessages((prev) => [
+      ...prev,
+      { id: Date.now().toString(), sender: 'butler', text: newSpeech }
+    ]);
+    setUserInputValue('');
   };
 
   const toggleFireSound = () => {
@@ -569,8 +579,15 @@ export default function Home() {
         .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
         .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
-        .fade-box { transition: opacity 0.3s ease-in-out; }
         .smooth-fade { transition: opacity 0.4s ease-in-out; }
+        
+        @keyframes popUp {
+          0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .pop-up-msg {
+          animation: popUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
@@ -753,7 +770,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 執事との対話・挨拶カードエリア（裏面記録・シンプル切り替え） */}
+        {/* 🌹 挨拶カード ＆ ポンッと浮き上がる対話ログエリア */}
         <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
           {/* ① タップ前の初期挨拶カード */}
           <div
@@ -768,10 +785,10 @@ export default function Home() {
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話画面（入力欄 ＆ フェードする執事の回答のみ） */}
+          {/* ② タップ後に現れる会話画面（メッセージがポンッと浮き上がるログ形式） */}
           {isChatActive && (
             <div
-              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md border smooth-fade relative flex flex-col gap-3 ${
+              className={`rounded-2xl p-4 shadow-2xl backdrop-blur-md border smooth-fade relative flex flex-col gap-3 ${
                 isChatVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
@@ -780,9 +797,13 @@ export default function Home() {
                 <p className="text-xs font-semibold tracking-widest text-[#BB8632] text-center">執事との対話</p>
               </div>
 
-              {/* 執事からの回答（フェードアウト・フェードイン対応） */}
-              <div className={`fade-box flex flex-col items-center gap-2 py-2 ${isFadeAnim ? 'opacity-100' : 'opacity-0'}`}>
-                <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] text-center">{butlerSpeech}</p>
+              {/* メッセージスクロール領域（ポンッと浮き上がって積み重なる） */}
+              <div ref={chatScrollRef} className="flex flex-col gap-3 max-h-56 overflow-y-auto pr-1">
+                {chatMessages.map((msg) => (
+                  <div key={msg.id} className="pop-up-msg bg-[#2B0C12]/80 p-3 rounded-xl border border-[#BB8632]/40 shadow-md">
+                    <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] text-center">{msg.text}</p>
+                  </div>
+                ))}
               </div>
 
               {/* 主用入力欄 */}
