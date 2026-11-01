@@ -67,7 +67,7 @@ const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number;
     佐賀県: { 佐賀市: { lat: 33.2635, lon: 130.3008 } },
     長崎県: { 長崎市: { lat: 32.7503, lon: 129.8777 }, 佐世保市: { lat: 33.1599, lon: 129.7237 } },
     熊本県: { 熊本市: { lat: 32.7898, lon: 130.7417 } },
-    大分県: { 대分市: { lat: 33.2382, lon: 131.6126 } },
+    大分県: { 大分市: { lat: 33.2382, lon: 131.6126 } },
     宮崎県: { 宮崎市: { lat: 31.9077, lon: 131.4202 } },
     鹿児島県: { 鹿児島市: { lat: 31.5966, lon: 130.5571 } },
     沖縄県: { 那覇市: { lat: 26.2124, lon: 127.6809 }, '石垣・八重山': { lat: 24.3448, lon: 124.1572 } },
@@ -117,14 +117,15 @@ export default function Home() {
   const [timeString, setTimeString] = useState<string>('');
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-  const [showGreeting, setShowGreeting] = useState<boolean>(false);
-  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
+  const [showGreeting, setShowGreeting] = useState<boolean>(true);
 
-  // 💬 キーワード対応対話システムの状態管理
+  // 💬 対話・フェード用ステータス
+  const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
+  const [lastUserText, setLastUserText] = useState<string>('');
   const [butlerSpeech, setButlerSpeech] = useState<string>('');
   const [currentStatusTag, setCurrentStatusTag] = useState<string>('');
-  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
+  const [isFadeAnim, setIsFadeAnim] = useState<boolean>(true);
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
@@ -179,11 +180,8 @@ export default function Home() {
   useEffect(() => {
     const syncWorkSeconds = () => {
       let maxSeconds = 0;
-
       const lifetime = localStorage.getItem('butler_lifetime_seconds');
-      if (lifetime && !isNaN(Number(lifetime))) {
-        maxSeconds = Number(lifetime);
-      }
+      if (lifetime && !isNaN(Number(lifetime))) maxSeconds = Number(lifetime);
 
       const activityJson = localStorage.getItem('butler_master_activity_seconds');
       if (activityJson) {
@@ -213,9 +211,7 @@ export default function Home() {
     const syncInterval = setInterval(syncWorkSeconds, 1500);
 
     const savedPeerageType = localStorage.getItem('butler_is_female_peerage');
-    if (savedPeerageType !== null) {
-      setIsFemalePeerage(savedPeerageType === 'true');
-    }
+    if (savedPeerageType !== null) setIsFemalePeerage(savedPeerageType === 'true');
 
     return () => clearInterval(syncInterval);
   }, []);
@@ -225,11 +221,8 @@ export default function Home() {
   const getCurrentRank = () => {
     let current = PEERAGE_RANKS[0];
     for (const rank of PEERAGE_RANKS) {
-      if (totalHours >= rank.hoursRequired) {
-        current = rank;
-      } else {
-        break;
-      }
+      if (totalHours >= rank.hoursRequired) current = rank;
+      else break;
     }
     return current;
   };
@@ -238,9 +231,7 @@ export default function Home() {
 
   const getNextRank = () => {
     const currentIndex = PEERAGE_RANKS.findIndex(r => r.id === currentRank.id);
-    if (currentIndex < PEERAGE_RANKS.length - 1) {
-      return PEERAGE_RANKS[currentIndex + 1];
-    }
+    if (currentIndex < PEERAGE_RANKS.length - 1) return PEERAGE_RANKS[currentIndex + 1];
     return null;
   };
 
@@ -256,15 +247,11 @@ export default function Home() {
   const handleNavigate = (e: React.MouseEvent, href: string) => {
     e.preventDefault();
     setIsTransitioning(true);
-    setTimeout(() => {
-      router.push(href);
-    }, 500);
+    setTimeout(() => router.push(href), 500);
   };
 
   const handlePlayRecord = (trackName: string, audioSrc: string) => {
-    if (recordAudioRef.current) {
-      recordAudioRef.current.pause();
-    }
+    if (recordAudioRef.current) recordAudioRef.current.pause();
     const audio = new Audio(audioSrc);
     audio.loop = true;
     recordAudioRef.current = audio;
@@ -272,8 +259,7 @@ export default function Home() {
       setIsPlayingRecord(true);
       setCurrentTrack(trackName);
       setIsRecordModalOpen(false);
-    }).catch((err) => {
-      console.error('Audio play error:', err);
+    }).catch(() => {
       alert('音源の再生に失敗いたしました。');
     });
   };
@@ -297,11 +283,8 @@ export default function Home() {
     }
 
     const savedName = localStorage.getItem('butler_master_name');
-    if (savedName) {
-      setMasterName(savedName);
-    } else {
-      setShowNameModal(true);
-    }
+    if (savedName) setMasterName(savedName);
+    else setShowNameModal(true);
 
     const savedLoc = localStorage.getItem('butler_fallback_location');
     let currentLat = 35.8617;
@@ -320,21 +303,6 @@ export default function Home() {
       } catch (e) {}
     }
 
-    const lastVisit = localStorage.getItem('butler_master_last_visit');
-    const now = Date.now();
-    const hoursThreshold = 3;
-
-    if (!lastVisit) {
-      setShowGreeting(true);
-    } else {
-      const diffHours = (now - parseInt(lastVisit, 10)) / (1000 * 60 * 60);
-      if (diffHours >= hoursThreshold) {
-        setShowGreeting(true);
-      } else {
-        setShowGreeting(false);
-      }
-    }
-
     fetchWeatherByLocation(currentLat, currentLon, currentLocName);
   }, []);
 
@@ -343,11 +311,9 @@ export default function Home() {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          await fetchWeatherApi(lat, lon);
+          await fetchWeatherApi(position.coords.latitude, position.coords.longitude);
         },
-        (error) => {
+        () => {
           fetchWeatherApi(targetLat, targetLon, targetName);
         },
         { timeout: 8000 }
@@ -366,9 +332,7 @@ export default function Home() {
           const geoData = await geoRes.json();
           if (geoData && geoData.address) {
             const addr = geoData.address;
-            const pref = addr.province || addr.state || '';
-            const city = addr.city || addr.ward || addr.town || '';
-            locName = `${pref}${city}`;
+            locName = `${addr.province || addr.state || ''}${addr.city || addr.ward || addr.town || ''}`;
           }
         } catch (e) {}
       }
@@ -385,7 +349,6 @@ export default function Home() {
 
         let cond = '晴れ';
         let comment = '本日はとても過ごしやすい一日となりそうでございます。';
-
         if (code >= 1 && code <= 3) {
           cond = '曇り';
           comment = '少々雲が多いようでございます。お出かけの際はお足元にお気をつけくださいませ。';
@@ -430,7 +393,6 @@ export default function Home() {
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId.trim() || !userPassword.trim()) return;
-
     localStorage.setItem('butler_master_account_id', userId.trim());
     localStorage.setItem('butler_master_account_pw', userPassword.trim());
     setIsLoggedIn(true);
@@ -445,26 +407,14 @@ export default function Home() {
     setUserPassword('');
   };
 
-  const handleDismissGreeting = () => {
-    setIsFadingOut(true);
-    setTimeout(() => {
-      setShowGreeting(false);
-      localStorage.setItem('butler_master_last_visit', Date.now().toString());
-    }, 500);
-  };
-
   const handleOpenWeatherModal = () => {
     setShowWeatherModal(true);
-    setTimeout(() => {
-      setIsWeatherVisible(true);
-    }, 20);
+    setTimeout(() => setIsWeatherVisible(true), 20);
   };
 
   const handleCloseWeatherModal = () => {
     setIsWeatherVisible(false);
-    setTimeout(() => {
-      setShowWeatherModal(false);
-    }, 500);
+    setTimeout(() => setShowWeatherModal(false), 500);
   };
 
   const handleSaveInitialName = (e: React.FormEvent) => {
@@ -493,35 +443,17 @@ export default function Home() {
 
       setCurrentHour(hours);
 
-      if (hours >= 6 && hours < 8) {
-        setBgImage('/home-bg-morning.jpg');
-      } else if (hours >= 17 || hours < 6) {
-        setBgImage('/home-bg-night.jpg');
-      } else {
-        setBgImage('/home-bg.jpg');
-      }
+      if (hours >= 6 && hours < 8) setBgImage('/home-bg-morning.jpg');
+      else if (hours >= 17 || hours < 6) setBgImage('/home-bg-night.jpg');
+      else setBgImage('/home-bg.jpg');
 
-      let isSeason = false;
-      if (month > 8 || month < 2) {
-        isSeason = true;
-      } else if (month === 8 && date >= 23) {
-        isSeason = true;
-      } else if (month === 2 && date <= 21) {
-        isSeason = true;
-      }
-
+      let isSeason = (month > 8 || month < 2) || (month === 8 && date >= 23) || (month === 2 && date <= 21);
       const isTime = hours >= 17 || hours < 7;
       const shouldPlay = isSeason && isTime;
       setIsAutoTime(shouldPlay);
 
-      if (!userToggledFire) {
-        if (shouldPlay && audioRef.current && !isPlayingFire) {
-          audioRef.current.play().then(() => {
-            setIsPlayingFire(true);
-          }).catch(() => {
-            setIsPlayingFire(false);
-          });
-        }
+      if (!userToggledFire && shouldPlay && audioRef.current && !isPlayingFire) {
+        audioRef.current.play().then(() => setIsPlayingFire(true)).catch(() => setIsPlayingFire(false));
       }
     };
 
@@ -530,59 +462,88 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingFire, userToggledFire]);
 
-  // 💬 主用入力欄からのキーワード解析・自動応答処理
+  const getButlerGreeting = () => {
+    const name = masterName || '主';
+    if (currentHour >= 17 || currentHour < 6) {
+      return `「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
+    } else if (currentHour >= 6 && currentHour < 11) {
+      return `「おはようございます、${name}様。本日も素晴らしい一日にいたしましょう。」`;
+    }
+    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
+  };
+
+  // 🌹 挨拶カードをタップした時のハンドラ（会話モード起動）
+  const handleStartChat = () => {
+    setIsChatActive(true);
+    setLastUserText('');
+    setButlerSpeech(getButlerGreeting());
+    setCurrentStatusTag('[ステータス: 執事待機中]');
+  };
+
+  // 💬 主用入力欄からの送信・キーワード解析 ＆ フェードエフェクト
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = userInputValue.trim();
     if (!text) return;
 
     const name = masterName || '主';
-    setHasInteracted(true);
 
-    // キーワードマッチングによる判定
-    if (text.includes('ただいま') || text.includes('帰ってきた') || text.includes('疲れた')) {
-      if (text.includes('お風呂') || text.includes('シャワー') || text.includes('バス')) {
-        setButlerSpeech(`「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_BATH_TIME] [疲労度 Mid / 意欲・回復傾向 Rising] [夜のルーティン]');
-      } else if (text.includes('ご飯') || text.includes('お腹') || text.includes('夕食') || text.includes('腹ペコ')) {
-        setButlerSpeech(`「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_MEAL_TIME] [空腹度 High / 意欲 Normal] [生理的欲求]');
-      } else if (text.includes('限界') || text.includes('ベッド') || text.includes('倒れる') || text.includes('寝る')) {
-        setButlerSpeech(`「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_SLEEP_IMMEDIATE] [疲労度 Max] [限界疲労・就寝モード]');
-      } else if (text.includes('嫌なこと') || text.includes('愚痴') || text.includes('聞いて') || text.includes('嫌な')) {
-        setButlerSpeech(`「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_MENTAL_CARE] [ストレス度 High] [メンタルケア要求]');
-      } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと') || text.includes('ただいま')) {
-        setButlerSpeech(`「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_RELAX_TALK] [ストレス度 Low] [リラックス状態]');
-      } else {
-        setButlerSpeech(`「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`);
-        setCurrentStatusTag('[ステータス: 帰宅・お迎え完了]');
-      }
-    } else if (text.includes('おはよう') || text.includes('眠い') || text.includes('起きた') || text.includes('朝')) {
-      if (text.includes('起きる') || text.includes('頑張る') || text.includes('気合') || text.includes('立つ')) {
-        setButlerSpeech(`「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。まずはお手洗いやお着替えなど、朝のご準備からご案内いたしますね。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_AWAKE_SUCCESS] [覚醒度 High] [意思表明]');
-      } else if (text.includes('5分') || text.includes('二度寝') || text.includes('あと少し')) {
-        setButlerSpeech(`「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。これ以上遅れるとお辛くなりますので、次のアラームでは頑張って起きてくださいね。それでは、少しの間おやすみなさいませ。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_SNOOZE_REQUEST] [覚醒度 Low] [二度寝要求]');
-      } else if (text.includes('白湯') || text.includes('コーヒー') || text.includes('飲み物') || text.includes('お湯')) {
-        setButlerSpeech(`「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。準備が整いましたら、本日のご予定も確認してまいりますね。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_MORNING_ROUTINE] [水分・白湯補給]');
-      } else if (text.includes('憂鬱') || text.includes('行きたくない') || text.includes('だるい') || text.includes('学校') || text.includes('仕事')) {
-        setButlerSpeech(`「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当て、できる限り省エネで進められるよう私がしっかりサポートいたします。どのようなことがあっても、私は主様の味方ですからね。」`);
-        setCurrentStatusTag('[行動フラグ: STATUS_MORNING_ANXIETY] [不安感 High] [メンタルサポート]');
-      } else {
-        setButlerSpeech(`「おはようございます、${name}様。まだまだまぶたが重いご様子ですね。あと数分だけお休みになりますか？」`);
-        setCurrentStatusTag('[ステータス: 朝の起床サポート]');
-      }
-    } else {
-      setButlerSpeech(`「${name}のお言葉、しっかりと承りました。どのようなご要望でも、私にお任せくださいませ。」`);
-      setCurrentStatusTag('[ステータス: 自由対話モード]');
-    }
+    // フェードアウト開始
+    setIsFadeAnim(false);
 
-    setUserInputValue('');
+    setTimeout(() => {
+      setLastUserText(text);
+
+      let newSpeech = '';
+      let newTag = '';
+
+      if (text.includes('ただいま') || text.includes('帰ってきた') || text.includes('疲れた')) {
+        if (text.includes('お風呂') || text.includes('シャワー') || text.includes('バス')) {
+          newSpeech = `「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`;
+          newTag = '[行動フラグ: STATUS_BATH_TIME] [疲労度 Mid / 意欲・回復傾向 Rising] [夜のルーティン]';
+        } else if (text.includes('ご飯') || text.includes('お腹') || text.includes('夕食') || text.includes('腹ペコ')) {
+          newSpeech = `「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`;
+          newTag = '[行動フラグ: STATUS_MEAL_TIME] [空腹度 High] [生理的欲求]';
+        } else if (text.includes('限界') || text.includes('ベッド') || text.includes('倒れる') || text.includes('寝る')) {
+          newSpeech = `「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`;
+          newTag = '[行動フラグ: STATUS_SLEEP_IMMEDIATE] [限界疲労・就寝モード]';
+        } else if (text.includes('嫌なこと') || text.includes('愚痴') || text.includes('聞いて')) {
+          newSpeech = `「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`;
+          newTag = '[行動フラグ: STATUS_MENTAL_CARE] [メンタルケア要求]';
+        } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと')) {
+          newSpeech = `「ふふ、無事にご帰宅されてお心がほっと解けたようで、我也安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`;
+          newTag = '[行動フラグ: STATUS_RELAX_TALK] [リラックス状態]';
+        } else {
+          newSpeech = `「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`;
+          newTag = '[ステータス: 帰宅・お迎え完了]';
+        }
+      } else if (text.includes('おはよう') || text.includes('眠い') || text.includes('起きた') || text.includes('朝')) {
+        if (text.includes('起きる') || text.includes('頑張る') || text.includes('気合')) {
+          newSpeech = `「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。」`;
+          newTag = '[行動フラグ: STATUS_AWAKE_SUCCESS] [意思表明]';
+        } else if (text.includes('5分') || text.includes('二度寝') || text.includes('あと少し')) {
+          newSpeech = `「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。次のアラームでは頑張って起きてくださいね。」`;
+          newTag = '[行動フラグ: STATUS_SNOOZE_REQUEST] [二度寝要求]';
+        } else if (text.includes('白湯') || text.includes('コーヒー') || text.includes('飲み物')) {
+          newSpeech = `「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。」`;
+          newTag = '[行動フラグ: STATUS_MORNING_ROUTINE] [水分・白湯補給]';
+        } else if (text.includes('憂鬱') || text.includes('行きたくない') || text.includes('だるい')) {
+          newSpeech = `「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当てて進められるよう私がしっかりサポートいたします。」`;
+          newTag = '[行動フラグ: STATUS_MORNING_ANXIETY] [メンタルサポート]';
+        } else {
+          newSpeech = `「おはようございます、${name}様。まだまだまぶたが重いご様子ですね。」`;
+          newTag = '[ステータス: 朝の起床サポート]';
+        }
+      } else {
+        newSpeech = `「${name}様のお言葉、しっかりと承りました。どのようなご要望でも、私にお任せくださいませ。」`;
+        newTag = '[ステータス: 自由対話モード]';
+      }
+
+      setButlerSpeech(newSpeech);
+      setCurrentStatusTag(newTag);
+      setUserInputValue('');
+      setIsFadeAnim(true); // フェードイン
+    }, 250);
   };
 
   const toggleFireSound = () => {
@@ -592,9 +553,7 @@ export default function Home() {
         audioRef.current.pause();
         setIsPlayingFire(false);
       } else {
-        audioRef.current.play().then(() => {
-          setIsPlayingFire(true);
-        }).catch(() => {});
+        audioRef.current.play().then(() => setIsPlayingFire(true)).catch(() => {});
       }
     }
   };
@@ -609,6 +568,7 @@ export default function Home() {
         .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
         .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
+        .fade-box { transition: opacity 0.3s ease-in-out; }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
@@ -791,47 +751,61 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 主用キーワード入力欄 ＆ 執事の返答エリア */}
+        {/* 🌹 執事との対話・挨拶カードエリア */}
         <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
-          <div className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border transition-all duration-500 relative" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
-            
-            <p className="text-xs font-semibold tracking-widest text-[#BB8632] mb-1">執事との対話手帳</p>
-            
-            {hasInteracted ? (
-              <div className="flex flex-col items-center gap-2.5 my-2">
-                <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8]">{butlerSpeech}</p>
+          {!isChatActive ? (
+            /* タップする前の初期の挨拶カード（タップで会話スタート） */
+            <div onClick={handleStartChat} className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-300 relative" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
+              <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
+              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
+            </div>
+          ) : (
+            /* 会話が始まってからの入力欄 ＆ フェード切り替え式やり取りカード */
+            <div className="rounded-2xl p-5 shadow-2xl backdrop-blur-md border transition-all duration-300 relative flex flex-col gap-3" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
+              
+              <div className="flex justify-between items-center border-b border-[#BB8632]/30 pb-2">
+                <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事との対話手帳</p>
+                <button onClick={() => setIsChatActive(false)} className="text-[10px] text-[#BB8632] hover:underline cursor-pointer">挨拶に戻る ✕</button>
+              </div>
+
+              {/* 主様が打った文章の表示枠 */}
+              {lastUserText && (
+                <div className="bg-[#1A070B] px-3.5 py-2 rounded-xl border border-[#BB8632]/40 text-xs text-[#F3ECD8] self-end max-w-[85%] shadow-md">
+                  <span className="text-[9px] text-[#BB8632] block mb-0.5">主様のお言葉：</span>
+                  {lastUserText}
+                </div>
+              )}
+
+              {/* 執事からの回答（フェードアウト・フェードイン対応） */}
+              <div className={`fade-box flex flex-col items-center gap-2 ${isFadeAnim ? 'opacity-100' : 'opacity-0'}`}>
+                <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] text-center">{butlerSpeech}</p>
                 {currentStatusTag && (
                   <p className="text-[10px] text-[#BB8632] tracking-wider bg-[#2B0C12] px-3 py-1 rounded-full border border-[#BB8632]/40">
                     {currentStatusTag}
                   </p>
                 )}
-                <button onClick={() => setHasInteracted(false)} className="mt-1 text-[11px] text-[#BB8632] hover:underline cursor-pointer">
-                  ↩ 別のお言葉をかける
-                </button>
               </div>
-            ) : (
-              <p className="text-sm italic font-light text-[#F3ECD8] my-3">
-                「ただいま、今日はいっぱい歩いて疲れたよ」や「おはよう、まだ眠いよ」など、下の欄に自由にお言葉を入力してくださいませ。
-              </p>
-            )}
 
-            <form onSubmit={handleUserSubmit} className="flex gap-2 mt-3 pt-3 border-t border-[#BB8632]/30">
-              <input
-                type="text"
-                value={userInputValue}
-                onChange={(e) => setUserInputValue(e.target.value)}
-                placeholder="例: ただいま！お風呂に入ってくるね"
-                className="flex-1 px-3 py-2 rounded-lg bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
-              >
-                発話する
-              </button>
-            </form>
+              {/* 主用入力欄 */}
+              <form onSubmit={handleUserSubmit} className="flex gap-2 mt-2 pt-2 border-t border-[#BB8632]/30">
+                <input
+                  type="text"
+                  value={userInputValue}
+                  onChange={(e) => setUserInputValue(e.target.value)}
+                  placeholder="例: ただいま！お風呂に入ってくるね"
+                  className="flex-1 px-3 py-2 rounded-lg bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
+                >
+                  送信
+                </button>
+              </form>
 
-          </div>
+            </div>
+          )}
         </div>
 
         {/* 🏛️ 実用的な執事業務（タイマー・アラーム・日記帳・予定帳）のドック */}
