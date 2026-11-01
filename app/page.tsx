@@ -118,13 +118,13 @@ export default function Home() {
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
-  // 💬 対話・ポップアップ用ステータス
+  // 💬 タイプライター会話用ステータス
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
-  const [currentSpeech, setCurrentSpeech] = useState<string>('');
-  const [isPopAnim, setIsPopAnim] = useState<boolean>(true);
+  const [fullSpeech, setFullSpeech] = useState<string>('');
+  const [displayedSpeech, setDisplayedSpeech] = useState<string>('');
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
@@ -471,11 +471,28 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
+  // 🌹 タイプライター風テキストエフェクトの実装
+  useEffect(() => {
+    if (!fullSpeech) return;
+    setDisplayedSpeech('');
+    let currentIndex = 0;
+    const timer = setInterval(() => {
+      if (currentIndex < fullSpeech.length) {
+        setDisplayedSpeech((prev) => prev + fullSpeech.charAt(currentIndex));
+        currentIndex++;
+      } else {
+        clearInterval(timer);
+      }
+    }, 35); // 1文字ずつの速度（ミリ秒）
+
+    return () => clearInterval(timer);
+  }, [fullSpeech]);
+
   const handleStartChat = () => {
     setIsGreetingVisible(false);
     setTimeout(() => {
       setIsChatActive(true);
-      setCurrentSpeech(getButlerGreeting());
+      setFullSpeech(getButlerGreeting());
       setIsChatVisible(true);
     }, 400);
   };
@@ -534,12 +551,8 @@ export default function Home() {
 
     console.log(internalStatusRecord);
 
-    setIsPopAnim(false);
-    setTimeout(() => {
-      setCurrentSpeech(newSpeech);
-      setIsPopAnim(true);
-      setUserInputValue('');
-    }, 200);
+    setFullSpeech(newSpeech);
+    setUserInputValue('');
   };
 
   const toggleFireSound = () => {
@@ -565,14 +578,6 @@ export default function Home() {
         .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
         .smooth-fade { transition: opacity 0.4s ease-in-out; }
-        
-        @keyframes popUp {
-          0% { opacity: 0; transform: translateY(10px) scale(0.97); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .pop-up-bubble {
-          animation: popUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
@@ -755,12 +760,12 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 ホーム画面の背景に直接乗る 挨拶・会話吹き出しエリア */}
-        <div className="relative z-10 w-full max-w-md my-auto flex flex-col items-center justify-center">
+        {/* 🌹 ホーム画面の背景に直接乗る 挨拶・タイプライター風会話エリア */}
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md my-auto flex flex-col items-center justify-center px-2">
           {/* ① タップ前の初期挨拶カード */}
           <div
             onClick={handleStartChat}
-            className={`w-full rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade ${
+            className={`w-full rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade ${
               isGreetingVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
             }`}
             style={{ backgroundColor: 'rgba(25, 8, 12, 0.78)', borderColor: '#BB8632' }}
@@ -770,37 +775,39 @@ export default function Home() {
             <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話吹き出し */}
+          {/* ② タップ後に現れる会話吹き出し（タイプライター風表示 ＆ スマホでもはみ出さない幅） */}
           {isChatActive && (
             <div
-              className={`w-full rounded-2xl p-6 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-4 ${
+              className={`w-full rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-4 ${
                 isChatVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}
-              style={{ backgroundColor: 'rgba(25, 8, 12, 0.82)', borderColor: '#BB8632' }}
+              style={{ backgroundColor: 'rgba(25, 8, 12, 0.85)', borderColor: '#BB8632' }}
             >
               <div className="border-b border-[#BB8632]/30 pb-2 flex justify-between items-center">
                 <span className="text-[11px] font-semibold tracking-widest text-[#BB8632]">執事との対話</span>
-                <span className="text-[10px] text-[#F3ECD8]/60">お言葉は常に最新が表示されます</span>
+                <span className="text-[10px] text-[#F3ECD8]/60">会話形式</span>
               </div>
 
-              {/* 常に最新の1つのセリフがポンッと浮き上がる吹き出し */}
-              <div className={`pop-up-bubble py-3 px-2 transition-opacity duration-200 ${isPopAnim ? 'opacity-100' : 'opacity-0'}`}>
-                <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{currentSpeech}</p>
+              {/* 1文字ずつ浮かび上がるタイプライター風セリフ */}
+              <div className="py-2 px-1 min-h-[70px] flex items-center justify-center">
+                <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                  {displayedSpeech}
+                </p>
               </div>
 
-              {/* 主用入力欄 */}
+              {/* 主用入力欄（スマホでもはみ出さないコンパクトな幅に調整） */}
               <form onSubmit={handleUserSubmit} className="flex gap-2 pt-2 border-t border-[#BB8632]/30">
                 <input
                   type="text"
                   value={userInputValue}
                   onChange={(e) => setUserInputValue(e.target.value)}
-                  placeholder="例: ただいま！お風呂に入ってくるね"
-                  className="flex-1 px-3.5 py-2.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
+                  placeholder="例: ただいま！お風呂に行ってくるね"
+                  className="flex-1 w-0 min-w-0 px-3 py-2 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
                   autoFocus
                 />
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
+                  className="px-4 py-2 shrink-0 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
                 >
                   送信
                 </button>
