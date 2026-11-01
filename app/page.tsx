@@ -120,6 +120,12 @@ export default function Home() {
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
+  // 💬 インタラクティブ会話システムのステータス
+  const [conversationScene, setConversationScene] = useState<'morning' | 'night'>('night');
+  const [dialogStep, setDialogStep] = useState<'initial' | 'awaiting_reply' | 'responded'>('initial');
+  const [butlerSpeech, setButlerSpeech] = useState<string>('');
+  const [currentStatusTag, setCurrentStatusTag] = useState<string>('');
+
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
   const [isWeatherVisible, setIsWeatherVisible] = useState<boolean>(false);
@@ -492,7 +498,14 @@ export default function Home() {
       } else if (hours >= 17 || hours < 6) {
         setBgImage('/home-bg-night.jpg');
       } else {
-        setBgImage('/home-bg.jpg');
+        setBgImage('/home-[#home-bg.jpg');
+      }
+
+      // 時間帯に応じて会話シーンを自動セット
+      if (hours >= 5 && hours < 11) {
+        setConversationScene('morning');
+      } else {
+        setConversationScene('night');
       }
 
       let isSeason = false;
@@ -524,15 +537,68 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingFire, userToggledFire]);
 
-  const getButlerGreeting = () => {
+  // 💬 第一声の発信
+  const handleStartConversation = () => {
     const name = masterName || '主';
-    if (isAutoTime || currentHour >= 17 || currentHour < 6) {
-      return `「おかえりなさいませ。お部屋の暖炉に心地よい火を灯しております、${name}様。どうぞ温まりながらお過ごしくださいませ。」`;
+    if (conversationScene === 'morning') {
+      setButlerSpeech(`「おはようございます、${name}様。まだまぶたが重いご様子ですね。あと数分だけお休みになりますか？」`);
+    } else {
+      setButlerSpeech(`「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎください。」`);
     }
-    if (currentHour >= 6 && currentHour < 11) {
-      return `「おはようございます、${name}様。」`;
+    setDialogStep('awaiting_reply');
+    setCurrentStatusTag('');
+  };
+
+  // 💬 第二声パターン分岐処理
+  const handleSelectOption = (patternKey: string) => {
+    const name = masterName || '主';
+
+    if (conversationScene === 'morning') {
+      switch (patternKey) {
+        case 'A': // 気合で起きる！
+          setButlerSpeech(`「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。まずはお手洗いやお着替えなど、朝のご準備からご案内いたしますね。」`);
+          setCurrentStatusTag('[意思表明] [起床成功] [モーニングルーティン始動]');
+          break;
+        case 'B': // あと5分……二度寝させて
+          setButlerSpeech(`「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。これ以上遅れるとお辛くなりますので、次のアラームでは頑張って起きてくださいね。それでは、少しの間おやすみなさいませ。」`);
+          setCurrentStatusTag('[二度寝要求] [スヌーズ実行] [起床延期]');
+          break;
+        case 'C': // 白湯（コーヒー）淹れて飲もうかな
+          setButlerSpeech(`「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。準備が整いましたら、本日のご予定も確認してまいりますね。」`);
+          setCurrentStatusTag('[モーニングルーティン] [覚醒サポート] [水分・白湯補給]');
+          break;
+        case 'D': // 今日憂鬱だな……学校（仕事）行きたくない
+          setButlerSpeech(`「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当て、できる限り省エネで進められるよう私がしっかりサポートいたします。どのようなことがあっても、私は主様の味方ですからね。」`);
+          setCurrentStatusTag('[朝の憂鬱] [登校・出社抵抗] [メンタルサポート優先]');
+          break;
+      }
+    } else {
+      // 夜・帰宅時
+      switch (patternKey) {
+        case 'A': // お風呂入ってさっぱりしてくるね
+          setButlerSpeech(`「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`);
+          setCurrentStatusTag('[夜のルーティン] [自己ケア実施] [離脱中]');
+          break;
+        case 'B': // ご飯何食べようかな、お腹空いた！
+          setButlerSpeech(`「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`);
+          setCurrentStatusTag('[生理的欲求] [夕食/夜食] [エネルギー補給]');
+          break;
+        case 'C': // もう限界……ベッドに直行する
+          setButlerSpeech(`「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`);
+          setCurrentStatusTag('[限界疲労] [就寝モード] [サイレント見守り]');
+          break;
+        case 'D': // ねぇ、今日こんな嫌なことがあったんだ
+          setButlerSpeech(`「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`);
+          setCurrentStatusTag('[愚痴・吐露] [共感要求] [寄り添い優先]');
+          break;
+        case 'E': // 家に着くとやっぱり安心するなぁ
+          setButlerSpeech(`「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`);
+          setCurrentStatusTag('[リラックス] [安心感] [雑談モード]');
+          break;
+      }
     }
-    return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
+
+    setDialogStep('responded');
   };
 
   const toggleFireSound = () => {
@@ -741,13 +807,84 @@ export default function Home() {
           )}
         </div>
 
-        <div className="relative z-10 w-full max-w-sm my-auto flex flex-col gap-3">
-          {showGreeting && (
-            <div onClick={handleDismissGreeting} className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-500 relative ${isFadingOut ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`} style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }} title="タップして挨拶をしまう">
-              <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶</p>
-              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
-            </div>
-          )}
+        {/* 🌹 執事とのインタラクティブ対話コンポーネント */}
+        <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
+          <div className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border transition-all duration-500 relative" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
+            
+            {dialogStep === 'initial' && (
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事からのご案内</p>
+                <p className="text-sm italic font-light text-[#F3ECD8]">
+                  {conversationScene === 'morning'
+                    ? `「${masterName || '主'}様、おはようございます。新しい一日が始まりました。」`
+                    : `「${masterName || '主'}様、おかえりなさいませ。今夜もお世話をさせていただきます。」`}
+                </p>
+                <button onClick={handleStartConversation} className="px-5 py-2 rounded-xl bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:brightness-110 transition shadow-lg cursor-pointer border border-[#F3ECD8]/30">
+                  {conversationScene === 'morning' ? '「おはよう……まだ眠いよ……」' : '「ただいま！今日はいっぱい歩いて疲れたよ。」'}
+                </button>
+              </div>
+            )}
+
+            {dialogStep !== 'initial' && (
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事の返答</p>
+                <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8]">{butlerSpeech}</p>
+
+                {currentStatusTag && (
+                  <p className="text-[10px] text-[#BB8632] tracking-wider bg-[#2B0C12] px-3 py-1 rounded-full border border-[#BB8632]/40 mt-1">
+                    ステータス記録: {currentStatusTag}
+                  </p>
+                )}
+
+                {dialogStep === 'awaiting_reply' && (
+                  <div className="w-full flex flex-col gap-2 mt-2">
+                    <p className="text-[11px] text-[#BB8632] font-bold">主様の返答を選択してください：</p>
+                    {conversationScene === 'morning' ? (
+                      <>
+                        <button onClick={() => handleSelectOption('A')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          A. 「ううん、気合で起きる！頑張る！」
+                        </button>
+                        <button onClick={() => handleSelectOption('B')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          B. 「あと5分……二度寝させて……」
+                        </button>
+                        <button onClick={() => handleSelectOption('C')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          C. 「白湯（コーヒー）淹れて飲もうかな」
+                        </button>
+                        <button onClick={() => handleSelectOption('D')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          D. 「今日憂鬱だな……学校（仕事）行きたくない」
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => handleSelectOption('A')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          A. 「お風呂入ってさっぱりしてくるね」
+                        </button>
+                        <button onClick={() => handleSelectOption('B')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          B. 「ご飯何食べようかな、お腹空いた！」
+                        </button>
+                        <button onClick={() => handleSelectOption('C')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          C. 「もう限界……ベッドに直行する」
+                        </button>
+                        <button onClick={() => handleSelectOption('D')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          D. 「ねぇ、今日こんな嫌なことがあったんだ」
+                        </button>
+                        <button onClick={() => handleSelectOption('E')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
+                          E. 「家に着くとやっぱり安心するなぁ」
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {dialogStep === 'responded' && (
+                  <button onClick={() => setDialogStep('initial')} className="mt-2 text-xs text-[#BB8632] hover:underline cursor-pointer">
+                    ↩ 会話をリセットする
+                  </button>
+                )}
+              </div>
+            )}
+
+          </div>
         </div>
 
         {/* 🏛️ 実用的な執事業務（タイマー・アラーム・日記帳・予定帳）のドック */}
@@ -762,7 +899,7 @@ export default function Home() {
           </div>
 
           <div className="rounded-2xl p-3 shadow-2xl backdrop-blur-md border flex items-center justify-around gap-2" style={{ backgroundColor: 'rgba(59, 18, 24, 0.9)', borderColor: '#BB8632' }}>
-            {/* ⏱️ タイマー（学業補佐・学習管理） */}
+            {/* ⏱️ タイマー */}
             <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
               <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
@@ -770,7 +907,7 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </a>
 
-            {/* ⏰ アラーム（スケジュール管理） */}
+            {/* ⏰ アラーム */}
             <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
               <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
@@ -778,7 +915,7 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </a>
 
-            {/* 📖 日記帳（ライフスタイル・家政管理） */}
+            {/* 📖 日記帳 */}
             <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
               <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
@@ -786,7 +923,7 @@ export default function Home() {
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </a>
 
-            {/* 📅 予定帳（スケジュール・来客管理） */}
+            {/* 📅 予定帳 */}
             <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
               <div className="gothic-dock-item w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
