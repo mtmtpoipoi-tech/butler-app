@@ -118,13 +118,13 @@ export default function Home() {
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
-  // 💬 対話用ステータス（滑らかテキスト・コンパクト表示）
+  // 💬 セリフ一括表示用ステータス
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
-  const [fullSpeech, setFullSpeech] = useState<string>('');
-  const [displayedSpeech, setDisplayedSpeech] = useState<string>('');
+  const [currentSpeech, setCurrentSpeech] = useState<string>('');
+  const [isPopAnim, setIsPopAnim] = useState<boolean>(true);
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
@@ -471,29 +471,11 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 🌹 極めて滑らかなテキスト流入アニメーション（流れるように1文字ずつ表示）
-  useEffect(() => {
-    if (!fullSpeech) return;
-    setDisplayedSpeech('');
-
-    let index = 0;
-    const timer = setInterval(() => {
-      if (index < fullSpeech.length) {
-        setDisplayedSpeech((prev) => prev + fullSpeech.charAt(index));
-        index++;
-      } else {
-        clearInterval(timer);
-      }
-    }, 22); // 非常に高速で滑らかなアニメーション間隔
-
-    return () => clearInterval(timer);
-  }, [fullSpeech]);
-
   const handleStartChat = () => {
     setIsGreetingVisible(false);
     setTimeout(() => {
       setIsChatActive(true);
-      setFullSpeech(getButlerGreeting());
+      setCurrentSpeech(getButlerGreeting());
       setIsChatVisible(true);
     }, 300);
   };
@@ -552,8 +534,12 @@ export default function Home() {
 
     console.log(internalStatusRecord);
 
-    setFullSpeech(newSpeech);
-    setUserInputValue('');
+    setIsPopAnim(false);
+    setTimeout(() => {
+      setCurrentSpeech(newSpeech);
+      setIsPopAnim(true);
+      setUserInputValue('');
+    }, 150);
   };
 
   const toggleFireSound = () => {
@@ -578,7 +564,15 @@ export default function Home() {
         .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
         .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
-        .smooth-fade { transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out; }
+        .smooth-fade { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
+
+        @keyframes popUp {
+          0% { opacity: 0; transform: translateY(8px) scale(0.98); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .pop-up-bubble {
+          animation: popUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
@@ -762,7 +756,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 会話エリア（時計のすぐ下に配置・画面縦長化を解消） */}
+        {/* 🌹 会話エリア（時計のすぐ下に配置・一括表示対応） */}
         <div className="relative z-10 w-full max-w-sm sm:max-w-md mt-3 mb-auto flex flex-col items-center justify-center px-2">
           {/* ① タップ前の初期挨拶カード */}
           <div
@@ -777,7 +771,7 @@ export default function Home() {
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話吹き出し（上部にコンパクト配置 ＆ 超滑らかテキストアニメーション） */}
+          {/* ② タップ後に現れる会話吹き出し（セリフがいっぺんにポンッと現れる） */}
           {isChatActive && (
             <div
               className={`w-full rounded-2xl p-4 sm:p-5 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-3 ${
@@ -790,14 +784,14 @@ export default function Home() {
                 <span className="text-[9px] text-[#F3ECD8]/60">会話形式</span>
               </div>
 
-              {/* 滑らかに1文字ずつスルスルと流れるテキスト表示エリア */}
-              <div className="py-1 px-1 min-h-[55px] flex items-center justify-center">
+              {/* セリフがいっぺんに現れるエリア */}
+              <div className={`pop-up-bubble py-1 px-1 min-h-[55px] flex items-center justify-center transition-opacity duration-200 ${isPopAnim ? 'opacity-100' : 'opacity-0'}`}>
                 <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                  {displayedSpeech}
+                  {currentSpeech}
                 </p>
               </div>
 
-              {/* 主用入力欄（スマホでも画面内にすっきり納まるコンパクト設計） */}
+              {/* 主用入力欄（スマホ対応のコンパクト設計） */}
               <form onSubmit={handleUserSubmit} className="flex gap-2 pt-1.5 border-t border-[#BB8632]/30">
                 <input
                   type="text"
