@@ -100,12 +100,6 @@ interface WeatherData {
   locationName: string;
 }
 
-type ChatMessage = {
-  id: string;
-  sender: 'butler';
-  text: string;
-};
-
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 export default function Home() {
@@ -124,13 +118,13 @@ export default function Home() {
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
-  // 💬 対話・ログ用ステータス
+  // 💬 対話・ポップアップ用ステータス
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const [currentSpeech, setCurrentSpeech] = useState<string>('');
+  const [isPopAnim, setIsPopAnim] = useState<boolean>(true);
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
@@ -477,24 +471,15 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 🌹 挨拶カードをタップ：挨拶をフェードアウトさせてから会話画面をポップイン起動
   const handleStartChat = () => {
     setIsGreetingVisible(false);
     setTimeout(() => {
       setIsChatActive(true);
-      setChatMessages([{ id: Date.now().toString(), sender: 'butler', text: getButlerGreeting() }]);
+      setCurrentSpeech(getButlerGreeting());
       setIsChatVisible(true);
     }, 400);
   };
 
-  // 自動で最新のメッセージにスクロールするエフェクト
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [chatMessages]);
-
-  // 💬 主用入力欄からの送信・キーワード解析 ＆ ポンッと浮き上がるメッセージ追加 ＆ 裏面記録
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = userInputValue.trim();
@@ -549,12 +534,12 @@ export default function Home() {
 
     console.log(internalStatusRecord);
 
-    // ポンッと浮き上がるエフェクト付きで新しいメッセージを追加
-    setChatMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), sender: 'butler', text: newSpeech }
-    ]);
-    setUserInputValue('');
+    setIsPopAnim(false);
+    setTimeout(() => {
+      setCurrentSpeech(newSpeech);
+      setIsPopAnim(true);
+      setUserInputValue('');
+    }, 200);
   };
 
   const toggleFireSound = () => {
@@ -582,10 +567,10 @@ export default function Home() {
         .smooth-fade { transition: opacity 0.4s ease-in-out; }
         
         @keyframes popUp {
-          0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+          0% { opacity: 0; transform: translateY(10px) scale(0.97); }
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .pop-up-msg {
+        .pop-up-bubble {
           animation: popUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
@@ -593,7 +578,7 @@ export default function Home() {
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
       <div className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
-        <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         <div className="absolute top-4 left-4 z-20">
@@ -770,55 +755,52 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 挨拶カード ＆ ポンッと浮き上がる対話ログエリア */}
-        <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
+        {/* 🌹 ホーム画面の背景に直接乗る 挨拶・会話吹き出しエリア */}
+        <div className="relative z-10 w-full max-w-md my-auto flex flex-col items-center justify-center">
           {/* ① タップ前の初期挨拶カード */}
           <div
             onClick={handleStartChat}
-            className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade relative ${
+            className={`w-full rounded-2xl p-6 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade ${
               isGreetingVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
             }`}
-            style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
+            style={{ backgroundColor: 'rgba(25, 8, 12, 0.78)', borderColor: '#BB8632' }}
             title="タップして会話を始める"
           >
-            <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
-            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
+            <p className="text-[11px] font-semibold mb-2 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
+            <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話画面（メッセージがポンッと浮き上がるログ形式） */}
+          {/* ② タップ後に現れる会話吹き出し */}
           {isChatActive && (
             <div
-              className={`rounded-2xl p-4 shadow-2xl backdrop-blur-md border smooth-fade relative flex flex-col gap-3 ${
+              className={`w-full rounded-2xl p-6 shadow-2xl backdrop-blur-md border smooth-fade flex flex-col gap-4 ${
                 isChatVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}
-              style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
+              style={{ backgroundColor: 'rgba(25, 8, 12, 0.82)', borderColor: '#BB8632' }}
             >
-              <div className="border-b border-[#BB8632]/30 pb-2">
-                <p className="text-xs font-semibold tracking-widest text-[#BB8632] text-center">執事との対話</p>
+              <div className="border-b border-[#BB8632]/30 pb-2 flex justify-between items-center">
+                <span className="text-[11px] font-semibold tracking-widest text-[#BB8632]">執事との対話</span>
+                <span className="text-[10px] text-[#F3ECD8]/60">お言葉は常に最新が表示されます</span>
               </div>
 
-              {/* メッセージスクロール領域（ポンッと浮き上がって積み重なる） */}
-              <div ref={chatScrollRef} className="flex flex-col gap-3 max-h-56 overflow-y-auto pr-1">
-                {chatMessages.map((msg) => (
-                  <div key={msg.id} className="pop-up-msg bg-[#2B0C12]/80 p-3 rounded-xl border border-[#BB8632]/40 shadow-md">
-                    <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] text-center">{msg.text}</p>
-                  </div>
-                ))}
+              {/* 常に最新の1つのセリフがポンッと浮き上がる吹き出し */}
+              <div className={`pop-up-bubble py-3 px-2 transition-opacity duration-200 ${isPopAnim ? 'opacity-100' : 'opacity-0'}`}>
+                <p className="text-base sm:text-lg leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{currentSpeech}</p>
               </div>
 
               {/* 主用入力欄 */}
-              <form onSubmit={handleUserSubmit} className="flex gap-2 mt-2 pt-2 border-t border-[#BB8632]/30">
+              <form onSubmit={handleUserSubmit} className="flex gap-2 pt-2 border-t border-[#BB8632]/30">
                 <input
                   type="text"
                   value={userInputValue}
                   onChange={(e) => setUserInputValue(e.target.value)}
                   placeholder="例: ただいま！お風呂に入ってくるね"
-                  className="flex-1 px-3 py-2 rounded-lg bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
+                  className="flex-1 px-3.5 py-2.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
                   autoFocus
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
+                  className="px-5 py-2.5 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
                 >
                   送信
                 </button>
