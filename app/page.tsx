@@ -67,7 +67,7 @@ const JAPAN_REGIONS: Record<string, Record<string, Record<string, { lat: number;
     佐賀県: { 佐賀市: { lat: 33.2635, lon: 130.3008 } },
     長崎県: { 長崎市: { lat: 32.7503, lon: 129.8777 }, 佐世保市: { lat: 33.1599, lon: 129.7237 } },
     熊本県: { 熊本市: { lat: 32.7898, lon: 130.7417 } },
-    大分県: { 大分市: { lat: 33.2382, lon: 131.6126 } },
+    大分県: { 대分市: { lat: 33.2382, lon: 131.6126 } },
     宮崎県: { 宮崎市: { lat: 31.9077, lon: 131.4202 } },
     鹿児島県: { 鹿児島市: { lat: 31.5966, lon: 130.5571 } },
     沖縄県: { 那覇市: { lat: 26.2124, lon: 127.6809 }, '石垣・八重山': { lat: 24.3448, lon: 124.1572 } },
@@ -120,11 +120,11 @@ export default function Home() {
   const [showGreeting, setShowGreeting] = useState<boolean>(false);
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  // 💬 インタラクティブ会話システムのステータス
-  const [conversationScene, setConversationScene] = useState<'morning' | 'night'>('night');
-  const [dialogStep, setDialogStep] = useState<'initial' | 'awaiting_reply' | 'responded'>('initial');
+  // 💬 キーワード対応対話システムの状態管理
+  const [userInputValue, setUserInputValue] = useState<string>('');
   const [butlerSpeech, setButlerSpeech] = useState<string>('');
   const [currentStatusTag, setCurrentStatusTag] = useState<string>('');
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWeatherModal, setShowWeatherModal] = useState<boolean>(false);
@@ -498,14 +498,7 @@ export default function Home() {
       } else if (hours >= 17 || hours < 6) {
         setBgImage('/home-bg-night.jpg');
       } else {
-        setBgImage('/home-[#home-bg.jpg');
-      }
-
-      // 時間帯に応じて会話シーンを自動セット
-      if (hours >= 5 && hours < 11) {
-        setConversationScene('morning');
-      } else {
-        setConversationScene('night');
+        setBgImage('/home-bg.jpg');
       }
 
       let isSeason = false;
@@ -537,68 +530,59 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingFire, userToggledFire]);
 
-  // 💬 第一声の発信
-  const handleStartConversation = () => {
-    const name = masterName || '主';
-    if (conversationScene === 'morning') {
-      setButlerSpeech(`「おはようございます、${name}様。まだまぶたが重いご様子ですね。あと数分だけお休みになりますか？」`);
-    } else {
-      setButlerSpeech(`「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎください。」`);
-    }
-    setDialogStep('awaiting_reply');
-    setCurrentStatusTag('');
-  };
+  // 💬 主用入力欄からのキーワード解析・自動応答処理
+  const handleUserSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = userInputValue.trim();
+    if (!text) return;
 
-  // 💬 第二声パターン分岐処理
-  const handleSelectOption = (patternKey: string) => {
     const name = masterName || '主';
+    setHasInteracted(true);
 
-    if (conversationScene === 'morning') {
-      switch (patternKey) {
-        case 'A': // 気合で起きる！
-          setButlerSpeech(`「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。まずはお手洗いやお着替えなど、朝のご準備からご案内いたしますね。」`);
-          setCurrentStatusTag('[意思表明] [起床成功] [モーニングルーティン始動]');
-          break;
-        case 'B': // あと5分……二度寝させて
-          setButlerSpeech(`「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。これ以上遅れるとお辛くなりますので、次のアラームでは頑張って起きてくださいね。それでは、少しの間おやすみなさいませ。」`);
-          setCurrentStatusTag('[二度寝要求] [スヌーズ実行] [起床延期]');
-          break;
-        case 'C': // 白湯（コーヒー）淹れて飲もうかな
-          setButlerSpeech(`「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。準備が整いましたら、本日のご予定も確認してまいりますね。」`);
-          setCurrentStatusTag('[モーニングルーティン] [覚醒サポート] [水分・白湯補給]');
-          break;
-        case 'D': // 今日憂鬱だな……学校（仕事）行きたくない
-          setButlerSpeech(`「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当て、できる限り省エネで進められるよう私がしっかりサポートいたします。どのようなことがあっても、私は主様の味方ですからね。」`);
-          setCurrentStatusTag('[朝の憂鬱] [登校・出社抵抗] [メンタルサポート優先]');
-          break;
+    // キーワードマッチングによる判定
+    if (text.includes('ただいま') || text.includes('帰ってきた') || text.includes('疲れた')) {
+      if (text.includes('お風呂') || text.includes('シャワー') || text.includes('バス')) {
+        setButlerSpeech(`「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_BATH_TIME] [疲労度 Mid / 意欲・回復傾向 Rising] [夜のルーティン]');
+      } else if (text.includes('ご飯') || text.includes('お腹') || text.includes('夕食') || text.includes('腹ペコ')) {
+        setButlerSpeech(`「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_MEAL_TIME] [空腹度 High / 意欲 Normal] [生理的欲求]');
+      } else if (text.includes('限界') || text.includes('ベッド') || text.includes('倒れる') || text.includes('寝る')) {
+        setButlerSpeech(`「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_SLEEP_IMMEDIATE] [疲労度 Max] [限界疲労・就寝モード]');
+      } else if (text.includes('嫌なこと') || text.includes('愚痴') || text.includes('聞いて') || text.includes('嫌な')) {
+        setButlerSpeech(`「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_MENTAL_CARE] [ストレス度 High] [メンタルケア要求]');
+      } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと') || text.includes('ただいま')) {
+        setButlerSpeech(`「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_RELAX_TALK] [ストレス度 Low] [リラックス状態]');
+      } else {
+        setButlerSpeech(`「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`);
+        setCurrentStatusTag('[ステータス: 帰宅・お迎え完了]');
+      }
+    } else if (text.includes('おはよう') || text.includes('眠い') || text.includes('起きた') || text.includes('朝')) {
+      if (text.includes('起きる') || text.includes('頑張る') || text.includes('気合') || text.includes('立つ')) {
+        setButlerSpeech(`「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。まずはお手洗いやお着替えなど、朝のご準備からご案内いたしますね。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_AWAKE_SUCCESS] [覚醒度 High] [意思表明]');
+      } else if (text.includes('5分') || text.includes('二度寝') || text.includes('あと少し')) {
+        setButlerSpeech(`「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。これ以上遅れるとお辛くなりますので、次のアラームでは頑張って起きてくださいね。それでは、少しの間おやすみなさいませ。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_SNOOZE_REQUEST] [覚醒度 Low] [二度寝要求]');
+      } else if (text.includes('白湯') || text.includes('コーヒー') || text.includes('飲み物') || text.includes('お湯')) {
+        setButlerSpeech(`「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。準備が整いましたら、本日のご予定も確認してまいりますね。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_MORNING_ROUTINE] [水分・白湯補給]');
+      } else if (text.includes('憂鬱') || text.includes('行きたくない') || text.includes('だるい') || text.includes('学校') || text.includes('仕事')) {
+        setButlerSpeech(`「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当て、できる限り省エネで進められるよう私がしっかりサポートいたします。どのようなことがあっても、私は主様の味方ですからね。」`);
+        setCurrentStatusTag('[行動フラグ: STATUS_MORNING_ANXIETY] [不安感 High] [メンタルサポート]');
+      } else {
+        setButlerSpeech(`「おはようございます、${name}様。まだまだまぶたが重いご様子ですね。あと数分だけお休みになりますか？」`);
+        setCurrentStatusTag('[ステータス: 朝の起床サポート]');
       }
     } else {
-      // 夜・帰宅時
-      switch (patternKey) {
-        case 'A': // お風呂入ってさっぱりしてくるね
-          setButlerSpeech(`「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`);
-          setCurrentStatusTag('[夜のルーティン] [自己ケア実施] [離脱中]');
-          break;
-        case 'B': // ご飯何食べようかな、お腹空いた！
-          setButlerSpeech(`「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`);
-          setCurrentStatusTag('[生理的欲求] [夕食/夜食] [エネルギー補給]');
-          break;
-        case 'C': // もう限界……ベッドに直行する
-          setButlerSpeech(`「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`);
-          setCurrentStatusTag('[限界疲労] [就寝モード] [サイレント見守り]');
-          break;
-        case 'D': // ねぇ、今日こんな嫌なことがあったんだ
-          setButlerSpeech(`「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`);
-          setCurrentStatusTag('[愚痴・吐露] [共感要求] [寄り添い優先]');
-          break;
-        case 'E': // 家に着くとやっぱり安心するなぁ
-          setButlerSpeech(`「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`);
-          setCurrentStatusTag('[リラックス] [安心感] [雑談モード]');
-          break;
-      }
+      setButlerSpeech(`「${name}のお言葉、しっかりと承りました。どのようなご要望でも、私にお任せくださいませ。」`);
+      setCurrentStatusTag('[ステータス: 自由対話モード]');
     }
 
-    setDialogStep('responded');
+    setUserInputValue('');
   };
 
   const toggleFireSound = () => {
@@ -807,82 +791,45 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 執事とのインタラクティブ対話コンポーネント */}
+        {/* 🌹 主用キーワード入力欄 ＆ 執事の返答エリア */}
         <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
           <div className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border transition-all duration-500 relative" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
             
-            {dialogStep === 'initial' && (
-              <div className="flex flex-col items-center gap-3">
-                <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事からのご案内</p>
-                <p className="text-sm italic font-light text-[#F3ECD8]">
-                  {conversationScene === 'morning'
-                    ? `「${masterName || '主'}様、おはようございます。新しい一日が始まりました。」`
-                    : `「${masterName || '主'}様、おかえりなさいませ。今夜もお世話をさせていただきます。」`}
-                </p>
-                <button onClick={handleStartConversation} className="px-5 py-2 rounded-xl bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:brightness-110 transition shadow-lg cursor-pointer border border-[#F3ECD8]/30">
-                  {conversationScene === 'morning' ? '「おはよう……まだ眠いよ……」' : '「ただいま！今日はいっぱい歩いて疲れたよ。」'}
-                </button>
-              </div>
-            )}
-
-            {dialogStep !== 'initial' && (
-              <div className="flex flex-col items-center gap-3">
-                <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事の返答</p>
+            <p className="text-xs font-semibold tracking-widest text-[#BB8632] mb-1">執事との対話手帳</p>
+            
+            {hasInteracted ? (
+              <div className="flex flex-col items-center gap-2.5 my-2">
                 <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8]">{butlerSpeech}</p>
-
                 {currentStatusTag && (
-                  <p className="text-[10px] text-[#BB8632] tracking-wider bg-[#2B0C12] px-3 py-1 rounded-full border border-[#BB8632]/40 mt-1">
-                    ステータス記録: {currentStatusTag}
+                  <p className="text-[10px] text-[#BB8632] tracking-wider bg-[#2B0C12] px-3 py-1 rounded-full border border-[#BB8632]/40">
+                    {currentStatusTag}
                   </p>
                 )}
-
-                {dialogStep === 'awaiting_reply' && (
-                  <div className="w-full flex flex-col gap-2 mt-2">
-                    <p className="text-[11px] text-[#BB8632] font-bold">主様の返答を選択してください：</p>
-                    {conversationScene === 'morning' ? (
-                      <>
-                        <button onClick={() => handleSelectOption('A')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          A. 「ううん、気合で起きる！頑張る！」
-                        </button>
-                        <button onClick={() => handleSelectOption('B')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          B. 「あと5分……二度寝させて……」
-                        </button>
-                        <button onClick={() => handleSelectOption('C')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          C. 「白湯（コーヒー）淹れて飲もうかな」
-                        </button>
-                        <button onClick={() => handleSelectOption('D')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          D. 「今日憂鬱だな……学校（仕事）行きたくない」
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => handleSelectOption('A')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          A. 「お風呂入ってさっぱりしてくるね」
-                        </button>
-                        <button onClick={() => handleSelectOption('B')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          B. 「ご飯何食べようかな、お腹空いた！」
-                        </button>
-                        <button onClick={() => handleSelectOption('C')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          C. 「もう限界……ベッドに直行する」
-                        </button>
-                        <button onClick={() => handleSelectOption('D')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          D. 「ねぇ、今日こんな嫌なことがあったんだ」
-                        </button>
-                        <button onClick={() => handleSelectOption('E')} className="w-full py-2 px-3 rounded-lg bg-[#3B1218] border border-[#BB8632]/50 text-xs text-[#F3ECD8] font-bold hover:bg-[#561B24] transition text-left cursor-pointer">
-                          E. 「家に着くとやっぱり安心するなぁ」
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {dialogStep === 'responded' && (
-                  <button onClick={() => setDialogStep('initial')} className="mt-2 text-xs text-[#BB8632] hover:underline cursor-pointer">
-                    ↩ 会話をリセットする
-                  </button>
-                )}
+                <button onClick={() => setHasInteracted(false)} className="mt-1 text-[11px] text-[#BB8632] hover:underline cursor-pointer">
+                  ↩ 別のお言葉をかける
+                </button>
               </div>
+            ) : (
+              <p className="text-sm italic font-light text-[#F3ECD8] my-3">
+                「ただいま、今日はいっぱい歩いて疲れたよ」や「おはよう、まだ眠いよ」など、下の欄に自由にお言葉を入力してくださいませ。
+              </p>
             )}
+
+            <form onSubmit={handleUserSubmit} className="flex gap-2 mt-3 pt-3 border-t border-[#BB8632]/30">
+              <input
+                type="text"
+                value={userInputValue}
+                onChange={(e) => setUserInputValue(e.target.value)}
+                placeholder="例: ただいま！お風呂に入ってくるね"
+                className="flex-1 px-3 py-2 rounded-lg bg-[#2B0C12] border border-[#BB8632]/50 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
+              >
+                発話する
+              </button>
+            </form>
 
           </div>
         </div>
