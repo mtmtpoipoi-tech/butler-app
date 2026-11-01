@@ -117,10 +117,11 @@ export default function Home() {
   const [timeString, setTimeString] = useState<string>('');
 
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-  const [showGreeting, setShowGreeting] = useState<boolean>(true);
 
   // 💬 対話・フェード用ステータス
   const [isChatActive, setIsChatActive] = useState<boolean>(false);
+  const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
+  const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
   const [lastUserText, setLastUserText] = useState<string>('');
   const [butlerSpeech, setButlerSpeech] = useState<string>('');
@@ -472,12 +473,25 @@ export default function Home() {
     return `「おかえりなさいませ、${name}様。お待ちしておりました。」`;
   };
 
-  // 🌹 挨拶カードをタップした時のハンドラ（会話モード起動）
+  // 🌹 挨拶カードをタップ：挨拶をフェードアウトさせてから会話画面をフェードイン
   const handleStartChat = () => {
-    setIsChatActive(true);
-    setLastUserText('');
-    setButlerSpeech(getButlerGreeting());
-    setCurrentStatusTag('[ステータス: 執事待機中]');
+    setIsGreetingVisible(false); // 挨拶カードをフェードアウト
+    setTimeout(() => {
+      setIsChatActive(true);
+      setLastUserText('');
+      setButlerSpeech(getButlerGreeting());
+      setCurrentStatusTag('[ステータス: 執事待機中]');
+      setIsChatVisible(true); // 会話画面をフェードイン
+    }, 400);
+  };
+
+  // 💬 挨拶に戻る：会話画面をフェードアウトさせてから挨拶カードをフェードイン
+  const handleReturnToGreeting = () => {
+    setIsChatVisible(false); // 会話画面をフェードアウト
+    setTimeout(() => {
+      setIsChatActive(false);
+      setIsGreetingVisible(true); // 挨拶カードをフェードイン
+    }, 400);
   };
 
   // 💬 主用入力欄からの送信・キーワード解析 ＆ フェードエフェクト
@@ -488,7 +502,7 @@ export default function Home() {
 
     const name = masterName || '主';
 
-    // フェードアウト開始
+    // 執事の返答部分だけフェードアウト開始
     setIsFadeAnim(false);
 
     setTimeout(() => {
@@ -511,7 +525,7 @@ export default function Home() {
           newSpeech = `「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`;
           newTag = '[行動フラグ: STATUS_MENTAL_CARE] [メンタルケア要求]';
         } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと')) {
-          newSpeech = `「ふふ、無事にご帰宅されてお心がほっと解けたようで、我也安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`;
+          newSpeech = `「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`;
           newTag = '[行動フラグ: STATUS_RELAX_TALK] [リラックス状態]';
         } else {
           newSpeech = `「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`;
@@ -569,6 +583,7 @@ export default function Home() {
         .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.9); border-color: #BB8632; color: #F3ECD8; }
         .gothic-weather-btn:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
         .fade-box { transition: opacity 0.3s ease-in-out; }
+        .smooth-fade { transition: opacity 0.4s ease-in-out; }
       `}</style>
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
@@ -751,21 +766,32 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 執事との対話・挨拶カードエリア */}
+        {/* 🌹 執事との対話・挨拶カードエリア（フェード切り替え対応） */}
         <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
-          {!isChatActive ? (
-            /* タップする前の初期の挨拶カード（タップで会話スタート） */
-            <div onClick={handleStartChat} className="rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 transition-all duration-300 relative" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
-              <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
-              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
-            </div>
-          ) : (
-            /* 会話が始まってからの入力欄 ＆ フェード切り替え式やり取りカード */
-            <div className="rounded-2xl p-5 shadow-2xl backdrop-blur-md border transition-all duration-300 relative flex flex-col gap-3" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}>
-              
+          {/* ① タップ前の初期挨拶カード */}
+          <div
+            onClick={handleStartChat}
+            className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md text-center border cursor-pointer hover:brightness-110 smooth-fade relative ${
+              isGreetingVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            }`}
+            style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
+            title="タップして会話を始める"
+          >
+            <p className="text-xs font-semibold mb-1.5 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
+            <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
+          </div>
+
+          {/* ② タップ後に現れる会話画面（入力欄 ＆ やり取りカード） */}
+          {isChatActive && (
+            <div
+              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md border smooth-fade relative flex flex-col gap-3 absolute-container ${
+                isChatVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+              }`}
+              style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
+            >
               <div className="flex justify-between items-center border-b border-[#BB8632]/30 pb-2">
                 <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事との対話手帳</p>
-                <button onClick={() => setIsChatActive(false)} className="text-[10px] text-[#BB8632] hover:underline cursor-pointer">挨拶に戻る ✕</button>
+                <button onClick={handleReturnToGreeting} className="text-[10px] text-[#BB8632] hover:underline cursor-pointer">挨拶に戻る ✕</button>
               </div>
 
               {/* 主様が打った文章の表示枠 */}
@@ -803,7 +829,6 @@ export default function Home() {
                   送信
                 </button>
               </form>
-
             </div>
           )}
         </div>
