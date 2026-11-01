@@ -123,9 +123,7 @@ export default function Home() {
   const [isGreetingVisible, setIsGreetingVisible] = useState<boolean>(true);
   const [isChatVisible, setIsChatVisible] = useState<boolean>(false);
   const [userInputValue, setUserInputValue] = useState<string>('');
-  const [lastUserText, setLastUserText] = useState<string>('');
   const [butlerSpeech, setButlerSpeech] = useState<string>('');
-  const [currentStatusTag, setCurrentStatusTag] = useState<string>('');
   const [isFadeAnim, setIsFadeAnim] = useState<boolean>(true);
 
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
@@ -475,26 +473,15 @@ export default function Home() {
 
   // 🌹 挨拶カードをタップ：挨拶をフェードアウトさせてから会話画面をフェードイン
   const handleStartChat = () => {
-    setIsGreetingVisible(false); // 挨拶カードをフェードアウト
+    setIsGreetingVisible(false);
     setTimeout(() => {
       setIsChatActive(true);
-      setLastUserText('');
       setButlerSpeech(getButlerGreeting());
-      setCurrentStatusTag('[ステータス: 執事待機中]');
-      setIsChatVisible(true); // 会話画面をフェードイン
+      setIsChatVisible(true);
     }, 400);
   };
 
-  // 💬 挨拶に戻る：会話画面をフェードアウトさせてから挨拶カードをフェードイン
-  const handleReturnToGreeting = () => {
-    setIsChatVisible(false); // 会話画面をフェードアウト
-    setTimeout(() => {
-      setIsChatActive(false);
-      setIsGreetingVisible(true); // 挨拶カードをフェードイン
-    }, 400);
-  };
-
-  // 💬 主用入力欄からの送信・キーワード解析 ＆ フェードエフェクト
+  // 💬 主用入力欄からの送信・キーワード解析 ＆ 裏面ステータス記録 ＆ フェードエフェクト
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = userInputValue.trim();
@@ -506,55 +493,55 @@ export default function Home() {
     setIsFadeAnim(false);
 
     setTimeout(() => {
-      setLastUserText(text);
-
       let newSpeech = '';
-      let newTag = '';
+      let internalStatusRecord = '';
 
       if (text.includes('ただいま') || text.includes('帰ってきた') || text.includes('疲れた')) {
         if (text.includes('お風呂') || text.includes('シャワー') || text.includes('バス')) {
           newSpeech = `「かしこまりました。湯船にゆったりと浸かり、今日一日の疲れをさっぱりと洗い流してきてくださいませ。お風呂上がりのお飲み物のご準備もお忘れなく。ごゆっくりどうぞ。」`;
-          newTag = '[行動フラグ: STATUS_BATH_TIME] [疲労度 Mid / 意欲・回復傾向 Rising] [夜のルーティン]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_BATH_TIME / 疲労度: Mid / 状態: 夜のルーティン実施中';
         } else if (text.includes('ご飯') || text.includes('お腹') || text.includes('夕食') || text.includes('腹ペコ')) {
           newSpeech = `「お腹が空かれるお時間ですね。本日も頑張られた証拠でございます。胃に優しく温かいものになさいますか、それともしっかりエネルギーを補給なさいますか？どうぞ美味しく召し上がってくださいね。」`;
-          newTag = '[行動フラグ: STATUS_MEAL_TIME] [空腹度 High] [生理的欲求]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MEAL_TIME / 空腹度: High / 状態: 生理적欲求・食事検討';
         } else if (text.includes('限界') || text.includes('ベッド') || text.includes('倒れる') || text.includes('寝る')) {
           newSpeech = `「あぁ……それほどまでに体力を削られていたのですね。もう何も考えず、そのまま柔らかいお布団に身を委ねてくださいませ。明日のおご予定は私が守っておきますので、どうぞ安らかな眠りを……おやすみなさいませ。」`;
-          newTag = '[行動フラグ: STATUS_SLEEP_IMMEDIATE] [限界疲労・就寝モード]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_SLEEP_IMMEDIATE / 疲労度: Max / 状態: 限界疲労・就寝モード';
         } else if (text.includes('嫌なこと') || text.includes('愚痴') || text.includes('聞いて')) {
           newSpeech = `「辛いことがおありだったのですね……。どのようなことでも、胸の内を吐き出してくださいませ。お話しまとまらなくても構いません。私がずっと、${name}様の味方としてお聞きいたします。」`;
-          newTag = '[行動フラグ: STATUS_MENTAL_CARE] [メンタルケア要求]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MENTAL_CARE / ストレス度: High / 状態: メンタルケア要求';
         } else if (text.includes('安心') || text.includes('家') || text.includes('ほっと')) {
           newSpeech = `「ふふ、無事にご帰宅されてお心がほっと解けたようで、私も安心いたしました。お家は${name}様が一番素直になれる場所でございますからね。今夜はゆっくりと、取り留めのないお話でもいたしましょうか。」`;
-          newTag = '[行動フラグ: STATUS_RELAX_TALK] [リラックス状態]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_RELAX_TALK / ストレス度: Low / 状態: リラックス状態';
         } else {
           newSpeech = `「おかえりなさいませ、${name}様。本日も一日お疲れ様でございました。どうぞお寛ぎくださいませ。」`;
-          newTag = '[ステータス: 帰宅・お迎え完了]';
+          internalStatusRecord = '【裏面記録】ステータス: 帰宅・お迎え完了';
         }
       } else if (text.includes('おはよう') || text.includes('眠い') || text.includes('起きた') || text.includes('朝')) {
         if (text.includes('起きる') || text.includes('頑張る') || text.includes('気合')) {
           newSpeech = `「見事でございます、${name}様！眠気を見事に振り払って起き上がられたこと、心より誇らしく思います。さあ、本日も素晴らしい一日にいたしましょう。」`;
-          newTag = '[行動フラグ: STATUS_AWAKE_SUCCESS] [意思表明]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_AWAKE_SUCCESS / 覚醒度: High / 状態: 意思表明';
         } else if (text.includes('5分') || text.includes('二度寝') || text.includes('あと少し')) {
           newSpeech = `「ふふ、二度寝の誘惑には勝てませんでしたか。仕方ありませんね……では、あと数分だけタイマーを再セットしておきます。次のアラームでは頑張って起きてくださいね。」`;
-          newTag = '[行動フラグ: STATUS_SNOOZE_REQUEST] [二度寝要求]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_SNOOZE_REQUEST / 覚醒度: Low / 状態: 二度寝要求';
         } else if (text.includes('白湯') || text.includes('コーヒー') || text.includes('飲み物')) {
           newSpeech = `「温かいお飲み物で内臓から優しく起こすのですね。大変素晴らしいご判断です。ゆっくり口に含んで、頭と身体をじんわりと目覚めさせていきましょう。」`;
-          newTag = '[行動フラグ: STATUS_MORNING_ROUTINE] [水分・白湯補給]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MORNING_ROUTINE / 状態: 水分・白湯補給';
         } else if (text.includes('憂鬱') || text.includes('行きたくない') || text.includes('だるい')) {
           newSpeech = `「${name}様、今朝は少しお心が重いのですね……。無理に気を張る必要はございませんよ。本日乗り切るべきことだけに焦点を当てて進められるよう私がしっかりサポートいたします。」`;
-          newTag = '[行動フラグ: STATUS_MORNING_ANXIETY] [メンタルサポート]';
+          internalStatusRecord = '【裏面記録】行動フラグ: STATUS_MORNING_ANXIETY / 不安感: High / 状態: メンタルサポート';
         } else {
           newSpeech = `「おはようございます、${name}様。まだまだまぶたが重いご様子ですね。」`;
-          newTag = '[ステータス: 朝の起床サポート]';
+          internalStatusRecord = '【裏面記録】ステータス: 朝の起床サポート';
         }
       } else {
         newSpeech = `「${name}様のお言葉、しっかりと承りました。どのようなご要望でも、私にお任せくださいませ。」`;
-        newTag = '[ステータス: 自由対話モード]';
+        internalStatusRecord = '【裏面記録】ステータス: 自由対話モード';
       }
 
+      // 裏面記録としてコンソールに出力（裏で記録）
+      console.log(internalStatusRecord);
+
       setButlerSpeech(newSpeech);
-      setCurrentStatusTag(newTag);
       setUserInputValue('');
       setIsFadeAnim(true); // フェードイン
     }, 250);
@@ -766,7 +753,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 執事との対話・挨拶カードエリア（フェード切り替え対応） */}
+        {/* 🌹 執事との対話・挨拶カードエリア（裏面記録・シンプル切り替え） */}
         <div className="relative z-10 w-full max-w-md my-auto flex flex-col gap-3">
           {/* ① タップ前の初期挨拶カード */}
           <div
@@ -781,35 +768,21 @@ export default function Home() {
             <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8]">{getButlerGreeting()}</p>
           </div>
 
-          {/* ② タップ後に現れる会話画面（入力欄 ＆ やり取りカード） */}
+          {/* ② タップ後に現れる会話画面（入力欄 ＆ フェードする執事の回答のみ） */}
           {isChatActive && (
             <div
-              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md border smooth-fade relative flex flex-col gap-3 absolute-container ${
+              className={`rounded-2xl p-5 shadow-2xl backdrop-blur-md border smooth-fade relative flex flex-col gap-3 ${
                 isChatVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}
               style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)', borderColor: '#BB8632' }}
             >
-              <div className="flex justify-between items-center border-b border-[#BB8632]/30 pb-2">
-                <p className="text-xs font-semibold tracking-widest text-[#BB8632]">執事との対話手帳</p>
-                <button onClick={handleReturnToGreeting} className="text-[10px] text-[#BB8632] hover:underline cursor-pointer">挨拶に戻る ✕</button>
+              <div className="border-b border-[#BB8632]/30 pb-2">
+                <p className="text-xs font-semibold tracking-widest text-[#BB8632] text-center">執事との対話</p>
               </div>
 
-              {/* 主様が打った文章の表示枠 */}
-              {lastUserText && (
-                <div className="bg-[#1A070B] px-3.5 py-2 rounded-xl border border-[#BB8632]/40 text-xs text-[#F3ECD8] self-end max-w-[85%] shadow-md">
-                  <span className="text-[9px] text-[#BB8632] block mb-0.5">主様のお言葉：</span>
-                  {lastUserText}
-                </div>
-              )}
-
               {/* 執事からの回答（フェードアウト・フェードイン対応） */}
-              <div className={`fade-box flex flex-col items-center gap-2 ${isFadeAnim ? 'opacity-100' : 'opacity-0'}`}>
+              <div className={`fade-box flex flex-col items-center gap-2 py-2 ${isFadeAnim ? 'opacity-100' : 'opacity-0'}`}>
                 <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] text-center">{butlerSpeech}</p>
-                {currentStatusTag && (
-                  <p className="text-[10px] text-[#BB8632] tracking-wider bg-[#2B0C12] px-3 py-1 rounded-full border border-[#BB8632]/40">
-                    {currentStatusTag}
-                  </p>
-                )}
               </div>
 
               {/* 主用入力欄 */}
