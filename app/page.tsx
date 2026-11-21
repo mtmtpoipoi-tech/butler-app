@@ -121,12 +121,12 @@ const getJrLineByLocation = (locName: string): string => {
   return 'JR周辺路線';
 };
 
-// 🌹 四隅のクラシカル唐草装飾（サイズをピクセル固定して巨大化を防止）
+// 🌹 四隅のクラシカル唐草装飾（元のゴールド #BB8632 を使用）
 function CornerFlourish({
   positionClass,
   flipX = false,
   flipY = false,
-  size = 22,
+  size = 20,
 }: {
   positionClass: string;
   flipX?: boolean;
@@ -147,7 +147,7 @@ function CornerFlourish({
         height: `${size}px`,
         transform: `scale(${sx}, ${sy})`,
       }}
-      className={`pointer-events-none select-none text-[#D8C5A3] ${positionClass}`}
+      className={`pointer-events-none select-none text-[#BB8632] ${positionClass}`}
       aria-hidden="true"
     >
       <path
@@ -159,20 +159,20 @@ function CornerFlourish({
       <path
         d="M5 16C5 9 10 5 17 5C12.5 7 10 10.5 10.5 14.5C12.5 12 15.5 11.5 18 13C14.5 14 13 16.5 13 19.5C10.5 17 8 17 5 19.5V16Z"
         fill="currentColor"
-        fillOpacity="0.9"
+        fillOpacity="0.92"
       />
       <circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" />
     </svg>
   );
 }
 
-// 🏛️ クラシカル装飾枠コンポーネント
+// 🏛️ クラシカル装飾枠コンポーネント（元のゴールド #BB8632 仕様）
 function BaroqueFrame({
   children,
   className = '',
   innerClassName = '',
   bgStyle,
-  cornerSize = 22,
+  cornerSize = 20,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -186,8 +186,8 @@ function BaroqueFrame({
       style={bgStyle}
     >
       {/* 内側の細線＆点線枠 */}
-      <div className="pointer-events-none absolute inset-[4px] border border-[#C8B28E]/50 rounded-[2px]" />
-      <div className="pointer-events-none absolute inset-[7px] border border-dotted border-[#D8C5A3]/40 rounded-[1px]" />
+      <div className="pointer-events-none absolute inset-[4px] border border-[#BB8632]/55 rounded-[2px]" />
+      <div className="pointer-events-none absolute inset-[7px] border border-dotted border-[#BB8632]/45 rounded-[1px]" />
 
       {/* 四隅の唐草装飾 */}
       <CornerFlourish positionClass="absolute top-0 left-0" size={cornerSize} />
@@ -713,15 +713,16 @@ export default function Home() {
         .gothic-clock-time { font-family: 'Cinzel', 'Shippori Mincho', serif; letter-spacing: 0.08em; }
         .gothic-dock-item { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); }
         .gothic-dock-item:hover { transform: translateY(-4px); filter: brightness(1.15); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.5); }
-        .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(34, 24, 26, 0.92); border: 1px solid #C8B28E; color: #F3ECD8; }
-        .gothic-weather-btn:hover { transform: translateY(-3px); filter: brightness(1.12); box-shadow: 0 8px 20px rgba(216, 197, 163, 0.35); }
+        .gothic-weather-btn { transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7); background-color: rgba(59, 18, 24, 0.92); border: 1px solid #BB8632; color: #F3ECD8; }
+        .gothic-weather-btn:hover { transform: translateY(-3px); filter: brightness(1.12); box-shadow: 0 8px 20px rgba(187, 134, 50, 0.45); }
         .smooth-fade { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
 
+        /* 元のゴールド #BB8632 を活かしたクラシカル装飾枠 */
         .baroque-outer-frame {
-          border: 1.5px solid #D8C5A3;
+          border: 1.5px solid #BB8632;
           box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.72),
-            inset 0 0 0 1px rgba(216, 197, 163, 0.3);
+            0 8px 24px rgba(0, 0, 0, 0.75),
+            inset 0 0 0 1px rgba(187, 134, 50, 0.32);
           border-radius: 4px;
         }
 
@@ -736,13 +737,13 @@ export default function Home() {
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      <div className="min-h-screen flex flex-col items-center justify-start gap-3 px-3 py-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
+      <div className="min-h-screen flex flex-col items-center justify-between px-3 py-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
         {/* 左上 爵位バッジ */}
         <div className="fixed top-3 left-3 z-20">
-          <button onClick={() => setIsPeerageModalOpen(true)} className="px-2.5 py-1 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer" title="タップして全爵位と進捗を確認">
+          <button onClick={() => setIsPeerageModalOpen(true)} className="px-2.5 py-1 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/70 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer" title="タップして全爵位と進捗を確認">
             <span className="text-[9px] tracking-widest text-[#BB8632] uppercase">PEERAGE</span>
             <span className="text-xs font-bold tracking-wide text-[#F3ECD8] group-hover:text-[#BB8632] transition-colors leading-tight">
               {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale}
@@ -883,9 +884,9 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🏰 ヘッダー＆時計エリア */}
+        {/* 🏰 ヘッダー＆時計エリア（上部） */}
         <div className="relative z-10 w-full max-w-md text-center pt-7 flex flex-col items-center">
-          <p className="text-[9px] tracking-[0.3em] text-[#D8C5A3] mb-0.5">THE BUTLER'S MANOR</p>
+          <p className="text-[9px] tracking-[0.3em] text-[#BB8632] mb-0.5">THE BUTLER'S MANOR</p>
           <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-1.5">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
@@ -893,32 +894,32 @@ export default function Home() {
           <BaroqueFrame
             className="w-[216px] backdrop-blur-md"
             innerClassName="py-2 px-4 flex flex-col items-center justify-center gap-0.5"
-            bgStyle={{ backgroundColor: 'rgba(28, 19, 21, 0.86)' }}
+            bgStyle={{ backgroundColor: 'rgba(43, 12, 18, 0.82)' }}
             cornerSize={18}
           >
-            <p className="text-[10px] tracking-wider text-[#D8C5A3] font-bold">{dateString || '----年--月--日（-）'}</p>
+            <p className="text-[10px] tracking-wider text-[#BB8632] font-bold">{dateString || '----年--月--日（-）'}</p>
             <p className="gothic-clock-time text-lg sm:text-xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{timeString || '00:00:00'}</p>
           </BaroqueFrame>
 
           <div className="flex items-center gap-2 mt-2">
-            <div className="px-3 py-0.5 rounded-full border border-[#C8B28E]/70 bg-[#26181B]/85 shadow-md flex items-center gap-2.5">
+            <div className="px-3 py-0.5 rounded-full border border-[#BB8632]/70 bg-[#561B24]/85 shadow-md flex items-center gap-2.5">
               <span className="text-[11px] text-[#F3ECD8]">暖炉の火</span>
-              <button type="button" onClick={toggleFireSound} className={`relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#D8C5A3]' : 'bg-[#3B2529]'}`} role="switch" aria-checked={isPlayingFire}>
-                <span className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-[#1C1315] shadow transition duration-200 ease-in-out ${isPlayingFire ? 'translate-x-3.5' : 'translate-x-0'}`} />
+              <button type="button" onClick={toggleFireSound} className={`relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#BB8632]' : 'bg-[#310F14]'}`} role="switch" aria-checked={isPlayingFire}>
+                <span className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-[#F3ECD8] shadow transition duration-200 ease-in-out ${isPlayingFire ? 'translate-x-3.5' : 'translate-x-0'}`} />
               </button>
             </div>
           </div>
 
           {isPlayingRecord && (
-            <div className="w-full max-w-xs mt-1.5 px-3 py-1 rounded border border-[#C8B28E] flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(28, 19, 21, 0.92)' }}>
+            <div className="w-full max-w-xs mt-1.5 px-3 py-1 rounded border border-[#BB8632] flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(59, 18, 24, 0.92)' }}>
               <span>🎵 再生中: {currentTrack} (Loop)</span>
-              <button onClick={handleStopRecord} className="text-[#D8C5A3] hover:underline cursor-pointer text-xs font-bold">停止</button>
+              <button onClick={handleStopRecord} className="text-[#BB8632] hover:underline cursor-pointer text-xs font-bold">停止</button>
             </div>
           )}
         </div>
 
-        {/* 🌹 会話エリア */}
-        <div className="relative z-10 w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center">
+        {/* 🌹 会話エリア（中央付近） */}
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md my-auto py-2 flex flex-col items-center justify-center px-1">
           {/* ① タップ前の初期挨拶カード */}
           <div
             onClick={handleStartChat}
@@ -930,10 +931,10 @@ export default function Home() {
             <BaroqueFrame
               className="w-full backdrop-blur-md"
               innerClassName="px-5 py-3.5 text-center"
-              bgStyle={{ backgroundColor: 'rgba(24, 17, 19, 0.88)' }}
+              bgStyle={{ backgroundColor: 'rgba(25, 8, 12, 0.86)' }}
               cornerSize={20}
             >
-              <p className="text-[10px] font-semibold mb-1 tracking-widest text-[#D8C5A3]">執事よりのご挨拶 (タップして会話)</p>
+              <p className="text-[10px] font-semibold mb-1 tracking-widest text-[#BB8632]">執事よりのご挨拶 (タップして会話)</p>
               <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
             </BaroqueFrame>
           </div>
@@ -948,11 +949,11 @@ export default function Home() {
               <BaroqueFrame
                 className="w-full backdrop-blur-md"
                 innerClassName="px-5 py-3.5 flex flex-col gap-2.5"
-                bgStyle={{ backgroundColor: 'rgba(24, 17, 19, 0.92)' }}
+                bgStyle={{ backgroundColor: 'rgba(25, 8, 12, 0.9)' }}
                 cornerSize={20}
               >
-                <div className="border-b border-[#C8B28E]/35 pb-1 flex justify-between items-center">
-                  <span className="text-[10px] font-semibold tracking-widest text-[#D8C5A3]">執事との対話</span>
+                <div className="border-b border-[#BB8632]/35 pb-1 flex justify-between items-center">
+                  <span className="text-[10px] font-semibold tracking-widest text-[#BB8632]">執事との対話</span>
                   <span className="text-[9px] text-[#F3ECD8]/60">会話形式</span>
                 </div>
 
@@ -962,18 +963,18 @@ export default function Home() {
                   </p>
                 </div>
 
-                <form onSubmit={handleUserSubmit} className="flex gap-2 pt-1.5 border-t border-[#C8B28E]/35">
+                <form onSubmit={handleUserSubmit} className="flex gap-2 pt-1.5 border-t border-[#BB8632]/35">
                   <input
                     type="text"
                     value={userInputValue}
                     onChange={(e) => setUserInputValue(e.target.value)}
                     placeholder="例: ただいま！お風呂に行ってくるね"
-                    className="flex-1 w-0 min-w-0 px-3 py-1.5 rounded bg-[#181012]/90 border border-[#C8B28E]/55 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#D8C5A3]"
+                    className="flex-1 w-0 min-w-0 px-3 py-1.5 rounded bg-[#2B0C12]/90 border border-[#BB8632]/55 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#BB8632]"
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="px-3.5 py-1.5 shrink-0 rounded bg-[#D8C5A3] text-[#1C1315] font-bold text-xs hover:bg-[#E6D7BC] transition shadow-lg cursor-pointer"
+                    className="px-3.5 py-1.5 shrink-0 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-xs hover:bg-[#D49E4B] transition shadow-lg cursor-pointer"
                   >
                     送信
                   </button>
@@ -983,8 +984,8 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🏛️ 下部ドック */}
-        <div className="relative z-10 w-full max-w-md flex flex-col gap-2">
+        {/* 🏛️ 下部ドック（スマホ画面の下の方に配置） */}
+        <div className="relative z-10 w-full max-w-md pb-1 flex flex-col gap-2">
           <div className="flex gap-2">
             <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2 px-3 rounded flex items-center justify-center gap-1.5 text-xs">
               <span>🌤️ 天気</span>
@@ -997,39 +998,39 @@ export default function Home() {
           <BaroqueFrame
             className="w-full backdrop-blur-md"
             innerClassName="px-4 py-3 flex items-center justify-around gap-2"
-            bgStyle={{ backgroundColor: 'rgba(28, 19, 21, 0.9)' }}
+            bgStyle={{ backgroundColor: 'rgba(59, 18, 24, 0.92)' }}
             cornerSize={20}
           >
             {/* ⏱️ タイマー */}
             <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
               </div>
-              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">タイマー</span>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">タイマー</span>
             </a>
 
             {/* ⏰ アラーム */}
             <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
-              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">アラーム</span>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">アラーム</span>
             </a>
 
             {/* 📖 日記帳 */}
             <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
               </div>
-              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">日記帳</span>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">日記帳</span>
             </a>
 
             {/* 📅 予定帳 */}
             <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#BB8632' }}>
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
-              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">予定帳</span>
+              <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#BB8632] transition">予定帳</span>
             </a>
           </BaroqueFrame>
         </div>
