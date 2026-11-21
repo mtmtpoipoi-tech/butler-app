@@ -121,71 +121,79 @@ const getJrLineByLocation = (locName: string): string => {
   return 'JR周辺路線';
 };
 
-// 🌹 四隅のクラシカル唐草・アカンサス装飾 SVG
-function CornerFlourish({ className = '' }: { className?: string }) {
+// 🌹 四隅のクラシカル唐草装飾（サイズをピクセル固定して巨大化を防止）
+function CornerFlourish({
+  positionClass,
+  flipX = false,
+  flipY = false,
+  size = 22,
+}: {
+  positionClass: string;
+  flipX?: boolean;
+  flipY?: boolean;
+  size?: number;
+}) {
+  const sx = flipX ? -1 : 1;
+  const sy = flipY ? -1 : 1;
   return (
     <svg
-      viewBox="0 0 44 44"
+      width={size}
+      height={size}
+      viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`w-6 h-6 sm:w-7 sm:h-7 pointer-events-none select-none text-[#D8C5A3] ${className}`}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        transform: `scale(${sx}, ${sy})`,
+      }}
+      className={`pointer-events-none select-none text-[#D8C5A3] ${positionClass}`}
       aria-hidden="true"
     >
       <path
-        d="M3 41V13C3 7.477 7.477 3 13 3H41"
+        d="M2 34V11C2 6.029 6.029 2 11 2H34"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       <path
-        d="M7 41V15C7 10.029 11.029 6 16 6H41"
-        stroke="currentColor"
-        strokeWidth="0.9"
-        strokeDasharray="1.8 2.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5 18C5 10 11 5 19 5C14 7 11 11 11 16C13 13 17 12 20 14C16 15 14 18 14 22C11 19 8 19 5 22V18Z"
+        d="M5 16C5 9 10 5 17 5C12.5 7 10 10.5 10.5 14.5C12.5 12 15.5 11.5 18 13C14.5 14 13 16.5 13 19.5C10.5 17 8 17 5 19.5V16Z"
         fill="currentColor"
-        fillOpacity="0.92"
+        fillOpacity="0.9"
       />
-      <path
-        d="M12 24C14 19 19 17 24 19C20 20 18 23 19 26C16 25 14 26 12 29V24Z"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-      />
-      <circle cx="9.5" cy="9.5" r="1.6" fill="currentColor" />
+      <circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" />
     </svg>
   );
 }
 
-// 🏛️ 画像の額縁デザインを再現したクラシカル装飾枠コンポーネント
+// 🏛️ クラシカル装飾枠コンポーネント
 function BaroqueFrame({
   children,
   className = '',
   innerClassName = '',
   bgStyle,
+  cornerSize = 22,
 }: {
   children: React.ReactNode;
   className?: string;
   innerClassName?: string;
   bgStyle?: React.CSSProperties;
+  cornerSize?: number;
 }) {
   return (
     <div
       className={`relative baroque-outer-frame ${className}`}
       style={bgStyle}
     >
-      {/* 内側の細線＆点線二重枠 */}
-      <div className="pointer-events-none absolute inset-[5px] border border-[#C8B28E]/55 rounded-[2px]" />
-      <div className="pointer-events-none absolute inset-[8px] border border-dotted border-[#D8C5A3]/45 rounded-[1px]" />
+      {/* 内側の細線＆点線枠 */}
+      <div className="pointer-events-none absolute inset-[4px] border border-[#C8B28E]/50 rounded-[2px]" />
+      <div className="pointer-events-none absolute inset-[7px] border border-dotted border-[#D8C5A3]/40 rounded-[1px]" />
 
       {/* 四隅の唐草装飾 */}
-      <CornerFlourish className="top-0 left-0" />
-      <CornerFlourish className="top-0 right-0 -scale-x-100" />
-      <CornerFlourish className="bottom-0 left-0 -scale-y-100" />
-      <CornerFlourish className="bottom-0 right-0 -scale-x-100 -scale-y-100" />
+      <CornerFlourish positionClass="absolute top-0 left-0" size={cornerSize} />
+      <CornerFlourish positionClass="absolute top-0 right-0" flipX size={cornerSize} />
+      <CornerFlourish positionClass="absolute bottom-0 left-0" flipY size={cornerSize} />
+      <CornerFlourish positionClass="absolute bottom-0 right-0" flipX flipY size={cornerSize} />
 
       <div className={`relative z-10 ${innerClassName}`}>
         {children}
@@ -709,12 +717,11 @@ export default function Home() {
         .gothic-weather-btn:hover { transform: translateY(-3px); filter: brightness(1.12); box-shadow: 0 8px 20px rgba(216, 197, 163, 0.35); }
         .smooth-fade { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
 
-        /* 画像のような重厚なクラシカル装飾枠 */
         .baroque-outer-frame {
-          border: 2px solid #D8C5A3;
+          border: 1.5px solid #D8C5A3;
           box-shadow:
-            0 10px 28px rgba(0, 0, 0, 0.75),
-            inset 0 0 0 1px rgba(216, 197, 163, 0.35);
+            0 8px 24px rgba(0, 0, 0, 0.72),
+            inset 0 0 0 1px rgba(216, 197, 163, 0.3);
           border-radius: 4px;
         }
 
@@ -729,26 +736,23 @@ export default function Home() {
 
       <audio ref={audioRef} src="/fireplace.mp4" loop />
 
-      <div className="min-h-screen flex flex-col items-center justify-between p-3 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
+      <div className="min-h-screen flex flex-col items-center justify-start gap-3 px-3 py-4 sm:p-6 bg-cover bg-center bg-no-repeat relative text-[#F3ECD8]" style={{ backgroundImage: `url('${bgImage}')` }}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
         <div className={`fixed inset-0 bg-black z-50 pointer-events-none transition-opacity duration-500 ${isTransitioning ? 'opacity-100' : 'opacity-0'}`} />
 
-        <div className="absolute top-4 left-4 z-20">
-          <button onClick={() => setIsPeerageModalOpen(true)} className="px-3 py-1.5 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer" title="タップして全爵位と進捗を確認">
-            <span className="text-[10px] tracking-widest text-[#BB8632] uppercase">PEERAGE</span>
-            <div className="flex flex-col mt-0.5">
-              <span className="text-sm font-bold tracking-wide text-[#F3ECD8] group-hover:text-[#BB8632] transition-colors leading-tight">
-                {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale}
-              </span>
-              <span className="text-[11px] font-normal text-[#F3ECD8]/70 tracking-wider">
-                {isFemalePeerage ? currentRank.engFemale : currentRank.engMale}
-              </span>
-            </div>
+        {/* 左上 爵位バッジ */}
+        <div className="fixed top-3 left-3 z-20">
+          <button onClick={() => setIsPeerageModalOpen(true)} className="px-2.5 py-1 rounded-lg bg-[#2B0C12]/90 border border-[#BB8632]/60 shadow-lg hover:border-[#BB8632] transition-all text-left flex flex-col group cursor-pointer" title="タップして全爵位と進捗を確認">
+            <span className="text-[9px] tracking-widest text-[#BB8632] uppercase">PEERAGE</span>
+            <span className="text-xs font-bold tracking-wide text-[#F3ECD8] group-hover:text-[#BB8632] transition-colors leading-tight">
+              {isFemalePeerage ? currentRank.nameFemale : currentRank.nameMale}
+            </span>
           </button>
         </div>
 
-        <div className="absolute top-4 right-4 z-20">
-          <button onClick={() => setShowSettingsModal(true)} className="px-3 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1.5 cursor-pointer">
+        {/* 右上 設定ボタン */}
+        <div className="fixed top-3 right-3 z-20">
+          <button onClick={() => setShowSettingsModal(true)} className="px-2.5 py-1.5 rounded-lg border border-[#BB8632] bg-[#3B1218]/90 text-xs text-[#F3ECD8] hover:bg-[#561B24] transition shadow-lg flex items-center gap-1 cursor-pointer">
             <span>⚙️ 設定</span>
           </button>
         </div>
@@ -879,23 +883,24 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🏰 ヘッダー＆時計エリア（上部にコンパクトに配置・クラシカル装飾枠） */}
-        <div className="relative z-10 w-full max-w-lg text-center pt-8 flex flex-col items-center">
+        {/* 🏰 ヘッダー＆時計エリア */}
+        <div className="relative z-10 w-full max-w-md text-center pt-7 flex flex-col items-center">
           <p className="text-[9px] tracking-[0.3em] text-[#D8C5A3] mb-0.5">THE BUTLER'S MANOR</p>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-widest text-[#F3ECD8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] mb-1.5">
             {masterName ? `${masterName}様の邸宅` : '主の邸宅'}
           </h1>
 
           <BaroqueFrame
-            className="w-full max-w-[228px] my-1 backdrop-blur-md"
-            innerClassName="py-2 px-5 flex flex-col items-center justify-center gap-0"
-            bgStyle={{ backgroundColor: 'rgba(28, 19, 21, 0.84)' }}
+            className="w-[216px] backdrop-blur-md"
+            innerClassName="py-2 px-4 flex flex-col items-center justify-center gap-0.5"
+            bgStyle={{ backgroundColor: 'rgba(28, 19, 21, 0.86)' }}
+            cornerSize={18}
           >
             <p className="text-[10px] tracking-wider text-[#D8C5A3] font-bold">{dateString || '----年--月--日（-）'}</p>
             <p className="gothic-clock-time text-lg sm:text-xl font-bold text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{timeString || '00:00:00'}</p>
           </BaroqueFrame>
 
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-2">
             <div className="px-3 py-0.5 rounded-full border border-[#C8B28E]/70 bg-[#26181B]/85 shadow-md flex items-center gap-2.5">
               <span className="text-[11px] text-[#F3ECD8]">暖炉の火</span>
               <button type="button" onClick={toggleFireSound} className={`relative inline-flex h-3.5 w-7 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPlayingFire ? 'bg-[#D8C5A3]' : 'bg-[#3B2529]'}`} role="switch" aria-checked={isPlayingFire}>
@@ -905,15 +910,15 @@ export default function Home() {
           </div>
 
           {isPlayingRecord && (
-            <div className="w-full max-w-xs mt-2 px-3 py-1 rounded border border-[#C8B28E] flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(28, 19, 21, 0.92)' }}>
+            <div className="w-full max-w-xs mt-1.5 px-3 py-1 rounded border border-[#C8B28E] flex items-center justify-between text-xs text-[#F3ECD8] shadow-lg animate-fade-in" style={{ backgroundColor: 'rgba(28, 19, 21, 0.92)' }}>
               <span>🎵 再生中: {currentTrack} (Loop)</span>
               <button onClick={handleStopRecord} className="text-[#D8C5A3] hover:underline cursor-pointer text-xs font-bold">停止</button>
             </div>
           )}
         </div>
 
-        {/* 🌹 会話エリア（時計のすぐ下に配置・クラシカル装飾枠） */}
-        <div className="relative z-10 w-full max-w-sm sm:max-w-md mt-3 mb-auto flex flex-col items-center justify-center px-2">
+        {/* 🌹 会話エリア */}
+        <div className="relative z-10 w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center">
           {/* ① タップ前の初期挨拶カード */}
           <div
             onClick={handleStartChat}
@@ -924,11 +929,12 @@ export default function Home() {
           >
             <BaroqueFrame
               className="w-full backdrop-blur-md"
-              innerClassName="p-4 sm:p-5 text-center"
+              innerClassName="px-5 py-3.5 text-center"
               bgStyle={{ backgroundColor: 'rgba(24, 17, 19, 0.88)' }}
+              cornerSize={20}
             >
-              <p className="text-[10px] font-semibold mb-1.5 tracking-widest text-[#D8C5A3]">執事よりのご挨拶 (タップして会話)</p>
-              <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
+              <p className="text-[10px] font-semibold mb-1 tracking-widest text-[#D8C5A3]">執事よりのご挨拶 (タップして会話)</p>
+              <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getButlerGreeting()}</p>
             </BaroqueFrame>
           </div>
 
@@ -941,34 +947,33 @@ export default function Home() {
             >
               <BaroqueFrame
                 className="w-full backdrop-blur-md"
-                innerClassName="p-4 sm:p-5 flex flex-col gap-3"
+                innerClassName="px-5 py-3.5 flex flex-col gap-2.5"
                 bgStyle={{ backgroundColor: 'rgba(24, 17, 19, 0.92)' }}
+                cornerSize={20}
               >
-                <div className="border-b border-[#C8B28E]/35 pb-1.5 flex justify-between items-center">
+                <div className="border-b border-[#C8B28E]/35 pb-1 flex justify-between items-center">
                   <span className="text-[10px] font-semibold tracking-widest text-[#D8C5A3]">執事との対話</span>
                   <span className="text-[9px] text-[#F3ECD8]/60">会話形式</span>
                 </div>
 
-                {/* セリフエリア */}
-                <div className={`pop-up-bubble py-1 px-1 min-h-[55px] flex items-center justify-center transition-opacity duration-200 ${isPopAnim ? 'opacity-100' : 'opacity-0'}`}>
-                  <p className="text-sm sm:text-base leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                <div className={`pop-up-bubble py-0.5 px-1 flex items-center justify-center transition-opacity duration-200 ${isPopAnim ? 'opacity-100' : 'opacity-0'}`}>
+                  <p className="text-sm leading-relaxed italic font-light text-[#F3ECD8] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                     {currentSpeech}
                   </p>
                 </div>
 
-                {/* 主用入力欄 */}
                 <form onSubmit={handleUserSubmit} className="flex gap-2 pt-1.5 border-t border-[#C8B28E]/35">
                   <input
                     type="text"
                     value={userInputValue}
                     onChange={(e) => setUserInputValue(e.target.value)}
                     placeholder="例: ただいま！お風呂に行ってくるね"
-                    className="flex-1 w-0 min-w-0 px-3 py-2 rounded bg-[#181012]/90 border border-[#C8B28E]/55 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#D8C5A3]"
+                    className="flex-1 w-0 min-w-0 px-3 py-1.5 rounded bg-[#181012]/90 border border-[#C8B28E]/55 text-xs text-[#F3ECD8] placeholder-[#F3ECD8]/40 outline-none focus:border-[#D8C5A3]"
                     autoFocus
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 shrink-0 rounded bg-[#D8C5A3] text-[#1C1315] font-bold text-xs hover:bg-[#E6D7BC] transition shadow-lg cursor-pointer"
+                    className="px-3.5 py-1.5 shrink-0 rounded bg-[#D8C5A3] text-[#1C1315] font-bold text-xs hover:bg-[#E6D7BC] transition shadow-lg cursor-pointer"
                   >
                     送信
                   </button>
@@ -978,25 +983,26 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🏛️ 実用的な執事業務（タイマー・アラーム・日記帳・予定帳）のドック */}
-        <div className="relative z-10 w-full max-w-md pb-2 mt-2 flex flex-col gap-2">
+        {/* 🏛️ 下部ドック */}
+        <div className="relative z-10 w-full max-w-md flex flex-col gap-2">
           <div className="flex gap-2">
-            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2 px-4 rounded flex items-center justify-center gap-2 text-xs">
+            <button onClick={handleOpenWeatherModal} className="gothic-weather-btn flex-1 py-2 px-3 rounded flex items-center justify-center gap-1.5 text-xs">
               <span>🌤️ 天気</span>
             </button>
-            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2 px-4 rounded flex items-center justify-center gap-2 text-xs">
+            <button onClick={() => setIsRecordModalOpen(true)} className="gothic-weather-btn flex-1 py-2 px-3 rounded flex items-center justify-center gap-1.5 text-xs">
               <span>🎵 レコード</span>
             </button>
           </div>
 
           <BaroqueFrame
             className="w-full backdrop-blur-md"
-            innerClassName="p-3 flex items-center justify-around gap-2"
+            innerClassName="px-4 py-3 flex items-center justify-around gap-2"
             bgStyle={{ backgroundColor: 'rgba(28, 19, 21, 0.9)' }}
+            cornerSize={20}
           >
             {/* ⏱️ タイマー */}
             <a href="/timer" onClick={(e) => handleNavigate(e, '/timer')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
                 <img src="/icon-timer.jpg" alt="タイマー" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">タイマー</span>
@@ -1004,7 +1010,7 @@ export default function Home() {
 
             {/* ⏰ アラーム */}
             <a href="/alarm" onClick={(e) => handleNavigate(e, '/alarm')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
                 <img src="/icon-alarm.jpg" alt="アラーム" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">アラーム</span>
@@ -1012,7 +1018,7 @@ export default function Home() {
 
             {/* 📖 日記帳 */}
             <a href="/journal" onClick={(e) => handleNavigate(e, '/journal')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
                 <img src="/icon-journal.jpg" alt="日記帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">日記帳</span>
@@ -1020,7 +1026,7 @@ export default function Home() {
 
             {/* 📅 予定帳 */}
             <a href="/calendar" onClick={(e) => handleNavigate(e, '/calendar')} className="flex flex-col items-center group cursor-pointer">
-              <div className="gothic-dock-item w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
+              <div className="gothic-dock-item w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 flex items-center justify-center bg-[#2B0C12]" style={{ borderColor: '#D8C5A3' }}>
                 <img src="/icon-calendar.jpg" alt="予定帳" className="w-full h-full object-cover" />
               </div>
               <span className="text-[10px] mt-1 text-[#F3ECD8] group-hover:text-[#D8C5A3] transition">予定帳</span>
