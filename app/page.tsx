@@ -108,6 +108,19 @@ interface TrainDelayInfo {
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
+const getJrLineByLocation = (locName: string): string => {
+  if (locName.includes('埼玉県')) return 'JR京浜東北線・宇都宮線・高崎線・埼京線';
+  if (locName.includes('東京都')) return 'JR山手線・中央線・京浜東北線';
+  if (locName.includes('千葉県')) return 'JR総武線・京葉線・常磐線';
+  if (locName.includes('神奈川県')) return 'JR東海道線・京浜東北線・横須賀線';
+  if (locName.includes('北海道')) return 'JR函館本線・千歳線';
+  if (locName.includes('宮城県')) return 'JR東北本線・仙石線';
+  if (locName.includes('大阪府')) return 'JR大阪環状線・東海道本線';
+  if (locName.includes('京都府')) return 'JR奈良線・嵯峨野線';
+  if (locName.includes('福岡県')) return 'JR鹿児島本線・筑肥線';
+  return 'JR周辺路線';
+};
+
 export default function Home() {
   const router = useRouter();
   const [isPlayingFire, setIsPlayingFire] = useState<boolean>(false);
@@ -150,7 +163,7 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(false);
 
-  // 列車遅延情報ステータス
+  // JR列車遅延情報ステータス
   const [trainDelay, setTrainDelay] = useState<TrainDelayInfo | null>(null);
 
   const [isRecordModalOpen, setIsRecordModalOpen] = useState<boolean>(false);
@@ -312,29 +325,48 @@ export default function Home() {
     }
 
     fetchWeatherByLocation(currentLat, currentLon, currentLocName);
-    fetchTrainDelayInfo(currentLocName);
+    fetchJrTrainDelayInfo(currentLocName);
   }, []);
 
-  // 🚂 地域に応じた鉄道路線の運行情報を取得する関数（公共交通オープンデータAPI等に対応）
-  const fetchTrainDelayInfo = async (locName: string) => {
+  // 🚂 JRサイトの運行情報（https://traininfo.jreast.co.jp/train_info/）を参照して確認する関数
+  const fetchJrTrainDelayInfo = async (locName: string) => {
+    const targetLines = getJrLineByLocation(locName);
     try {
-      // 例として関東や主要路線の運行情報を取得・判定するシミュレーション（または公開遅延API連携）
-      // ここでは安定動作のため外部APIまたはオープンな運行情報JSONを想定し、正常時は遅延なし、異常時は遅延情報をセットします
-      // 万柚子様の地域（埼玉県など）に合わせた代表路線（京浜東北線、宇都宮線、高崎線、埼京線など）の遅延をチェックします
-      const res = await fetch('https://tetsudo.maruttoman.com/api/delay'); // 互換性のある運行情報取得先（またはモックフォールバック）
-      const data = await res.json();
-      if (data && data.delay) {
+      const response = await fetch('https://traininfo.jreast.co.jp/train_info/', {
+        method: 'GET',
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        setTrainDelay({ hasDelay: false, lineName: targetLines, message: '' });
+        return;
+      }
+
+      const htmlText = await response.text();
+      const hasDelayKeyword =
+        htmlText.includes('遅延') ||
+        htmlText.includes('運転見合わせ') ||
+        htmlText.includes('運休');
+
+      if (hasDelayKeyword) {
         setTrainDelay({
           hasDelay: true,
-          lineName: data.lineName || '周辺路線',
-          message: data.message || 'ダイヤに乱れが生じております。'
+          lineName: targetLines,
+          message: 'JRの運行情報にて遅れや運転変更の案内が出ております。',
         });
       } else {
-        setTrainDelay({ hasDelay: false, lineName: '', message: '' });
+        setTrainDelay({
+          hasDelay: false,
+          lineName: targetLines,
+          message: '',
+        });
       }
     } catch (e) {
-      // ネットワークやAPIのエラー時は平常運転（またはサンプルとしてデモ用に判定）として安全に処理
-      setTrainDelay({ hasDelay: false, lineName: '', message: '' });
+      setTrainDelay({
+        hasDelay: false,
+        lineName: targetLines,
+        message: '',
+      });
     }
   };
 
@@ -420,7 +452,7 @@ export default function Home() {
     localStorage.setItem('butler_fallback_location', JSON.stringify({ name: fullName, lat: coords.lat, lon: coords.lon }));
     setShowLocationModal(false);
     fetchWeatherByLocation(coords.lat, coords.lon, fullName);
-    fetchTrainDelayInfo(fullName);
+    fetchJrTrainDelayInfo(fullName);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -499,7 +531,7 @@ export default function Home() {
     const name = masterName || '主';
     let delayNotice = '';
     if (trainDelay && trainDelay.hasDelay) {
-      delayNotice = ` なお、現在お近くの路線（${trainDelay.lineName}）に遅れが生じておりますので、お出かけの際はお気をつけくださいませ。`;
+      delayNotice = ` なお、JRの運行情報にて${trainDelay.lineName}に遅れが生じておりますので、お出かけの際はお気をつけくださいませ。`;
     }
 
     if (currentHour >= 17 || currentHour < 6) {
@@ -678,7 +710,7 @@ export default function Home() {
               </div>
 
               <div className="mb-5 pb-4 border-b border-[#BB8632]/30">
-                <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 天気参照地域の設定（位置情報オフ時）</p>
+                <p className="text-xs font-bold text-[#BB8632] mb-1.5">📍 天気・JR路線参照地域の設定</p>
                 <div className="flex justify-between items-center bg-[#2B0C12] px-3 py-2 rounded border border-[#BB8632]/40">
                   <span className="text-xs text-[#F3ECD8]">{fallbackLocationName}</span>
                   <button onClick={() => { setShowSettingsModal(false); setShowLocationModal(true); }} className="px-2.5 py-1 rounded bg-[#BB8632] text-[#2B0C12] font-bold text-[10px] hover:bg-[#D49E4B] transition cursor-pointer">全国から選択</button>
@@ -795,7 +827,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 🌹 会話エリア（時計のすぐ下に配置・遅延情報連携対応） */}
+        {/* 🌹 会話エリア（時計のすぐ下に配置・JR遅延情報連携対応） */}
         <div className="relative z-10 w-full max-w-sm sm:max-w-md mt-3 mb-auto flex flex-col items-center justify-center px-2">
           {/* ① タップ前の初期挨拶カード */}
           <div
